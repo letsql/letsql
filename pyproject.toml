@@ -1,0 +1,28 @@
+[build-system]
+requires = ["maturin>=1.2,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "letsql"
+version = "0.1.1"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
+
+dependencies = [
+    "ibis-framework>=7.0.0"
+]
+
+
+[tool.maturin]
+module-name = "letsql._internal"
+python-source = "python"
+features = ["pyo3/extension-module"]
+
+[tool.codespell]
+skip = "*.lock,.direnv,.git,docs/_freeze/**/html.json"
+ignore-regex = '\b(DOUB|i[if]f|I[IF]F|lamduh|AFE|crate|ba)\b'
+builtin = "clear,rare,names"

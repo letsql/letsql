@@ -1,0 +1,13 @@
+[project]
+name = "letsql"
+version = "0.1.1"
+description = "Add a short description here"
+authors = ["Daniel Mesejo <mesejoleon@gmail.com>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+[tasks]
+
+[dependencies]
+python = "3.9.*"
+pip = "23.3.1.*"
