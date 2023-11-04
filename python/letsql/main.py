@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     import pandas as pd
     from collections.abc import Mapping
 
-from ._internal import SessionContext
+from ._internal import SessionContext, SessionConfig
 
 import ibis.expr.schema as sch
 
@@ -58,7 +58,10 @@ class Backend(BaseBackend, CanCreateSchema):
     def do_connect(
         self,
     ) -> None:
-        self.con = SessionContext()
+        df_config = SessionConfig(
+            {"datafusion.sql_parser.dialect": "PostgreSQL"}
+        ).with_information_schema(True)
+        self.con = SessionContext(df_config)
 
     def list_tables(
         self, like: str | None = None, database: str | None = None

@@ -13,7 +13,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "ibis-framework>=7.0.0"
+    "ibis-framework@git+https://github.com/ibis-project/ibis"
 ]
 
 

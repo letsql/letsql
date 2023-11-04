@@ -27,9 +27,7 @@ def _physical_table(op: ops.PhysicalTable, **_):
 
 @translate_rel.register(ops.DatabaseTable)
 def table(op, *, name, namespace, **_):
-    return sg.table(
-        name, db=None, catalog=None
-    )  # TODO rewrite when ibis expose new modules
+    return sg.table(name, db=namespace.schema, catalog=namespace.database)
 
 
 @translate_rel.register(ops.SelfReference)

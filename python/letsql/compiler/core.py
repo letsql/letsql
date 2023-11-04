@@ -27,8 +27,8 @@ import ibis.expr.operations as ops
 import ibis.expr.types as ir
 from letsql.compiler.relations import translate_rel
 from letsql.compiler.values import translate_val
-from letsql.vendored.common.deferred import _
-from letsql.vendored.expr.analysis import c, find_first_base_table, p, x, y
+from ibis.common.deferred import _
+from ibis.expr.analysis import c, find_first_base_table, p, x, y
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

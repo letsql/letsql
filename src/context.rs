@@ -48,6 +48,10 @@ impl PySessionConfig {
 
         Self { config }
     }
+
+    fn with_information_schema(&self, enabled: bool) -> Self {
+        Self::from(self.config.clone().with_information_schema(enabled))
+    }
 }
 
 /// `PySessionContext` is able to plan and execute DataFusion plans.
