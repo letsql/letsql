@@ -1,32 +1,45 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import letsql as ls
+import gzip
 import pytest
-from pytest import param
 
 
-# @contextlib.contextmanager
-# def pushd(new_dir):
-#     previous_dir = os.getcwd()
-#     os.chdir(new_dir)
-#     try:
-#         yield
-#     finally:
-#         os.chdir(previous_dir)
+@pytest.fixture
+def gzip_csv(data_dir, tmp_path):
+    basename = "diamonds.csv"
+    f = tmp_path.joinpath(f"{basename}.gz")
+    data = data_dir.joinpath("csv", basename).read_bytes()
+    f.write_bytes(gzip.compress(data))
+    return str(f.absolute())
 
 
-@pytest.mark.parametrize(
-    ("fname", "in_table_name", "out_table_name"),
-    [
-        param("functional_alltypes.parquet", "funk_all", "funk_all", id="basename"),
-    ],
-)
-def test_register_parquet(data_dir, fname, in_table_name, out_table_name):
-    fname = Path(fname)
-    con = ls.con()
-    table = con.register(data_dir / "parquet" / fname.name, table_name=in_table_name)
+def test_register_csv(con, data_dir):
+    fname = "diamonds.csv"
+    table_name = "diamonds"
+    table = con.register(data_dir / "csv" / fname, table_name=table_name)
+    assert any(table_name in t for t in con.list_tables())
+    assert table.count().execute() > 0
 
-    assert any(out_table_name in t for t in con.list_tables())
-    assert table.count() > 0
+
+def test_register_csv_gz(con, data_dir, gzip_csv):
+    table = con.register(gzip_csv, table_name="diamonds")
+    assert table.count().execute() > 0
+
+
+def test_register_with_dotted_name(con, data_dir, tmp_path):
+    basename = "foo.bar.baz/diamonds.csv"
+    f = tmp_path.joinpath(basename)
+    f.parent.mkdir()
+    data = data_dir.joinpath("csv", "diamonds.csv").read_bytes()
+    f.write_bytes(data)
+    table = con.register(str(f.absolute()), table_name="diamonds")
+    assert table.count().execute() > 0
+
+
+def test_register_parquet(con, data_dir):
+    fname = "functional_alltypes.parquet"
+    table_name = "funk_all"
+    table = con.register(data_dir / "parquet" / fname, table_name=table_name)
+
+    assert any(table_name in t for t in con.list_tables())
+    assert table.count().execute() > 0

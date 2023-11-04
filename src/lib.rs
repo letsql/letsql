@@ -1,6 +1,9 @@
 use pyo3::prelude::*;
 
 #[allow(clippy::borrow_deref_ref)]
+pub mod catalog;
+
+#[allow(clippy::borrow_deref_ref)]
 mod context;
 
 mod dataframe;

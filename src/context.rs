@@ -1,14 +1,22 @@
 use std::collections::{HashMap, HashSet};
+use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 
 use datafusion::arrow::datatypes::{DataType, Schema};
 use datafusion::arrow::pyarrow::PyArrowType;
+use datafusion::arrow::record_batch::RecordBatch;
+use datafusion::datasource::file_format::file_compression_type::FileCompressionType;
+use datafusion::datasource::MemTable;
 use datafusion::execution::context::{SessionConfig, SessionContext, SessionState};
 use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
-use datafusion::prelude::{DataFrame, ParquetReadOptions};
+use datafusion::prelude::{CsvReadOptions, DataFrame, ParquetReadOptions};
 use datafusion_common::ScalarValue;
+
+use pyo3::exceptions::{PyKeyError, PyValueError};
 use pyo3::prelude::*;
 
+use crate::catalog::PyCatalog;
 use crate::dataframe::PyDataFrame;
 use crate::errors::DataFusionError;
 use crate::utils::wait_for_future;
@@ -76,6 +84,13 @@ impl PySessionContext {
         Ok(PyDataFrame::new(df))
     }
 
+    fn deregister_table(&mut self, name: &str) -> PyResult<()> {
+        self.ctx
+            .deregister_table(name)
+            .map_err(DataFusionError::from)?;
+        Ok(())
+    }
+
     #[allow(clippy::too_many_arguments)]
     #[pyo3(signature = (name, path, table_partition_cols=vec![],
                         parquet_pruning=true,
@@ -102,6 +117,64 @@ impl PySessionContext {
 
         let result = self.ctx.register_parquet(name, path, options);
         wait_for_future(py, result).map_err(DataFusionError::from)?;
+        Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    #[pyo3(signature = (name,
+                        path,
+                        schema=None,
+                        has_header=true,
+                        delimiter=",",
+                        schema_infer_max_records=1000,
+                        file_extension=".csv",
+                        file_compression_type=None))]
+    fn register_csv(
+        &mut self,
+        name: &str,
+        path: PathBuf,
+        schema: Option<PyArrowType<Schema>>,
+        has_header: bool,
+        delimiter: &str,
+        schema_infer_max_records: usize,
+        file_extension: &str,
+        file_compression_type: Option<String>,
+        py: Python,
+    ) -> PyResult<()> {
+        let path = path
+            .to_str()
+            .ok_or_else(|| PyValueError::new_err("Unable to convert path to a string"))?;
+        let delimiter = delimiter.as_bytes();
+        if delimiter.len() != 1 {
+            return Err(PyValueError::new_err(
+                "Delimiter must be a single character",
+            ));
+        }
+
+        let mut options = CsvReadOptions::new()
+            .has_header(has_header)
+            .delimiter(delimiter[0])
+            .schema_infer_max_records(schema_infer_max_records)
+            .file_extension(file_extension)
+            .file_compression_type(parse_file_compression_type(file_compression_type)?);
+        options.schema = schema.as_ref().map(|x| &x.0);
+
+        let result = self.ctx.register_csv(name, path, options);
+        wait_for_future(py, result).map_err(DataFusionError::from)?;
+
+        Ok(())
+    }
+
+    fn register_record_batches(
+        &mut self,
+        name: &str,
+        partitions: PyArrowType<Vec<Vec<RecordBatch>>>,
+    ) -> PyResult<()> {
+        let schema = partitions.0[0][0].schema();
+        let table = MemTable::try_new(schema, partitions.0)?;
+        self.ctx
+            .register_table(name, Arc::new(table))
+            .map_err(DataFusionError::from)?;
         Ok(())
     }
 
@@ -143,6 +216,17 @@ impl PySessionContext {
             config_entries.join("\n\t")
         ))
     }
+
+    #[pyo3(signature = (name="datafusion"))]
+    fn catalog(&self, name: &str) -> PyResult<PyCatalog> {
+        match self.ctx.catalog(name) {
+            Some(catalog) => Ok(PyCatalog::new(catalog)),
+            None => Err(PyKeyError::new_err(format!(
+                "Catalog with name {} doesn't exist.",
+                &name,
+            ))),
+        }
+    }
 }
 
 impl PySessionContext {
@@ -175,4 +259,13 @@ fn convert_table_partition_cols(
             ))),
         })
         .collect::<Result<Vec<_>, _>>()
+}
+
+fn parse_file_compression_type(
+    file_compression_type: Option<String>,
+) -> Result<FileCompressionType, PyErr> {
+    FileCompressionType::from_str(&*file_compression_type.unwrap_or("".to_string()).as_str())
+        .map_err(|_| {
+            PyValueError::new_err("file_compression_type must one of: gzip, bz2, xz, zstd")
+        })
 }
