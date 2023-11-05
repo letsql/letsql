@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import math
 import operator
 from typing import Any
 
@@ -11,30 +12,17 @@ import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
 from ibis.backends.base.sqlglot import (
     NULL,
-    STAR,
     AggGen,
     F,
     interval,
     make_cast,
+    paren,
+    parenthesize,
 )
 from ibis.backends.base.sqlglot.datatypes import PostgresType
 from ibis.common.temporal import IntervalUnit
 from ibis.expr.operations.udf import InputType
 from ibis.formats.pyarrow import PyArrowType
-
-
-def paren(expr):
-    """Wrap a sqlglot expression in parentheses."""
-    return sg.exp.Paren(this=expr)
-
-
-def parenthesize(op, arg):
-    import ibis.expr.operations as ops
-
-    if isinstance(op, (ops.Binary, ops.Unary)):
-        return paren(arg)
-    # function calls don't need parens
-    return arg
 
 
 def _aggregate(funcname, *args, where):
@@ -214,6 +202,8 @@ def _literal(op, *, value, dtype, **kw):
     elif dtype.is_string() or dtype.is_macaddr():
         return sg.exp.convert(str(value))
     elif dtype.is_numeric():
+        if isinstance(value, float) and math.isinf(value):
+            return sg.exp.Literal.number("'+Inf'::double")
         return sg.exp.convert(value)
     elif dtype.is_interval():
         if dtype.unit.short in {"ms", "us", "ns"}:
@@ -336,7 +326,7 @@ def count_distinct(op, *, arg, where, **_):
 
 @translate_val.register(ops.CountStar)
 def count_star(op, *, where, **_):
-    return agg.count(STAR, where=where)
+    return agg.count(1, where=where)
 
 
 @translate_val.register(ops.Sum)
@@ -776,3 +766,13 @@ def correlation(op, *, left, right, where, **_):
         right = cast(right, dt.float64)
 
     return agg["corr"](left, right, where=where)
+
+
+@translate_val.register(ops.IsNull)
+def is_null(op, *, arg, **_):
+    return arg.is_(NULL)
+
+
+@translate_val.register(ops.IsNan)
+def is_nan(op, *, arg, **_):
+    return F.isnan(F.coalesce(arg, sg.exp.Literal.number("'NaN'::double")))

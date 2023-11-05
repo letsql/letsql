@@ -12,6 +12,7 @@ from ibis.backends.base import BaseBackend, CanCreateSchema
 from ibis.backends.base.sqlglot import STAR
 from sqlglot import exp, transforms
 from sqlglot.dialects import Postgres
+from sqlglot.dialects.dialect import rename_func
 
 from letsql.compiler.core import translate
 
@@ -40,6 +41,7 @@ class LetSql(Postgres):
                     transforms.eliminate_qualify,
                 ]
             ),
+            exp.IsNan: rename_func("isnan"),
         }
 
 
@@ -70,7 +72,7 @@ class Backend(BaseBackend, CanCreateSchema):
         return self._filter_with_like(self.con.tables(), like)
 
     def table(self, name: str, schema: sch.Schema | None = None) -> ir.Table:
-        """Get an ibis expression representing a DataFusion table.
+        """Get an ibis expression representing a LetSQL table.
 
         Parameters
         ----------
@@ -115,7 +117,9 @@ class Backend(BaseBackend, CanCreateSchema):
             ("parq", "parquet")
         ):
             self.con.deregister_table(table_name)
-            self.con.register_parquet(table_name, first, file_extension=".parquet")
+            self.con.register_parquet(
+                table_name, first, file_extension=".parquet", skip_metadata=False
+            )
             return self.table(table_name)
         elif first.startswith(("csv://", "txt://")) or first.endswith(
             ("csv", "tsv", "txt")
@@ -245,7 +249,7 @@ class Backend(BaseBackend, CanCreateSchema):
     def compile(
         self, expr: ir.Expr, limit: str | None = None, params=None, **kwargs: Any
     ):
-        """Compile an Ibis expression to a DataFusion SQL string."""
+        """Compile an Ibis expression to a LetSQL SQL string."""
         return self._to_sqlglot(expr, limit=limit, params=params, **kwargs).sql(
             dialect=self.dialect, pretty=True
         )

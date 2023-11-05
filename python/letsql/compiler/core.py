@@ -29,6 +29,7 @@ from letsql.compiler.relations import translate_rel
 from letsql.compiler.values import translate_val
 from ibis.common.deferred import _
 from ibis.expr.analysis import c, find_first_base_table, p, x, y
+from ibis.expr.rewrites import rewrite_dropna, rewrite_fillna, rewrite_sample
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -117,6 +118,9 @@ def translate(op: ops.TableNode, params: Mapping[ir.Value, Any]) -> sg.exp.Expre
         | replace_empty_in_values_with_false
         | subtract_one_from_one_indexed_functions
         | add_one_to_nth_value_input
+        | rewrite_fillna
+        | rewrite_dropna
+        | rewrite_sample
     )
 
     # apply translate rules in topological order

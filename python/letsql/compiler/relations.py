@@ -128,9 +128,7 @@ def _limit(op: ops.Limit, *, table, n, offset, **_):
         result = result.limit(limit)
 
     if not isinstance(offset, int):
-        return result.offset(
-            sg.select(offset).from_(table).subquery().sql("clickhouse")
-        )
+        return result.offset(sg.select(offset).from_(table).subquery().sql("postgres"))
 
     return result.offset(offset) if offset != 0 else result
 

@@ -159,3 +159,13 @@ def awards_players(con):
 @pytest.fixture(scope="session")
 def awards_players_df(awards_players):
     return awards_players.execute(limit=None)
+
+
+@pytest.fixture(scope="session")
+def sorted_df(df):
+    return df.sort_values("id").reset_index(drop=True)
+
+
+@pytest.fixture(scope="session")
+def diamonds(con):
+    return con.table("diamonds")
