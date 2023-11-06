@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import ibis
 import ibis.expr.operations as ops
 import ibis.expr.types as ir
+import pandas as pd
 import pyarrow as pa
 import pyarrow.dataset as ds
 from ibis.backends.base import BaseBackend, CanCreateSchema
@@ -23,7 +24,6 @@ from ibis.formats.pyarrow import PyArrowType
 import ibis.expr.datatypes as dt
 
 if TYPE_CHECKING:
-    import pandas as pd
     from collections.abc import Mapping
 
 from letsql.internal import SessionContext, SessionConfig, udf
@@ -172,6 +172,22 @@ class Backend(BaseBackend, CanCreateSchema):
 
         if isinstance(source, (str, Path)):
             first = str(source)
+        elif isinstance(source, pa.Table):
+            self.con.deregister_table(table_name)
+            self.con.register_record_batches(table_name, [source.to_batches()])
+            return self.table(table_name)
+        elif isinstance(source, pa.RecordBatch):
+            self.con.deregister_table(table_name)
+            self.con.register_record_batches(table_name, [[source]])
+            return self.table(table_name)
+        elif isinstance(source, pa.dataset.Dataset):
+            self.con.deregister_table(table_name)
+            self.con.register_dataset(table_name, source)
+            return self.table(table_name)
+        elif isinstance(source, pd.DataFrame):
+            return self.register(pa.Table.from_pandas(source), table_name, **kwargs)
+        else:
+            raise ValueError("`source` must be either a string or a pathlib.Path")
 
         if first.startswith(("parquet://", "parq://")) or first.endswith(
             ("parq", "parquet")

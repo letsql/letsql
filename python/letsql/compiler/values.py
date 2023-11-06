@@ -303,7 +303,7 @@ def round(op, *, arg, digits, **_):
 
 @translate_val.register(ops.Substring)
 def substring(op, *, arg, start, length, **_):
-    start += 1
+    start = if_(start < 0, F.length(arg) + start + 1, start + 1)
     if length is not None:
         return F.substr(arg, start, length)
     return F.substr(arg, start)
