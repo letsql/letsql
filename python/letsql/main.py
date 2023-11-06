@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import inspect
+import typing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -16,11 +18,15 @@ from sqlglot.dialects.dialect import rename_func
 
 from letsql.compiler.core import translate
 
+from ibis.expr.operations.udf import InputType
+from ibis.formats.pyarrow import PyArrowType
+import ibis.expr.datatypes as dt
+
 if TYPE_CHECKING:
     import pandas as pd
     from collections.abc import Mapping
 
-from ._internal import SessionContext, SessionConfig
+from letsql.internal import SessionContext, SessionConfig, udf
 
 import ibis.expr.schema as sch
 
@@ -64,6 +70,60 @@ class Backend(BaseBackend, CanCreateSchema):
             {"datafusion.sql_parser.dialect": "PostgreSQL"}
         ).with_information_schema(True)
         self.con = SessionContext(df_config)
+        self._register_builtin_udfs()
+
+    def _register_builtin_udfs(self):
+        from letsql.compiler import udfs
+
+        for name, func in inspect.getmembers(
+            udfs,
+            predicate=lambda m: callable(m)
+            and not m.__name__.startswith("_")
+            and m.__module__ == udfs.__name__,
+        ):
+            annotations = typing.get_type_hints(func)
+            argnames = list(inspect.signature(func).parameters.keys())
+            input_types = [
+                PyArrowType.from_ibis(dt.dtype(annotations.get(arg_name)))
+                for arg_name in argnames
+            ]
+            return_type = PyArrowType.from_ibis(dt.dtype(annotations["return"]))
+            udf_fun = udf(
+                func,
+                input_types=input_types,
+                return_type=return_type,
+                volatility="immutable",
+                name=name,
+            )
+            self.con.register_udf(udf_fun)
+
+    def _register_udfs(self, expr: ir.Expr) -> None:
+        for udf_node in expr.op().find(ops.ScalarUDF):
+            if udf_node.__input_type__ == InputType.PYARROW:
+                udf = self._compile_pyarrow_udf(udf_node)
+                self.con.register_udf(udf)
+
+        for udf_node in expr.op().find(ops.ElementWiseVectorizedUDF):
+            udf = self._compile_elementwise_udf(udf_node)
+            self.con.register_udf(udf)
+
+    def _compile_pyarrow_udf(self, udf_node):
+        return udf(
+            udf_node.__func__,
+            input_types=[PyArrowType.from_ibis(arg.dtype) for arg in udf_node.args],
+            return_type=PyArrowType.from_ibis(udf_node.dtype),
+            volatility=getattr(udf_node, "config", {}).get("volatility", "volatile"),
+            name=udf_node.__full_name__,
+        )
+
+    def _compile_elementwise_udf(self, udf_node):
+        return udf(
+            udf_node.func,
+            input_types=list(map(PyArrowType.from_ibis, udf_node.input_type)),
+            return_type=PyArrowType.from_ibis(udf_node.return_type),
+            volatility="volatile",
+            name=udf_node.func.__name__,
+        )
 
     def list_tables(
         self, like: str | None = None, database: str | None = None

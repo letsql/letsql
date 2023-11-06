@@ -1,13 +1,14 @@
 use pyo3::prelude::*;
-
 #[allow(clippy::borrow_deref_ref)]
 pub mod catalog;
-
 #[allow(clippy::borrow_deref_ref)]
 mod context;
-
 mod dataframe;
 mod errors;
+#[allow(clippy::borrow_deref_ref)]
+mod udaf;
+#[allow(clippy::borrow_deref_ref)]
+mod udf;
 pub mod utils;
 
 // Used to define Tokio Runtime as a Python module attribute
@@ -25,5 +26,8 @@ fn _internal(_py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add_class::<context::PySessionConfig>()?;
     m.add_class::<context::PySessionContext>()?;
+    m.add_class::<dataframe::PyDataFrame>()?;
+    m.add_class::<udf::PyScalarUDF>()?;
+    m.add_class::<udaf::PyAggregateUDF>()?;
     Ok(())
 }

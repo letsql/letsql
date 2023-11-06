@@ -19,6 +19,8 @@ use pyo3::prelude::*;
 use crate::catalog::PyCatalog;
 use crate::dataframe::PyDataFrame;
 use crate::errors::DataFusionError;
+use crate::udaf::PyAggregateUDF;
+use crate::udf::PyScalarUDF;
 use crate::utils::wait_for_future;
 
 /// Configuration options for a SessionContext
@@ -202,6 +204,16 @@ impl PySessionContext {
 
     fn session_id(&self) -> String {
         self.ctx.session_id()
+    }
+
+    fn register_udf(&mut self, udf: PyScalarUDF) -> PyResult<()> {
+        self.ctx.register_udf(udf.function);
+        Ok(())
+    }
+
+    fn register_udaf(&mut self, udaf: PyAggregateUDF) -> PyResult<()> {
+        self.ctx.register_udaf(udaf.function);
+        Ok(())
     }
 
     fn __repr__(&self) -> PyResult<String> {

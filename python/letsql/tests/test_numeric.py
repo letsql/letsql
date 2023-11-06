@@ -235,7 +235,6 @@ def test_isnan_isinf(
         ),
     ],
 )
-@pytest.mark.skip(reason="need udf support")
 def test_math_functions_literals(con, expr, expected):
     result = con.execute(expr.name("tmp"))
     if isinstance(result, decimal.Decimal):
@@ -318,7 +317,6 @@ def test_trig_functions_columns(expr, alltypes, df, expected_fn):
         ),
     ],
 )
-@pytest.mark.skip(reason="need udf support")
 def test_simple_math_functions_columns(con, alltypes, df, expr_fn, expected_fn):
     expr = expr_fn(alltypes).name("tmp")
     expected = expected_fn(df)
