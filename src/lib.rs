@@ -4,7 +4,10 @@ pub mod catalog;
 #[allow(clippy::borrow_deref_ref)]
 mod context;
 mod dataframe;
+mod dataset;
+mod dataset_exec;
 mod errors;
+mod pyarrow_filter_expression;
 #[allow(clippy::borrow_deref_ref)]
 mod udaf;
 #[allow(clippy::borrow_deref_ref)]

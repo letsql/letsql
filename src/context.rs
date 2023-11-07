@@ -8,6 +8,7 @@ use datafusion::arrow::pyarrow::PyArrowType;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::file_format::file_compression_type::FileCompressionType;
 use datafusion::datasource::MemTable;
+use datafusion::datasource::TableProvider;
 use datafusion::execution::context::{SessionConfig, SessionContext, SessionState};
 use datafusion::execution::runtime_env::{RuntimeConfig, RuntimeEnv};
 use datafusion::prelude::{CsvReadOptions, DataFrame, ParquetReadOptions};
@@ -18,6 +19,7 @@ use pyo3::prelude::*;
 
 use crate::catalog::PyCatalog;
 use crate::dataframe::PyDataFrame;
+use crate::dataset::Dataset;
 use crate::errors::DataFusionError;
 use crate::udaf::PyAggregateUDF;
 use crate::udf::PyScalarUDF;
@@ -181,6 +183,16 @@ impl PySessionContext {
         self.ctx
             .register_table(name, Arc::new(table))
             .map_err(DataFusionError::from)?;
+        Ok(())
+    }
+
+    fn register_dataset(&self, name: &str, dataset: &PyAny, py: Python) -> PyResult<()> {
+        let table: Arc<dyn TableProvider> = Arc::new(Dataset::new(dataset, py)?);
+
+        self.ctx
+            .register_table(name, table)
+            .map_err(DataFusionError::from)?;
+
         Ok(())
     }
 

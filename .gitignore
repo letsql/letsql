@@ -74,3 +74,6 @@ docs/_build/
 # Ibis testing data
 ci/ibis-testing-data*
 ci/ibis_testing.db
+
+# quarto
+/.quarto/
