@@ -408,3 +408,8 @@ def test_multiple_subs(con):
 )
 def test_no_conditional_percent_escape(con, expr):
     assert con.execute(expr) == "%"
+
+
+def test_string_length(con):
+    t = ibis.memtable({"s": ["aaa", "a", "aa"]})
+    assert con.execute(t.s.length()).gt(0).all()

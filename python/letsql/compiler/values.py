@@ -108,6 +108,7 @@ _simple_ops = {
     ops.ArrayContains: "array_contains",
     ops.ArrayLength: "array_length",
     ops.ArrayRemove: "array_remove_all",
+    ops.StringLength: "length",
 }
 
 for _op, _name in _simple_ops.items():
@@ -208,7 +209,7 @@ def _literal(op, *, value, dtype, **kw):
     elif dtype.is_interval():
         if dtype.unit.short in {"ms", "us", "ns"}:
             raise com.UnsupportedOperationError(
-                "DataFusion doesn't support subsecond interval resolutions"
+                "LetSQL doesn't support subsecond interval resolutions"
             )
 
         return interval(value, unit=dtype.resolution.upper())
@@ -388,7 +389,7 @@ def scalar_udf(op, **kw):
         return F[op.__full_name__](*kw.values())
     else:
         raise NotImplementedError(
-            f"DataFusion only supports PyArrow UDFs: got a {input_type.name.lower()} UDF"
+            f"LetSQL only supports PyArrow UDFs: got a {input_type.name.lower()} UDF"
         )
 
 
@@ -412,7 +413,7 @@ def regex_extract(op, *, arg, pattern, index, **_):
     if not isinstance(op.index, ops.Literal):
         raise ValueError(
             "re_extract `index` expressions must be literals. "
-            "Arbitrary expressions are not supported in the DataFusion backend"
+            "Arbitrary expressions are not supported by LetSQL"
         )
     return F.regexp_match(arg, F.concat("(", pattern, ")"))[index]
 
@@ -449,7 +450,7 @@ def string_join(op, *, sep, arg, **_):
     if not isinstance(op.sep, ops.Literal):
         raise ValueError(
             "join `sep` expressions must be literals. "
-            "Arbitrary expressions are not supported in the DataFusion backend"
+            "Arbitrary expressions are not supported by LetSQL"
         )
 
     return F.concat_ws(sep, *arg)
@@ -776,3 +777,13 @@ def is_null(op, *, arg, **_):
 @translate_val.register(ops.IsNan)
 def is_nan(op, *, arg, **_):
     return F.isnan(F.coalesce(arg, sg.exp.Literal.number("'NaN'::double")))
+
+
+@translate_val.register(ops.ArrayStringJoin)
+def array_string_join(op, *, sep, arg):
+    return F.array_join(arg, sep)
+
+
+@translate_val.register(ops.FindInSet)
+def array_string_find(op, *, needle, values):
+    return F.coalesce(F.array_position(F.make_array(*values), needle), 0)
