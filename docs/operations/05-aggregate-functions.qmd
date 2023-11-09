@@ -1,0 +1,4 @@
+---
+title: "Aggregate Functions"
+subtitle: "Simple function are not enough"
+---

@@ -1,0 +1,4 @@
+---
+title: "Window Functions"
+subtitle: "Because we need to look into our soul"
+---

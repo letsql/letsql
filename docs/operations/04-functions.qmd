@@ -1,0 +1,4 @@
+---
+title: "Functions"
+subtitle: "because we need them"
+---

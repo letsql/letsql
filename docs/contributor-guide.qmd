@@ -1,0 +1,6 @@
+---
+title: "Contributing"
+---
+
+This is the document specifying how to contribute
+

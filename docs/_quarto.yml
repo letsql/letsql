@@ -1,0 +1,30 @@
+project:
+  type: website
+
+website:
+  title: "LetSQL Docs"
+  navbar:
+    background: primary
+    search: true
+  sidebar:
+    style: docked
+    contents:
+      - section: "User Guide"
+        contents:
+          - introduction.qmd
+          - section: "Common Operations"
+            contents:
+            - auto: operations/*.qmd
+      - section: "API Reference"
+        contents:
+          - reference/expression-tables.qmd
+      - contributor-guide.qmd
+  page-navigation: false
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    css: styles.css
+    toc: true
