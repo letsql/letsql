@@ -1,7 +1,7 @@
 [project]
 name = "letsql"
 version = "0.1.1"
-description = "Add a short description here"
+description = "Machine Learning pipelines with a familiar DataFrame and SQL UI "
 authors = ["Daniel Mesejo <mesejoleon@gmail.com>"]
 channels = ["conda-forge"]
 platforms = ["osx-arm64"]
