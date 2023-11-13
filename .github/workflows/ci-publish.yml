@@ -12,6 +12,7 @@ on:
       - "docs/**"
       - "**/*.md"
       - "**/*.qmd"
+      - "*.md"
       - "codecov.yml"
       - ".envrc"
     branches:
