@@ -54,6 +54,8 @@ def udaf(accum, input_type, return_type, state_type, volatility, name=None):
         raise TypeError("`accum` must implement the abstract base class Accumulator")
     if name is None:
         name = accum.__qualname__.lower()
+    if isinstance(input_type, pa.lib.DataType):
+        input_type = [input_type]
     return AggregateUDF(
         name=name,
         accumulator=accum,

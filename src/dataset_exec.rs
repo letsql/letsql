@@ -95,7 +95,7 @@ impl DatasetExec {
 
         let scanner = dataset.call_method("scanner", (), Some(kwargs))?;
 
-        let schema = Arc::new(
+        let schema: SchemaRef = Arc::new(
             scanner
                 .getattr("projected_schema")?
                 .extract::<PyArrowType<_>>()?
@@ -116,13 +116,14 @@ impl DatasetExec {
             .downcast()
             .map_err(PyErr::from)?;
 
+        let projected_statistics = Statistics::new_unknown(&schema);
         Ok(DatasetExec {
             dataset: dataset.into(),
-            schema,
+            schema: schema.clone(),
             fragments: fragments.into(),
             columns,
             filter_expr,
-            projected_statistics: Default::default(),
+            projected_statistics,
         })
     }
 }
@@ -219,8 +220,8 @@ impl ExecutionPlan for DatasetExec {
         })
     }
 
-    fn statistics(&self) -> Statistics {
-        self.projected_statistics.clone()
+    fn statistics(&self) -> DFResult<Statistics, InnerDataFusionError> {
+        Ok(self.projected_statistics.clone())
     }
 }
 

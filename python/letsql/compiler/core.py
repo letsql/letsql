@@ -30,6 +30,10 @@ from letsql.compiler.values import translate_val
 from ibis.common.deferred import _
 from ibis.expr.analysis import c, find_first_base_table, p, x, y
 from ibis.expr.rewrites import rewrite_dropna, rewrite_fillna, rewrite_sample
+from letsql.compiler.simplifier import (
+    simplify_selection_predicates,
+    evaluate_comparison_constant,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -114,6 +118,8 @@ def translate(op: ops.TableNode, params: Mapping[ir.Value, Any]) -> sg.exp.Expre
 
     op = op.replace(
         replace_literals
+        | evaluate_comparison_constant
+        | simplify_selection_predicates
         | replace_in_column_with_table_array_view
         | replace_empty_in_values_with_false
         | subtract_one_from_one_indexed_functions
