@@ -21,12 +21,27 @@ def evaluate_comparison_constant(_):
 
 
 @replace(p.Selection)
-def simplify_selection_predicates(_):
+def simplify_selection(_):
     if _.predicates:
         literal = next(
             (pred for pred in _.predicates if isinstance(pred, ops.Literal)), None
         )
         if literal and not literal.value:
             return _.copy(predicates=(literal,))
+
+        equal_predicates = [
+            pred for pred in _.predicates if isinstance(pred, ops.Equals)
+        ]
+        replacements = {
+            pred.left: pred.right
+            for pred in equal_predicates
+            if isinstance(pred.left, ops.TableColumn)
+            and isinstance(pred.right, ops.Literal)
+        }
+
+        if _.selections:
+            return _.copy(
+                selections=tuple(replacements.get(s, s) for s in _.selections)
+            )
 
     return _

@@ -63,3 +63,12 @@ def test_where_with_constant_evaluator_nested(alltypes, df, snapshot):
     ]
 
     assert_frame_equal(result, expected)
+
+
+def test_where_with_projection(alltypes, df, snapshot):
+    expr = alltypes.select("id", "bool_col").filter(
+        [
+            alltypes.id == 6690,
+        ]
+    )
+    snapshot.assert_match(expr.compile(), "out.sql")
