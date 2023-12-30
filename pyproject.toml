@@ -26,3 +26,34 @@ features = ["pyo3/extension-module"]
 skip = "*.lock,.direnv,.git,docs/_freeze/**/html.json"
 ignore-regex = '\b(DOUB|i[if]f|I[IF]F|lamduh|AFE|crate|ba)\b'
 builtin = "clear,rare,names"
+
+[tool.poetry]
+name = "letsql"
+version = "0.1.1"
+description = ""
+authors = ["Your Name <you@example.com>"]
+packages = [
+	{ include = "letsql", from = "python" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+maturin = "^1.4.0"
+ibis-framework = "^7.2.0"
+dask = "^2023.12.1"
+xgboost = "^2.0.3"
+attrs = "^23.2.0"
+
+[tool.poetry.group.dev.dependencies]
+ipython = "^8.19.0"
+pytest-cov = "4.1.0"
+pytest = "7.4.2"
+coverage = {version = "7.3.2", extras = ["toml"]}
+pre-commit = "3.5.0"
+ruff = "0.1.1"
+black = "23.10.1"
+blackdoc = "0.3.8"
+codespell = {version = "2.2.6", extras = ["hard-encoding-detection", "toml"]}
+pyarrow = "13.0.0"
+datafusion = "^34.0.0"
+
