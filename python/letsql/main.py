@@ -347,7 +347,10 @@ class Backend(BaseBackend, CanCreateSchema):
         self._register_in_memory_tables(expr)
 
         frame = self.con.sql(self.compile(expr.as_table(), params, **kwargs))
-        return pa.ipc.RecordBatchReader.from_batches(frame.schema(), frame.collect())
+        batches = frame.collect()
+        return pa.ipc.RecordBatchReader.from_batches(
+            frame.schema() if not batches else batches[0].schema, batches
+        )
 
     def _to_sqlglot(
         self, expr: ir.Expr, limit: str | None = None, params=None, **_: Any
@@ -389,6 +392,52 @@ class Backend(BaseBackend, CanCreateSchema):
     ):
         output = self.to_pyarrow(expr.as_table(), params=params, limit=limit, **kwargs)
         return expr.__pandas_result__(output.to_pandas(timestamp_as_object=True))
+
+    def to_pyarrow(
+        self,
+        expr: ir.Expr,
+        *,
+        params: Mapping[ir.Scalar, Any] | None = None,
+        limit: int | str | None = None,
+        **kwargs: Any,
+    ) -> pa.Table:
+        """Execute expression and return results in as a pyarrow table.
+
+        This method is eager and will execute the associated expression
+        immediately.
+
+        Parameters
+        ----------
+        expr
+            Ibis expression to export to pyarrow
+        params
+            Mapping of scalar parameter expressions to value.
+        limit
+            An integer to effect a specific row limit. A value of `None` means
+            "no limit". The default is in `ibis/config.py`.
+        kwargs
+            Keyword arguments
+
+        Returns
+        -------
+        Table
+            A pyarrow table holding the results of the executed expression.
+        """
+        pa = self._import_pyarrow()
+        self._run_pre_execute_hooks(expr)
+
+        table_expr = expr.as_table()
+        schema = table_expr.schema()
+        arrow_schema = schema.to_pyarrow()
+        with self.to_pyarrow_batches(
+            table_expr, params=params, limit=limit, **kwargs
+        ) as reader:
+            table = pa.Table.from_batches(reader, schema=reader.schema)
+            # arrow_schema = reader.schema
+
+        return expr.__pyarrow_result__(
+            table.rename_columns(table_expr.columns).cast(arrow_schema)
+        )
 
     def read_csv(
         self, path: str | Path, table_name: str | None = None, **kwargs: Any

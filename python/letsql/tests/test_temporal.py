@@ -8,7 +8,6 @@ import ibis
 import ibis.expr.datatypes as dt
 import numpy as np
 import pandas as pd
-import pandas.testing as tm
 import pytest
 from ibis.backends.pandas.execution.temporal import day_name
 from pytest import param
@@ -269,6 +268,7 @@ def test_interval_add_cast_column(alltypes, df):
         .dt.normalize()
         .add(df.bigint_col.astype("timedelta64[D]"))
         .rename("tmp")
+        .dt.date
     )
     assert_series_equal(result, expected.astype(result.dtype))
 
@@ -365,8 +365,8 @@ def test_date_column_from_iso(con, alltypes, df):
 
     result = con.execute(expr.name("tmp"))
     golden = df.year.astype(str) + "-" + df.month.astype(str).str.rjust(2, "0") + "-13"
-    actual = result.dt.strftime("%Y-%m-%d")
-    tm.assert_series_equal(golden.rename("tmp"), actual.rename("tmp"))
+    actual = result.map(datetime.date.isoformat)
+    assert_series_equal(golden.rename("tmp"), actual.rename("tmp"))
 
 
 def test_timestamp_extract_milliseconds_with_big_value(con):

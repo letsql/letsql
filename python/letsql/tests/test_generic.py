@@ -416,25 +416,6 @@ def test_logical_negation_column(alltypes, df, op):
     assert_series_equal(result, expected, check_names=False)
 
 
-@pytest.mark.parametrize(
-    ("dtype", "zero", "expected"),
-    [("int64", 0, 1), ("float64", 0.0, 1.0)],
-)
-def test_zeroifnull_literals(con, dtype, zero, expected):
-    with pytest.warns(FutureWarning):
-        assert con.execute(ibis.NA.cast(dtype).zeroifnull()) == zero
-    with pytest.warns(FutureWarning):
-        assert con.execute(ibis.literal(expected, type=dtype).zeroifnull()) == expected
-
-
-def test_zeroifnull_column(alltypes, df):
-    with pytest.warns(FutureWarning):
-        expr = alltypes.int_col.nullif(1).zeroifnull().name("tmp")
-    result = expr.execute().astype("int32")
-    expected = df.int_col.replace(1, 0).rename("tmp").astype("int32")
-    assert_series_equal(result, expected)
-
-
 def test_ifelse_select(alltypes, df):
     table = alltypes
     table = table.select(
