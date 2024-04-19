@@ -12,6 +12,7 @@ from letsql.backends.datafusion import Backend as DataFusionBackend
 from ibis.common.exceptions import IbisError
 from ibis.expr import types as ir
 
+import letsql.common.utils.dask_normalize  # noqa: F401
 from letsql.common.caching import (
     SourceStorage,
 )
@@ -182,64 +183,6 @@ class Backend(DataFusionBackend, CanCreateConnections):
 
     def _recreate_cache(self, name, data):
         super().create_table(name, data, temp=True)
-
-
-def do_dask_normalize_token_register():
-    import dask
-    import ibis
-    import ibis.backends.datafusion
-
-    @dask.base.normalize_token.register(object)
-    def do_raise(arg):
-        # FIXME: check for attr: __dask_normalize_token__
-        raise ValueError(f"don't know how to handle type {type(arg)}")
-
-    @dask.base.normalize_token.register(ibis.common.graph.Node)
-    def normalize_node(node):
-        return tuple(
-            map(
-                dask.base.normalize_token,
-                (
-                    type(node),
-                    *(node.args),
-                ),
-            )
-        )
-
-    @dask.base.normalize_token.register(ibis.expr.schema.Schema)
-    def normalize_schema(schema):
-        return tuple(
-            map(
-                dask.base.normalize_token,
-                (
-                    type(schema),
-                    schema.fields,
-                ),
-            )
-        )
-
-    @dask.base.normalize_token.register(ibis.expr.datatypes.core.DataType)
-    def normalize_dtype(dtype):
-        return tuple(map(dask.base.normalize_token, (type(dtype), dtype.nullable)))
-
-    @dask.base.normalize_token.register(Backend)
-    def normalize_datafusion_backend(backend):
-        return tuple(map(dask.base.normalize_token, (type(backend),)))
-
-    @dask.base.normalize_token.register(ibis.expr.operations.Namespace)
-    def normalize_namespace(ns):
-        return tuple(
-            map(
-                dask.base.normalize_token,
-                (
-                    ns.database,
-                    ns.catalog,
-                ),
-            )
-        )
-
-
-do_dask_normalize_token_register()
 
 
 def letsql_cache(self, storage=None):
