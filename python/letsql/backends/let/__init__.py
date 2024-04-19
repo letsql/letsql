@@ -69,7 +69,7 @@ class Backend(DataFusionBackend, CanCreateConnections):
         expr = self._register_and_transform_cache_tables(expr)
         name = self._get_source_name(expr)
 
-        if name == "datafusion":
+        if name == "let":
             return super().execute(expr, **kwargs)
 
         backend = self.connections[name]
@@ -126,7 +126,7 @@ class Backend(DataFusionBackend, CanCreateConnections):
 
     def _cached(self, expr: ir.Table, storage=None):
         name = self._get_source_name(expr)
-        if name == "datafusion":
+        if name == "let":
             source = self
         else:
             source = self.connections[name]
