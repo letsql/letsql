@@ -1,7 +1,6 @@
 import dask
 import ibis
 import ibis.expr.operations.relations as ir
-import toolz
 
 from letsql.expr.relations import (
     make_native_op,
@@ -74,6 +73,16 @@ def normalize_remote_databasetable(dt):
     )
 
 
+def normalize_letsql_databasetable(dt):
+    if dt.source.name != "let":
+        raise ValueError
+    native_source = dt.source.sources[dt]
+    if native_source.name == "let":
+        raise ValueError
+    new_dt = make_native_op(dt)
+    return dask.base.normalize_token(new_dt)
+
+
 @dask.base.normalize_token.register(ir.DatabaseTable)
 def normalize_databasetable(dt):
     dct = {
@@ -81,7 +90,7 @@ def normalize_databasetable(dt):
         "datafusion": normalize_datafusion_databasetable,
         "postgres": normalize_remote_databasetable,
         "snowflake": normalize_remote_databasetable,
-        "let": toolz.compose(normalize_databasetable, make_native_op),
+        "let": normalize_letsql_databasetable,
     }
     f = dct[dt.source.name]
     return f(dt)
