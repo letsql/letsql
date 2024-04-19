@@ -52,6 +52,7 @@ class CanCreateConnections(CanListConnections):
 
 
 class Backend(DataFusionBackend, CanCreateConnections):
+    name = "let"
     connections = {}
     sources = {}
 
