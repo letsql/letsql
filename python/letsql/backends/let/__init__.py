@@ -147,7 +147,7 @@ class Backend(DataFusionBackend, CanCreateConnections):
                 replace_source = replace_source_factory(node.source)
                 uncached = node.map_clear(replace_cache_table)
                 # datafusion+ParquetStorage requires key have .parquet suffix: maybe push suffix append into ParquetStorage?
-                key = KEY_PREFIX + dask.base.tokenize(uncached)
+                key = KEY_PREFIX + dask.base.tokenize(uncached.to_expr())
                 storage = kwargs["storage"]
                 if not storage.exists(key):
                     value = uncached
