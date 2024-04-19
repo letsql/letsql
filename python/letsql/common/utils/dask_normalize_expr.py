@@ -1,6 +1,11 @@
 import dask
 import ibis
 import ibis.expr.operations.relations as ir
+import toolz
+
+from letsql.expr.relations import (
+    make_native_op,
+)
 
 
 def expr_is_bound(expr):
@@ -76,6 +81,7 @@ def normalize_databasetable(dt):
         "datafusion": normalize_datafusion_databasetable,
         "postgres": normalize_remote_databasetable,
         "snowflake": normalize_remote_databasetable,
+        "let": toolz.compose(normalize_databasetable, make_native_op),
     }
     f = dct[dt.source.name]
     return f(dt)
