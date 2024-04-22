@@ -67,6 +67,13 @@
           ibis-framework = prev.ibis-framework.overridePythonAttrs (old: {
             buildInputs = (old.buildInputs or [ ]) ++ [ prev.poetry-dynamic-versioning ];
           });
+          xgboost = prev.xgboost.overridePythonAttrs (old: {
+            nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.cmake ];
+            cmakeDir = "../cpp_src";
+            preBuild = ''
+              cd ..
+            '';
+          });
         };
         maturinOverride = old: with pkgs.rustPlatform; {
           cargoDeps = importCargoLock {
