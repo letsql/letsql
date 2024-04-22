@@ -68,6 +68,7 @@
             buildInputs = (old.buildInputs or [ ]) ++ [ prev.poetry-dynamic-versioning ];
           });
           xgboost = prev.xgboost.overridePythonAttrs (old: {
+          } // pkgs.lib.attrsets.optionalAttrs pkgs.stdenv.isDarwin {
             nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ prev.cmake ];
             cmakeDir = "../cpp_src";
             preBuild = ''
