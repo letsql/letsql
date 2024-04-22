@@ -49,7 +49,7 @@
           inherit system;
           overlays = [ (import rust-overlay) ];
         };
-        inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication;
+        inherit (poetry2nix.lib.mkPoetry2Nix { inherit pkgs; }) mkPoetryApplication overrides;
         toolchain = pkgs.rust-bin.fromRustupToolchainFile toolchainFile;
         craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
         python' = pkgs."python${pythonVersion}";
@@ -63,6 +63,11 @@
           }.${system};
         in "${pname}-${version}-cp38-abi3-${wheelTail}.whl";
 
+        poetryOverrides = final: prev: {
+          ibis-framework = prev.ibis-framework.overridePythonAttrs (old: {
+            buildInputs = (old.buildInputs or [ ]) ++ [ prev.poetry-dynamic-versioning ];
+          });
+        };
         maturinOverride = old: with pkgs.rustPlatform; {
           cargoDeps = importCargoLock {
             inherit lockFile;
@@ -124,6 +129,7 @@
         })).overridePythonAttrs maturinOverride;
         myappFromWheel = (mkPoetryApplication (commonPoetryArgs // {
           src = "${crateWheel}/${wheelName}";
+          overrides = overrides.withDefaults poetryOverrides;
         })).override (_old: {
           format = "wheel";
         });
