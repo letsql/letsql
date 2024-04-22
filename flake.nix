@@ -146,6 +146,13 @@
           ${myappFromWheel.python}/bin/python -m pytest --import-mode=importlib
         '';
 
+        letsql-ensure-just-download-data = pkgs.writeShellScriptBin "letsql-ensure-just-download-data" ''
+          repo_dir=$(realpath $(git rev-parse --git-dir)/..)
+          if [ ! -d "$repo_dir/ci/ibis-testing-data" ]; then
+            ${pkgs.just}/bin/just download-data
+          fi
+        '';
+
         toolsPackages = pkgs.buildEnv {
           name = "tools";
           paths = [
@@ -158,6 +165,10 @@
             pkgs.just
           ];
         };
+        shellHook = ''
+          ${letsql-ensure-just-download-data}/bin/letsql-ensure-just-download-data
+        '';
+
       in
       {
         packages = {
@@ -177,6 +188,7 @@
               self.packages.${system}.myappFromWheel
               toolsPackages
             ];
+            inherit shellHook;
           };
           inputs = pkgs.mkShell {
             inputsFrom = [ self.packages.${system}.myapp ];
