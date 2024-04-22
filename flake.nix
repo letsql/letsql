@@ -141,6 +141,11 @@
           format = "wheel";
         });
 
+        letsql-pytest = pkgs.writeShellScriptBin "letsql-pytest" ''
+          # see https://docs.pytest.org/en/latest/explanation/pythonpath.html#import-mode-importlib
+          ${myappFromWheel.python}/bin/python -m pytest --import-mode=importlib
+        '';
+
         toolsPackages = pkgs.buildEnv {
           name = "tools";
           paths = [
@@ -148,6 +153,9 @@
             pkgs.maturin
             pkgs.poetry
             python'
+            letsql-pytest
+            letsql-ensure-just-download-data
+            pkgs.just
           ];
         };
       in
