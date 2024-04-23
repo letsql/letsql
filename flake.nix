@@ -63,6 +63,17 @@
           }.${system};
         in "${pname}-${version}-cp38-abi3-${wheelTail}.whl";
 
+        commands = let
+          get-first-pname-drv = pname: builtins.elemAt (builtins.filter (drv: drv.pname == pname) myappFromWheel.requiredPythonModules) 0;
+          black = get-first-pname-drv "black";
+          blackdoc = get-first-pname-drv "blackdoc";
+          ruff = get-first-pname-drv "ruff";
+        in import ./nix/commands.nix {
+          inherit pkgs black blackdoc ruff;
+          inherit (myappFromWheel) python;
+        };
+        inherit (commands) letsql-commands;
+
         poetryOverrides = final: prev: {
           ibis-framework = prev.ibis-framework.overridePythonAttrs (old: {
             buildInputs = (old.buildInputs or [ ]) ++ [ prev.poetry-dynamic-versioning ];
@@ -142,18 +153,6 @@
           format = "wheel";
         });
 
-        letsql-pytest = pkgs.writeShellScriptBin "letsql-pytest" ''
-          # see https://docs.pytest.org/en/latest/explanation/pythonpath.html#import-mode-importlib
-          ${myappFromWheel.python}/bin/python -m pytest --import-mode=importlib
-        '';
-
-        letsql-ensure-just-download-data = pkgs.writeShellScriptBin "letsql-ensure-just-download-data" ''
-          repo_dir=$(realpath $(git rev-parse --git-dir)/..)
-          if [ ! -d "$repo_dir/ci/ibis-testing-data" ]; then
-            ${pkgs.just}/bin/just download-data
-          fi
-        '';
-
         toolsPackages = pkgs.buildEnv {
           name = "tools";
           paths = [
@@ -161,13 +160,10 @@
             pkgs.maturin
             pkgs.poetry
             python'
-            letsql-pytest
-            letsql-ensure-just-download-data
-            pkgs.just
-          ];
+          ] ++ (builtins.attrValues letsql-commands);
         };
         shellHook = ''
-          ${letsql-ensure-just-download-data}/bin/letsql-ensure-just-download-data
+          ${letsql-commands.letsql-ensure-download-data}/bin/letsql-ensure-download-data
         '';
 
       in
