@@ -55,8 +55,9 @@
   '';
 
   letsql-ensure-download-data = pkgs.writeShellScriptBin "letsql-ensure-download-data" ''
-    repo_dir=$(realpath $(git rev-parse --git-dir)/..)
-    if [ ! -d "$repo_dir/ci/ibis-testing-data" ]; then
+    git_dir=$(git rev-parse --git-dir 2>/dev/null) || exit
+    repo_dir=$(realpath "$git_dir/..")
+    if [ "$(dirname "$repo_dir")" = "letsql" ] && [ ! -d "$repo_dir/ci/ibis-testing-data" ]; then
       ${letsql-download-data}/bin/letsql-download-data
     fi
   '';
