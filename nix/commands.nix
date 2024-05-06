@@ -69,8 +69,14 @@
     docker compose up --build --wait ''${backends[@]}
   '';
 
+  letsql-newgrp-docker-compose-up = pkgs.writeShellScriptBin "letsql-newgrp-docker-compose-up" ''
+    set -eux
+
+    newgrp docker <<<"${letsql-docker-compose-up}/bin/letsql-docker-compose-up ''${@}"
+  '';
+
   letsql-commands = {
-    inherit letsql-pytest letsql-clean letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up;
+    inherit letsql-pytest letsql-clean letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up;
   };
   letsql-commands-star = pkgs.buildEnv {
     name = "letsql-commands-star";
