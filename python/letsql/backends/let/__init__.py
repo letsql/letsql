@@ -8,6 +8,7 @@ import dask
 import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
+
 from letsql.internal import SessionContext
 from ibis import BaseBackend
 from letsql.backends.datafusion import Backend as DataFusionBackend
