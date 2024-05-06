@@ -7,12 +7,6 @@
     ${python}/bin/python -m pytest --import-mode=importlib
   '';
 
-  letsql-clean = pkgs.writeShellScriptBin "letsql-clean" ''
-    set -eux
-
-    ${pkgs.git}/bin/git clean --force -dx --exclude 'ci/ibis-testing-data'
-  '';
-
   letsql-fmt = pkgs.writeShellScriptBin "letsql-fmt" ''
     set -eux
 
@@ -76,7 +70,7 @@
   '';
 
   letsql-commands = {
-    inherit letsql-pytest letsql-clean letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up;
+    inherit letsql-pytest letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up;
   };
   letsql-commands-star = pkgs.buildEnv {
     name = "letsql-commands-star";
