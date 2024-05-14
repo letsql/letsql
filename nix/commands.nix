@@ -69,9 +69,18 @@
     newgrp docker <<<"${letsql-docker-compose-up}/bin/letsql-docker-compose-up ''${@}"
   '';
 
+  letsql-git-fetch-origin-pull = pkgs.writeShellScriptBin "letsql-git-fetch-origin-pull" ''
+    set -eux
+
+    PR=$1
+    branchname="origin-pr-$PR"
+    git fetch origin pull/$PR/head:$branchname
+  '';
+
   letsql-commands = {
-    inherit letsql-pytest letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up;
+    inherit letsql-pytest letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up letsql-git-fetch-origin-pull;
   };
+
   letsql-commands-star = pkgs.buildEnv {
     name = "letsql-commands-star";
     paths = builtins.attrValues letsql-commands-star;
