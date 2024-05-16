@@ -77,8 +77,16 @@
     git fetch origin pull/$PR/head:$branchname
   '';
 
+  letsql-git-config-blame-ignore-revs = pkgs.writeShellScriptBin "letsql-git-config-blame-ignore-revs" ''
+    set -eux
+
+    # https://black.readthedocs.io/en/stable/guides/introducing_black_to_your_project.html#avoiding-ruining-git-blame
+    ignore_revs_file=''${1:-.git-blame-ignore-revs}
+    ${pkgs.git}/bin/git config blame.ignoreRevsFile "$ignore_revs_file"
+  '';
+
   letsql-commands = {
-    inherit letsql-pytest letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up letsql-git-fetch-origin-pull;
+    inherit letsql-pytest letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up letsql-git-fetch-origin-pull letsql-git-config-blame-ignore-revs;
   };
 
   letsql-commands-star = pkgs.buildEnv {
