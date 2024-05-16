@@ -4,7 +4,7 @@
     set -eux
 
     # see https://docs.pytest.org/en/latest/explanation/pythonpath.html#import-mode-importlib
-    ${python}/bin/python -m pytest --import-mode=importlib
+    ${python}/bin/python -m pytest --import-mode=importlib "''${@}"
   '';
 
   letsql-fmt = pkgs.writeShellScriptBin "letsql-fmt" ''
