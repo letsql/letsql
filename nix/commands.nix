@@ -85,8 +85,18 @@
     ${pkgs.git}/bin/git config blame.ignoreRevsFile "$ignore_revs_file"
   '';
 
+  letsql-quarto = pkgs.writeShellScriptBin "letsql-quarto" ''
+    repo_dir=$(git rev-parse --show-toplevel 2>/dev/null) || exit
+    pushd "$repo_dir/docs" || exit
+    ${pkgs.quarto}/bin/quarto "''${@}"
+  '';
+
+  letsql-quarto-render = pkgs.writeShellScriptBin "letsql-quarto-render" ''
+    ${letsql-quarto}/bin/letsql-quarto render "''${@}"
+  '';
+
   letsql-commands = {
-    inherit letsql-pytest letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up letsql-git-fetch-origin-pull letsql-git-config-blame-ignore-revs;
+    inherit letsql-pytest letsql-fmt letsql-lint letsql-ensure-download-data letsql-docker-compose-up letsql-newgrp-docker-compose-up letsql-git-fetch-origin-pull letsql-git-config-blame-ignore-revs letsql-quarto letsql-quarto-render;
   };
 
   letsql-commands-star = pkgs.buildEnv {
