@@ -6,7 +6,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pytest import param
 from letsql.tests.util import assert_series_equal
+
+
+@pytest.fixture(scope="module")
+def flatten_data():
+    return {
+        "empty": {"data": [[], [], []], "type": "array<!array<!int64>>"},
+        "happy": {
+            "data": [[["abc"]], [["bcd"]], [["def"]]],
+            "type": "array<!array<!string>>",
+        },
+        "nulls_only": {"data": [None, None, None], "type": "array<array<string>>"},
+        "mixed_nulls": {"data": [[[]], None, [[None]]], "type": "array<array<string>>"},
+    }
 
 
 def test_array_column(alltypes, df):
@@ -112,3 +126,68 @@ def test_array_remove(con):
     result = con.execute(expr)
     expected = pd.Series([[3], [], [42], [], []], dtype="object")
     assert_series_equal(result, expected, check_names=False)
+
+
+@pytest.mark.parametrize(
+    ("column", "expected"),
+    [
+        param("empty", pd.Series([[], [], []], dtype="object"), id="empty"),
+        param(
+            "happy", pd.Series([["abc"], ["bcd"], ["def"]], dtype="object"), id="happy"
+        ),
+    ],
+)
+def test_array_flatten(con, flatten_data, column, expected):
+    data = flatten_data[column]
+    t = ibis.memtable({column: data["data"]}, schema={column: data["type"]})
+    expr = t[column].flatten()
+    result = con.execute(expr)
+    assert_series_equal(
+        result.reset_index(drop=True),
+        expected.reset_index(drop=True),
+    )
+
+
+@pytest.mark.parametrize("step", [-2, -1, 1, 2])
+@pytest.mark.parametrize(
+    ("start", "stop"),
+    [
+        param(-7, -7),
+        param(-7, 0),
+        param(-7, 7),
+        param(0, -7),
+        param(0, 0),
+        param(0, 7),
+        param(7, -7),
+        param(7, 0),
+        param(7, 7),
+    ],
+)
+def test_range_start_stop_step(con, start, stop, step):
+    expr = ibis.range(start, stop, step)
+    result = con.execute(expr)
+    assert list(result) == list(range(start, stop, step))
+
+
+@pytest.mark.parametrize("n", [-2, 0, 2])
+def test_range_single_argument(con, n):
+    expr = ibis.range(n)
+    result = con.execute(expr)
+    assert list(result) == list(range(n))
+
+
+@pytest.mark.parametrize(
+    ("data", "expected"),
+    [
+        param(
+            {"a": [[1, 3, 3], [], [42, 42], []]},
+            [[1, 3], [], [42], []],
+            id="not_null",
+        ),
+    ],
+)
+def test_array_unique(con, data, expected):
+    t = ibis.memtable(data)
+    expr = t.a.unique()
+    result = con.execute(expr)
+    assert_series_equal(result, pd.Series(expected, dtype="object"))

@@ -35,9 +35,7 @@ class DataFusionCompiler(SQLGlotCompiler):
         (
             ops.ArgMax,
             ops.ArgMin,
-            ops.ArrayDistinct,
             ops.ArrayFilter,
-            ops.ArrayFlatten,
             ops.ArrayMap,
             ops.ArrayZip,
             ops.BitwiseNot,
@@ -79,6 +77,9 @@ class DataFusionCompiler(SQLGlotCompiler):
         ops.EndsWith: "ends_with",
         ops.ArrayIntersect: "array_intersect",
         ops.ArrayUnion: "array_union",
+        ops.ArrayFlatten: "flatten",
+        ops.IntegerRange: "range",
+        ops.ArrayDistinct: "array_distinct",
     }
 
     def _aggregate(self, funcname: str, *args, where):
