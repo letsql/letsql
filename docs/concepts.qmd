@@ -29,7 +29,6 @@ For the following example we are going to use an Ibis table from a Postgres conn
 pandas DataFrame.
 
 ```{python}
-#| eval: false
 #| code-summary: multi-engine example
 import pathlib
 
