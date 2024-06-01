@@ -1,15 +1,22 @@
 import contextlib
-import functools
 import itertools
 import warnings
 
-import dask
 import ibis
 import sqlglot as sg
 import sqlglot.expressions as sge
 from ibis.backends.snowflake import _SNOWFLAKE_MAP_UDFS
 
+from letsql.common.utils.hotfix_utils import (
+    maybe_hotfix,
+)
 
+
+@maybe_hotfix(
+    ibis.backends.snowflake.Backend,
+    "_setup_session",
+    "8c96093dd6f2f759ff96fd41199f06f5",
+)
 def _setup_session(self, *, session_parameters, create_object_udfs: bool):
     con = self.con
 
@@ -70,17 +77,7 @@ def _setup_session(self, *, session_parameters, create_object_udfs: bool):
                 )
 
 
-@functools.cache
-def monkeypatch_setup_session():
-    attrname = "_setup_session"
-    _setup_session.original = getattr(ibis.backends.snowflake.Backend, attrname)
-    setattr(ibis.backends.snowflake.Backend, attrname, _setup_session)
 
 
-def maybe_monkeypatch_setup_session():
-    tokenized = dask.base.tokenize(ibis.backends.snowflake.Backend._setup_session)
-    if tokenized == '8c96093dd6f2f759ff96fd41199f06f5':
-        monkeypatch_setup_session()
 
 
-maybe_monkeypatch_setup_session()
