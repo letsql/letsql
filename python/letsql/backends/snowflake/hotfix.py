@@ -75,6 +75,12 @@ def _setup_session(self, *, session_parameters, create_object_udfs: bool):
                 warnings.warn(
                     f"Unable to create Ibis UDFs, some functionality will not work: {e}"
                 )
+    # without this self.current_{catalog,database} is not synchronized with con.{database,schema}
+    with contextlib.closing(con.cursor()) as cur:
+        try:
+            cur.execute("SELECT CURRENT_TIME")
+        except Exception:  # noqa: BLE001
+            pass
 
 
 
