@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from pytest import param
-from letsql.tests.util import assert_series_equal
+from letsql.tests.util import assert_series_equal, assert_frame_equal
 
 
 @pytest.fixture(scope="module")
@@ -191,3 +191,97 @@ def test_array_unique(con, data, expected):
     expr = t.a.unique()
     result = con.execute(expr)
     assert_series_equal(result, pd.Series(expected, dtype="object"))
+
+
+def test_unnest_simple(array_types):
+    expected = (
+        array_types.execute()
+        .x.explode()
+        .reset_index(drop=True)
+        .astype("Float64")
+        .rename("tmp")
+    )
+    expr = array_types.x.cast("!array<float64>").unnest()
+    result = expr.execute().astype("Float64").rename("tmp")
+
+    assert_series_equal(result, expected)
+
+
+def test_unnest_complex(array_types):
+    df = array_types.execute()
+    expr = (
+        array_types.select(["grouper", "x"])
+        .mutate(x=lambda t: t.x.unnest())
+        .group_by("grouper")
+        .aggregate(count_flat=lambda t: t.x.count())
+        .order_by("grouper")
+    )
+    expected = (
+        df[["grouper", "x"]]
+        .explode("x")
+        .groupby("grouper")
+        .x.count()
+        .rename("count_flat")
+        .reset_index()
+        .sort_values("grouper")
+        .reset_index(drop=True)
+    )
+    result = expr.execute()
+    assert_frame_equal(result, expected)
+
+    # test that unnest works with to_pyarrow
+    assert len(expr.to_pyarrow()) == len(result)
+
+
+def test_unnest_idempotent(array_types):
+    df = array_types.execute()
+    expr = (
+        array_types.select(
+            ["scalar_column", array_types.x.cast("!array<int64>").unnest().name("x")]
+        )
+        .group_by("scalar_column")
+        .aggregate(x=lambda t: t.x.collect())
+        .order_by("scalar_column")
+    )
+    result = expr.execute()
+    expected = (
+        df[["scalar_column", "x"]].sort_values("scalar_column").reset_index(drop=True)
+    )
+    assert_frame_equal(result, expected)
+
+
+def test_unnest_no_nulls(array_types):
+    df = array_types.execute()
+    expr = (
+        array_types.select(
+            ["scalar_column", array_types.x.cast("!array<int64>").unnest().name("y")]
+        )
+        .filter(lambda t: t.y.notnull())
+        .group_by("scalar_column")
+        .aggregate(x=lambda t: t.y.collect())
+        .order_by("scalar_column")
+    )
+    result = expr.execute()
+    expected = (
+        df[["scalar_column", "x"]]
+        .explode("x")
+        .dropna(subset=["x"])
+        .groupby("scalar_column")
+        .x.apply(lambda xs: [x for x in xs if x is not None])
+        .reset_index()
+    )
+    assert_frame_equal(result, expected)
+
+
+def test_unnest_default_name(array_types):
+    df = array_types.execute()
+    expr = (
+        array_types.x.cast("!array<int64>") + ibis.array([1]).cast("!array<int64>")
+    ).unnest()
+    assert expr.get_name().startswith("ArrayConcat(")
+
+    result = expr.name("x").execute()
+    expected = df.x.map(lambda x: x + [1]).explode("x")
+    assert frozenset(result.astype(object).fillna(pd.NA).values) == frozenset(
+        expected.fillna(pd.NA).values
+    )

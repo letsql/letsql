@@ -55,7 +55,6 @@ class DataFusionCompiler(SQLGlotCompiler):
             ops.TimestampDelta,
             ops.TimestampNow,
             ops.TypeOf,
-            ops.Unnest,
             ops.StringToTimestamp,
         )
     )
@@ -80,6 +79,7 @@ class DataFusionCompiler(SQLGlotCompiler):
         ops.ArrayFlatten: "flatten",
         ops.IntegerRange: "range",
         ops.ArrayDistinct: "array_distinct",
+        ops.Unnest: "unnest",
     }
 
     def _aggregate(self, funcname: str, *args, where):
