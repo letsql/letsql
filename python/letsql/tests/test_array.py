@@ -282,6 +282,27 @@ def test_unnest_default_name(array_types):
 
     result = expr.name("x").execute()
     expected = df.x.map(lambda x: x + [1]).explode("x")
-    assert frozenset(result.astype(object).fillna(pd.NA).values) == frozenset(
-        expected.fillna(pd.NA).values
-    )
+
+    assert_series_equal(result.astype(object).fillna(pd.NA), expected.fillna(pd.NA))
+
+
+@pytest.mark.parametrize(
+    ("start", "stop"),
+    [
+        (1, 3),
+        (1, 1),
+        (2, 3),
+        (2, 5),
+        (None, 3),
+        (None, None),
+        (3, None),
+        (-3, None),
+        (-3, -1),
+        (None, -3),
+    ],
+)
+def test_array_slice(array_types, start, stop):
+    expr = array_types.select(sliced=array_types.y[start:stop])
+    expected = array_types.y.execute().map(lambda x: x[start:stop])
+    result = expr.sliced.execute()
+    assert_series_equal(result, expected)

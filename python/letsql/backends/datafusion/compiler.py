@@ -478,3 +478,17 @@ class DataFusionCompiler(SQLGlotCompiler):
             sel = sel.group_by(*by_names_quoted)
 
         return sel
+
+    def visit_ArraySlice(self, op, *, arg, start, stop):
+        array_length = self.f.array_length(arg)
+        start = self.f.coalesce(start, 0)
+        stop = self.f.coalesce(stop, array_length + 1)
+        return self.f.array_slice(
+            arg,
+            self.if_(
+                start < 0,
+                self.if_(self.f.abs(start) >= array_length, 0, start),
+                start + 1,
+            ),
+            self.if_(stop < 0, stop - 1, stop),
+        )
