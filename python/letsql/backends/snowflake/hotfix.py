@@ -19,7 +19,7 @@ from letsql.common.utils.hotfix_utils import (
 @maybe_hotfix(
     ibis.backends.snowflake.Backend,
     "_setup_session",
-    "8c96093dd6f2f759ff96fd41199f06f5",
+    "d1a8b89ff07d7c917cea225644fb126e",
 )
 def _setup_session(self, *, session_parameters, create_object_udfs: bool):
     con = self.con
@@ -90,7 +90,7 @@ def _setup_session(self, *, session_parameters, create_object_udfs: bool):
 @maybe_hotfix(
     ibis.backends.snowflake.Backend,
     "create_table",
-    "babbdac0ff9e8153db591b9c54f3476a",
+    "5c3483857fcf01118e36c143ca5cb40c",
 )
 def create_table(
     self,
