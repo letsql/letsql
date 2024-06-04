@@ -14,7 +14,11 @@ from letsql.backends.let import (
 from letsql.backends.conftest import (
     get_storage_uncached,
 )
-from letsql.common.caching import KEY_PREFIX
+from letsql.common.caching import (
+    KEY_PREFIX,
+    SourceStorage,
+    ParquetCacheStorage,
+)
 from letsql.common.utils.postgres_utils import (
     do_analyze,
     get_postgres_n_scans,
@@ -367,8 +371,18 @@ def test_duckdb_cache_arrow(con, pg, tmp_path):
     expr = (
         ibis.duckdb.connect()
         .register(pg.table(name).to_pyarrow(), name)
-        .pipe(con.register, f"duckdb-{name}")
-        [lambda t: t.yearID > 2000]
+        .pipe(con.register, f"duckdb-{name}")[lambda t: t.yearID > 2000]
         .cache(storage=ParquetCacheStorage(path=tmp_path, source=con))
+    )
+    expr.execute()
+
+
+def test_cross_source_storage(con, pg):
+    name = "batting"
+    expr = (
+        ibis.duckdb.connect()
+        .register(pg.table(name).to_pyarrow(), name)
+        .pipe(con.register, f"duckdb-{name}")[lambda t: t.yearID > 2000]
+        .cache(storage=SourceStorage(source=pg))
     )
     expr.execute()
