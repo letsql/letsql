@@ -333,7 +333,7 @@ def test_postgres_cache_invalidation(pg, con):
     # assert first execution state
     expr_cached.execute()
     n_scans_after = assert_n_scans_changes(dt, n_scans_before)
-    # should we test that SourceCache.get is called?
+    # should we test that SourceStorage.get is called?
     assert n_scans_after == 1
     assert storage.exists(uncached)
 
@@ -345,3 +345,30 @@ def test_postgres_cache_invalidation(pg, con):
     modify_postgres_table(dt)
     expr_cached.execute()
     assert_n_scans_changes(dt, n_scans_after)
+
+
+@pytest.mark.xfail(reason="no strategy to find the parquet file source")
+def test_duckdb_cache_parquet(con, pg, tmp_path):
+    name = "batting"
+    parquet_path = tmp_path.joinpath(name).with_suffix(".parquet")
+    pg.table(name).to_parquet(parquet_path)
+    expr = (
+        ibis.duckdb.connect()
+        .read_parquet(parquet_path)
+        .pipe(con.register, f"duckdb-{name}")[lambda t: t.yearID > 2000]
+        .cache(storage=ParquetCacheStorage(path=tmp_path, source=con))
+    )
+    expr.execute()
+
+
+@pytest.mark.xfail
+def test_duckdb_cache_arrow(con, pg, tmp_path):
+    name = "batting"
+    expr = (
+        ibis.duckdb.connect()
+        .register(pg.table(name).to_pyarrow(), name)
+        .pipe(con.register, f"duckdb-{name}")
+        [lambda t: t.yearID > 2000]
+        .cache(storage=ParquetCacheStorage(path=tmp_path, source=con))
+    )
+    expr.execute()
