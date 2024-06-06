@@ -163,6 +163,7 @@
             toolchain
             pkgs.maturin
             pkgs.poetry
+            pkgs.asciinema
             python'
           ] ++ (builtins.attrValues letsql-commands);
         };
