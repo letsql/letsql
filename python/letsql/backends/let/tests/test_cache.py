@@ -131,7 +131,7 @@ def test_cache_multiple_times(con, alltypes, alltypes_df):
     assert sorted(first_tables) == sorted(second_tables)
 
 
-def test_cache_to_sql(con, alltypes):
+def test_cache_to_sql(alltypes):
     expr = alltypes.select(
         alltypes.smallint_col, alltypes.int_col, alltypes.float_col
     ).filter(
