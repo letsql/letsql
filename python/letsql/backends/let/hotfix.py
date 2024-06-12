@@ -94,8 +94,8 @@ class LETSQLAccessor:
     def native_expr(self):
         _sources = self.ls_con._sources
 
-        def replace_table(n, _, **_kwargs):
-            return _sources.get_table_or_op(n, n.__recreate__(_kwargs))
+        def replace_table(_n, _, **_kwargs):
+            return _sources.get_table_or_op(_n, _n.__recreate__(_kwargs))
 
         return self.op.replace(replace_table).to_expr()
 
