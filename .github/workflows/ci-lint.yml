@@ -27,11 +27,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run codespell
-        uses: codespell-project/actions-codespell@v2
-        with:
-          path: "python src"
-          ignore_words_file: .codespell.ignore-words
       - name: Install Python
         uses: actions/setup-python@v5
         with:

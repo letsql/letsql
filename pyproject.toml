@@ -30,11 +30,6 @@ module-name = "letsql._internal"
 python-source = "python"
 features = ["pyo3/extension-module"]
 
-[tool.codespell]
-skip = "*.lock,.direnv,.git,docs/_freeze/**/html.json"
-ignore-regex = '\b(DOUB|i[if]f|I[IF]F|lamduh|AFE|crate|ba)\b'
-builtin = "clear,rare,names"
-
 [tool.poetry]
 name = "letsql"
 # this is just a placeholder https://github.com/tiangolo/poetry-version-plugin?tab=readme-ov-file#version-in-pyprojecttoml
@@ -65,7 +60,6 @@ structlog = "^24.2.0"
 [tool.poetry.group.dev.dependencies]
 black = "23.10.1"
 blackdoc = "0.3.8"
-codespell = {version = "2.2.6", extras = ["hard-encoding-detection", "toml"]}
 coverage = {version = "7.3.2", extras = ["toml"]}
 git-cliff = "^2.2.1"
 ipython = "^8.19.0"

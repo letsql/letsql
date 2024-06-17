@@ -257,17 +257,6 @@ files = [
 ]
 
 [[package]]
-name = "chardet"
-version = "5.2.0"
-description = "Universal encoding detector for Python 3"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "chardet-5.2.0-py3-none-any.whl", hash = "sha256:e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970"},
-    {file = "chardet-5.2.0.tar.gz", hash = "sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7"},
-]
-
-[[package]]
 name = "charset-normalizer"
 version = "3.3.2"
 description = "The Real First Universal Charset Detector. Open, modern and actively maintained alternative to Chardet."
@@ -390,27 +379,6 @@ files = [
     {file = "cloudpickle-3.0.0-py3-none-any.whl", hash = "sha256:246ee7d0c295602a036e86369c77fecda4ab17b506496730f2f576d9016fd9c7"},
     {file = "cloudpickle-3.0.0.tar.gz", hash = "sha256:996d9a482c6fb4f33c1a35335cf8afd065d2a56e973270364840712d9131a882"},
 ]
-
-[[package]]
-name = "codespell"
-version = "2.2.6"
-description = "Codespell"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "codespell-2.2.6-py3-none-any.whl", hash = "sha256:9ee9a3e5df0990604013ac2a9f22fa8e57669c827124a2e961fe8a1da4cacc07"},
-    {file = "codespell-2.2.6.tar.gz", hash = "sha256:a8c65d8eb3faa03deabab6b3bbe798bea72e1799c7e9e955d57eca4096abcff9"},
-]
-
-[package.dependencies]
-chardet = {version = "*", optional = true, markers = "extra == \"hard-encoding-detection\""}
-tomli = {version = "*", optional = true, markers = "python_version < \"3.11\" and extra == \"toml\""}
-
-[package.extras]
-dev = ["Pygments", "build", "chardet", "pre-commit", "pytest", "pytest-cov", "pytest-dependency", "ruff", "tomli", "twine"]
-hard-encoding-detection = ["chardet"]
-toml = ["tomli"]
-types = ["chardet (>=5.1.0)", "mypy", "pytest", "pytest-cov", "pytest-dependency"]
 
 [[package]]
 name = "colorama"
@@ -3123,4 +3091,4 @@ snowflake = ["snowflake-connector-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d7bb6b5648023401fa4494dfea3f73bcedcd7fd1cc0c224c2e917ec10fe75e85"
+content-hash = "f95bb7fefc90328d5c79eb2ba04378a02c24fa982d962e4c751e8e2f91cbb84d"
