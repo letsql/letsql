@@ -104,3 +104,42 @@ def test_group_by_udf_agg_pyarrow(con, alltypes_df):
     )
 
     assert_frame_equal(result, expected, check_like=True)
+
+
+def test_udf_agg_pandas_df(con, alltypes):
+    def sum_sum(df):
+        return df.sum().sum()
+
+    name = "sum_sum"
+    alltypes = con.register(alltypes.execute(), "pg-alltypes")
+    cols = (by, _) = ["year", "month"]
+    expr = alltypes
+    agg_udf = udf.agg.pandas_df(
+        expr=expr[cols],
+        fn=sum_sum,
+        return_type=dt.int64(),
+        name=name,
+    )
+    actual = (
+        expr.group_by(by)
+        .agg(agg_udf(*(expr[c] for c in cols)).name(name))
+        .execute()
+        .sort_values(by, ignore_index=True)
+    )
+    actual2 = (
+        expr.group_by(by)
+        .agg(agg_udf.on_expr(expr).name(name))
+        .execute()
+        .sort_values(by, ignore_index=True)
+    )
+    expected = (
+        alltypes[cols]
+        .execute()
+        .groupby(by)
+        .apply(sum_sum)
+        .rename(name)
+        .reset_index()
+        .sort_values(by, ignore_index=True)
+    )
+    assert actual.equals(expected)
+    assert actual2.equals(expected)
