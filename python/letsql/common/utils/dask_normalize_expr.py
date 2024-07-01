@@ -33,7 +33,8 @@ def normalize_memory_databasetable(dt):
         raise ValueError
     return dask.base._normalize_seq_func(
         (
-            dt.source,
+            # we are normalizing the data, we don't care about the connection
+            # dt.source,
             dt.schema.to_pandas(),
             # in memory: so we can assume its reasonable to hash the data
             tuple(
