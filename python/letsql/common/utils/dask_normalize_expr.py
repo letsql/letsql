@@ -31,11 +31,12 @@ def unbound_expr_to_default_sql(expr):
 
 
 def normalize_memory_databasetable(dt):
-    if dt.source.name not in ("pandas", "datafusion", "duckdb"):
+    if dt.source.name not in ("pandas", "datafusion", "duckdb", "let"):
         raise ValueError
     return dask.base._normalize_seq_func(
         (
-            dt.source,
+            # we are normalizing the data, we don't care about the connection
+            # dt.source,
             dt.schema.to_pandas(),
             # in memory: so we can assume its reasonable to hash the data
             tuple(
@@ -190,7 +191,7 @@ def normalize_backend(con):
         con_details = {k: con_dct[k] for k in ("host", "port", "dbname")}
     elif name == "pandas":
         con_details = id(con.dictionary)
-    elif name in ("datafusion", "duckdb"):
+    elif name in ("datafusion", "duckdb", "let"):
         con_details = id(con.con)
     else:
         raise ValueError
