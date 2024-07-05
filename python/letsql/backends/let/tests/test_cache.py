@@ -794,7 +794,7 @@ def test_udf_caching(ls_con, alltypes_df):
     from_pandas = alltypes_df[cols].assign(mulled=wrapper(my_mul))
     assert from_ls.equals(from_pandas)
 
-    expected = "letsql_cache-fd9552ff14229442e53d6dda5850c500"
+    expected = "letsql_cache-a530a334af9622457349c33c0fb16ed8"
     actual = expr.ls.get_key()
     assert actual == expected
 
@@ -837,7 +837,7 @@ def test_udaf_caching(ls_con, alltypes_df):
     assert from_ls.equals(on_expr.execute())
     assert expr.ls.exists()
     assert on_expr.ls.exists()
-    expected = "letsql_cache-921cb4ea622adacc2dc049966ac773e7"
+    expected = "letsql_cache-1b1ccd4852615cc78b01a17ceadc8960"
     actual = expr.ls.get_key()
     assert actual == expected
     assert actual == on_expr.ls.get_key()
