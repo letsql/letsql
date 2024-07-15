@@ -144,6 +144,7 @@
           preferWheels = true;
           python = python';
           groups = [ "dev" "test" "docs" ];
+          extras = [ "examples" "duckdb" ];
         };
         myapp = (mkPoetryApplication (commonPoetryArgs // {
           buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
@@ -200,6 +201,7 @@
             packages = [
               toolsPackages
             ];
+            inherit shellHook;
           };
           default = self.devShells.${system}.devFromWheel;
         };
