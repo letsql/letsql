@@ -144,7 +144,6 @@
           preferWheels = true;
           python = python';
           groups = [ "dev" "test" "docs" ];
-          extras = [ "examples" "duckdb" ];
         };
         myapp = (mkPoetryApplication (commonPoetryArgs // {
           buildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
