@@ -1,11 +1,55 @@
+import os
 from pathlib import Path
 
 import pyarrow as pa
+import pandas as pd
 import pytest
+import xgboost as xgb
 
 import letsql as ls
 from letsql.backends.datafusion.provider import IbisTableProvider
+from sklearn.model_selection import train_test_split
 
+
+@pytest.fixture
+def tmp_model_dir(tmpdir):
+    # Create a temporary directory for the model
+    model_dir = tmpdir.mkdir("models")
+    return model_dir
+
+
+def train_xgb(
+    data,
+    objective="reg:squarederror",
+    features=None,
+    target="price",
+    max_depth=8,
+    n_estimators=100,
+):
+    # Split the data into features and target variable
+    if features is None:
+        features = ["carat", "depth", "x", "y", "z"]
+    X = data[features]
+    y = data[target]
+
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Instantiate an XGBoost regressor
+    model = xgb.XGBRegressor(
+        objective=objective,
+        random_state=42,
+        max_depth=max_depth,
+        n_estimators=n_estimators,
+    )
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    # Return the trained model
+    return model
 
 @pytest.fixture(scope="session")
 def data_dir():
@@ -36,3 +80,11 @@ def test_table_provider_schema(con):
     schema = table_provider.schema()
     assert schema is not None
     assert isinstance(schema, pa.Schema)
+
+def test_register_model(data_dir, tmp_model_dir, con):
+    data = pd.read_csv(data_dir / "csv" / "diamonds.csv")
+
+    model = train_xgb(data, "reg:squarederror")
+    model_path = os.path.join(tmp_model_dir, "model.json")
+    model.save_model(model_path)
+    con.register_xgb_model("diamonds_model", model_path)

@@ -443,6 +443,15 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
             for memtable in expr.op().find(ops.InMemoryTable):
                 self._register_in_memory_table(memtable)
 
+    def register_xgb_model(
+        self,
+        model_name: str,
+        source: str | Path , 
+    ):
+        source = str(source)
+        self.con.register_xgb_json_model(model_name, source)
+        return self
+
     def read_csv(
         self, path: str | Path, table_name: str | None = None, **kwargs: Any
     ) -> ir.Table:

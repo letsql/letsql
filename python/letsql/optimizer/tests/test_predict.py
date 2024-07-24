@@ -6,6 +6,7 @@ from itertools import chain
 import pandas as pd
 import pytest
 import xgboost as xgb
+from ibis import udf
 from pandas.api.types import is_float_dtype
 from sklearn.model_selection import train_test_split
 
@@ -176,3 +177,13 @@ def test_predict_fails_when_model_does_not_exist(tmp_model_dir, data_dir):
 
     with pytest.raises(BaseException):
         context.sql(query).to_pandas()
+
+def test_register_model(tmp_model_dir, data_dir):
+    data = pd.read_csv(data_dir / "csv" / "diamonds.csv")
+
+    model = train_xgb(data, "reg:squarederror")
+    model_path = os.path.join(tmp_model_dir, "model.json")
+    model.save_model(model_path)
+
+    context = SessionContext()
+    context.register_xgb_model("diamonds_model", model_path)
