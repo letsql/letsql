@@ -7,6 +7,7 @@ import pytest
 import xgboost as xgb
 
 import letsql as ls
+from ibis import udf
 from letsql.backends.datafusion.provider import IbisTableProvider
 from sklearn.model_selection import train_test_split
 
@@ -88,3 +89,28 @@ def test_register_model(data_dir, tmp_model_dir, con):
     model_path = os.path.join(tmp_model_dir, "model.json")
     model.save_model(model_path)
     con.register_xgb_model("diamonds_model", model_path)
+
+def test_registered_model_udf(data_dir, tmp_model_dir, con):
+    data = pd.read_csv(data_dir / "csv" / "diamonds.csv")
+
+    model = train_xgb(data, "reg:squarederror")
+    model_path = os.path.join(tmp_model_dir, "model.json")
+    model.save_model(model_path)
+    con.register_xgb_model("diamonds_model", model_path)
+
+    features = ["carat", "depth", "x", "y", "z"]
+    data_path = os.path.join(tmp_model_dir, "input.csv")
+    data[features].to_csv(data_path, index=False)
+
+    @udf.scalar.builtin
+    def predict_xgb(model_name:str, carat:float, depth:float, x:float, y:float, z:float) -> float:
+        """predict builtin"""
+
+    t = (con.read_csv(table_name="diamonds_data", path=data_path)
+            .mutate(prediction = lambda t: predict_xgb("diamonds_model", t.carat, t.depth, t.x, t.y, t.z)))
+    result = t.execute()
+    assert result is not None
+    assert isinstance(result, pd.DataFrame)
+    assert "prediction" in result.columns
+    assert result["prediction"].dtype == float
+    assert len(result) == len(data)
