@@ -56,7 +56,7 @@ def test_tokenize_datafusion_parquet_expr(alltypes_df, tmp_path, snapshot):
         prefix + f"/{path.name}" + suffix,
         str(tuple(dask.base.normalize_token(t))),
     )
-    actual = hashlib.md5(to_hash.encode()).hexdigest()
+    actual = hashlib.md5(to_hash.encode(), usedforsecurity=False).hexdigest()
     snapshot.assert_match(actual, "datafusion_key.txt")
 
 
