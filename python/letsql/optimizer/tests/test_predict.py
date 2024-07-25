@@ -135,6 +135,54 @@ def test_predict_with_only_required_features(tmp_model_dir, data_dir, capsys):
     assert is_float_dtype(predictions.squeeze())
 
 
+def test_predict_with_explicit_features(tmp_model_dir, data_dir):
+    data = pd.read_csv(data_dir / "csv" / "diamonds.csv")
+
+    model = train_xgb(data, "reg:squarederror", max_depth=2, n_estimators=3)
+    model_path = os.path.join(tmp_model_dir, "model.json")
+    model.save_model(model_path)
+
+    features = ["carat", "depth", "x", "y", "z"]
+    data_path = os.path.join(tmp_model_dir, "input.csv")
+    data[features].to_csv(data_path, index=False)
+
+    import letsql as ls
+
+    context = ls.connect().con
+    context.register_csv("diamonds", data_path)
+    context.register_xgb_json_model("diamonds_model", model_path)
+
+    query = "select predict_xgb('diamonds_model', carat, y) from diamonds;"
+    predictions = context.sql(query).to_pandas()
+
+    assert len(model_features(model_path)) < len(features)
+    assert len(predictions) == len(data)
+    assert is_float_dtype(predictions.squeeze())
+
+
+def test_predict_op(tmp_model_dir, data_dir):
+    data = pd.read_csv(data_dir / "csv" / "diamonds.csv")
+
+    model = train_xgb(data, "reg:squarederror", max_depth=2, n_estimators=3)
+    model_path = os.path.join(tmp_model_dir, "model.json")
+    model.save_model(model_path)
+
+    features = ["carat", "depth", "x", "y", "z"]
+    data_path = os.path.join(tmp_model_dir, "input.csv")
+    data[features].to_csv(data_path, index=False)
+
+    import letsql as ls
+
+    con = ls.connect()
+    diamonds = con.read_csv(data_path, "diamonds")
+    # TODO(mesejo) change after Hussain merge PR
+    con.con.register_xgb_json_model("diamonds_model", model_path)
+    expr = diamonds.predict_xgb("diamonds_model")
+
+    assert "PREDICT_XGB('diamonds_model', *)" in ls.to_sql(expr, pretty=True)
+    assert expr.execute() is not None
+
+
 def test_predict_with_filter(tmp_model_dir, data_dir, capsys):
     data = pd.read_csv(data_dir / "csv" / "diamonds.csv")
 

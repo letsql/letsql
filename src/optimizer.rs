@@ -3,8 +3,8 @@ use std::sync::Arc;
 use datafusion_common::config::ConfigOptions;
 use datafusion_common::tree_node::Transformed;
 use datafusion_common::{DataFusionError, ScalarValue};
-use datafusion_expr::expr::ScalarFunction;
-use datafusion_expr::{Expr, Filter, LogicalPlan, Projection};
+use datafusion_expr::expr::{Alias, ScalarFunction};
+use datafusion_expr::{Expr, Filter, LogicalPlan, Projection, SubqueryAlias};
 use datafusion_optimizer::analyzer::AnalyzerRule;
 use datafusion_optimizer::optimizer::Optimizer;
 use datafusion_optimizer::{OptimizerConfig, OptimizerContext, OptimizerRule};
@@ -141,6 +141,10 @@ impl PredictXGBoostAnalyzerRule {
                 LogicalPlan::TableScan(scan) => Some(scan),
                 _ => None,
             },
+            LogicalPlan::SubqueryAlias(SubqueryAlias { input, .. }) => match (*input).clone() {
+                LogicalPlan::TableScan(scan) => Some(scan),
+                _ => None,
+            },
             _ => None,
         };
 
@@ -177,8 +181,25 @@ impl PredictXGBoostAnalyzerRule {
             .expr
             .iter()
             .map(|e| {
+                if let Expr::Alias(alias) = e {
+                    if let Expr::ScalarFunction(fun) = *alias.clone().expr {
+                        return if fun.clone().func.name().to_lowercase() == "predict_xgb" {
+                            match self.use_only_required_features(fun.clone(), projection.clone()) {
+                                Some(expr) => Expr::Alias(Alias::new(
+                                    expr,
+                                    alias.clone().relation,
+                                    alias.clone().name,
+                                )),
+                                None => e.clone(),
+                            }
+                        } else {
+                            e.clone()
+                        };
+                    }
+                }
+
                 if let Expr::ScalarFunction(fun) = e {
-                    return if fun.clone().func.name() == "predict_xgb" {
+                    return if fun.clone().func.name().to_lowercase() == "predict_xgb" {
                         match self.use_only_required_features(fun.clone(), projection.clone()) {
                             Some(expr) => expr,
                             None => e.clone(),

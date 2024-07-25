@@ -1,6 +1,7 @@
 import ibis.expr.operations as ops
 import ibis.expr.types.core
 import ibis.expr.types.relations
+import ibis.expr.types as ir
 from attr import (
     field,
     frozen,
@@ -10,6 +11,7 @@ from attr.validators import (
 )
 
 import letsql
+from letsql.expr.operations.predictions import PredictXGB
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
@@ -174,3 +176,12 @@ def letsql_cache(self, storage=None):
 @property
 def ls(self):
     return LETSQLAccessor(self)
+
+
+@maybe_hotfix(ibis.expr.types.relations.Table, "predict_xgb", none_tokenized)
+def predict_xgb(
+    self: ibis.expr.types.relations.Table,
+    model_name: str,
+    where: ir.BooleanValue | None = None,
+):
+    return PredictXGB(arg=self, model_name=model_name, where=where).to_expr()

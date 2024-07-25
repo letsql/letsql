@@ -558,3 +558,6 @@ class DataFusionCompiler(SQLGlotCompiler):
     def visit_StructColumn(self, op, *, names, values):
         args = (arg for args in zip(map(sg.exp.convert, names), values) for arg in args)
         return self.f.named_struct(*args)
+
+    def visit_PredictXGB(self, op, *, arg, model_name, where):
+        return self.f.predict_xgb(sg.exp.convert(model_name), STAR)
