@@ -1396,6 +1396,7 @@ dependencies = [
  "datafusion-sql",
  "futures",
  "gbdt",
+ "object_store",
  "parking_lot",
  "prost",
  "prost-types",
