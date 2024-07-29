@@ -26,15 +26,9 @@
         mkLETSQL = import ./nix/letsql.nix { inherit system pkgs crane poetry2nix python; };
         letsql = mkLETSQL ./.;
 
-        commands = let
-          get-first-pname-drv = pname: builtins.elemAt (builtins.filter (drv: drv.pname == pname) letsql.appFromWheel.requiredPythonModules) 0;
-          black = get-first-pname-drv "black";
-          blackdoc = get-first-pname-drv "blackdoc";
-          ruff = get-first-pname-drv "ruff";
-        in import ./nix/commands.nix {
-          inherit pkgs python black blackdoc ruff;
+        commands = import ./nix/commands.nix {
+          inherit pkgs python;
         };
-        inherit (commands) letsql-commands;
 
         toolsPackages = pkgs.buildEnv {
           name = "tools";
@@ -43,11 +37,12 @@
             pkgs.maturin
             pkgs.poetry
             python
-          ] ++ (builtins.attrValues letsql-commands);
+            commands.letsql-commands-star
+          ];
         };
         shellHook = ''
           export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
-          ${letsql-commands.letsql-ensure-download-data}/bin/letsql-ensure-download-data
+          ${commands.letsql-commands.letsql-ensure-download-data}/bin/letsql-ensure-download-data
         '';
       in
       {
