@@ -1,6 +1,6 @@
-{ system, pkgs, crane, poetry2nix, python }:
+{ system, pkgs, poetry2nix, crane }:
 let
-  mkLETSQL = src: with pkgs.lib.path; let
+  mkLETSQL = src: python: with pkgs.lib.path; let
     # how do we ensure pkgs comes with rust-overlay overlay?
     cargoToml = append src "Cargo.toml";
     rustSrcSet = with pkgs.lib.fileset; unions [

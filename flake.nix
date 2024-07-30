@@ -22,16 +22,21 @@
           inherit system;
           overlays = [ (import rust-overlay) ];
         };
-        python = pkgs.python310;
-        mkLETSQL = import ./nix/letsql.nix { inherit system pkgs crane poetry2nix python; };
-        letsql = mkLETSQL ./.;
-
-        commands = import ./nix/commands.nix {
+        mkLETSQL = (import ./nix/letsql.nix { inherit system pkgs poetry2nix crane; }) ./.;
+        mkCommands = python: import ./nix/commands.nix {
           inherit pkgs python;
         };
-
-        toolsPackages = pkgs.buildEnv {
-          name = "tools";
+        mkShellHook = python: let
+          commands = mkCommands python;
+        in ''
+          export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
+          ${commands.letsql-commands.letsql-ensure-download-data}/bin/letsql-ensure-download-data
+        '';
+        mkToolsPackages = python: let
+          commands = mkCommands python;
+          letsql = mkLETSQL python;
+        in pkgs.buildEnv {
+          name = "tools-${python.pythonVersion}";
           paths = [
             letsql.toolchain
             pkgs.maturin
@@ -40,47 +45,64 @@
             commands.letsql-commands-star
           ];
         };
-        shellHook = ''
-          export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
-          ${commands.letsql-commands.letsql-ensure-download-data}/bin/letsql-ensure-download-data
-        '';
+        mkToolsShell = python: let
+          toolsPackages = mkToolsPackages python;
+          shellHook = mkShellHook python;
+        in pkgs.mkShell {
+          packages = [
+            toolsPackages
+          ];
+          inherit shellHook;
+        };
+        mkDevShell = python: let
+          toolsPackages = mkToolsPackages python;
+          letsql = mkLETSQL python;
+          shellHook = mkShellHook python;
+        in pkgs.mkShell {
+          packages = [
+            letsql.appFromWheel
+            toolsPackages
+          ];
+          inherit shellHook;
+        };
+        letsql310 = mkLETSQL pkgs.python310;
+        letsql311 = mkLETSQL pkgs.python311;
+        letsql312 = mkLETSQL pkgs.python312;
+        toolsPackages310 = mkToolsPackages pkgs.python310;
+        toolsPackages311 = mkToolsPackages pkgs.python311;
+        toolsPackages312 = mkToolsPackages pkgs.python312;
+        tools310 = mkToolsShell pkgs.python310;
+        tools311 = mkToolsShell pkgs.python311;
+        tools312 = mkToolsShell pkgs.python312;
+        dev310 = mkDevShell pkgs.python310;
+        dev311 = mkDevShell pkgs.python311;
+        dev312 = mkDevShell pkgs.python312;
       in
       {
         packages = {
-          inherit (letsql) app appFromWheel;
-          inherit toolsPackages;
-          default = self.packages.${system}.app;
+          app310 = letsql310.app;
+          appFromWheel310 = letsql310.appFromWheel;
+          app311 = letsql311.app;
+          appFromWheel311 = letsql311.appFromWheel;
+          app312 = letsql312.app;
+          appFromWheel312 = letsql312.appFromWheel;
+          inherit toolsPackages310 toolsPackages311 toolsPackages312;
+          #
+          app = self.packages.${system}.app310;
+          appFromWheel = self.packages.${system}.appFromWheel310;
+          toolsPackages = self.packages.${system}.toolsPackages310;
+          default = self.packages.${system}.appFromWheel;
         };
         lib = {
-          inherit (letsql) poetryOverrides maturinOverride mkLETSQL;
+          inherit (letsql310) poetryOverrides maturinOverride;
+          inherit mkLETSQL mkCommands mkShellHook mkToolsPackages mkDevShell;
         };
         devShells = {
-          dev = pkgs.mkShell {
-            packages = [
-              self.packages.${system}.app
-              toolsPackages
-            ];
-            inherit shellHook;
-          };
-          devFromWheel = pkgs.mkShell {
-            packages = [
-              self.packages.${system}.appFromWheel
-              toolsPackages
-            ];
-            inherit shellHook;
-          };
-          inputs = pkgs.mkShell {
-            inputsFrom = [ self.packages.${system}.app ];
-            packages = toolsPackages;
-            inherit shellHook;
-          };
-          tools = pkgs.mkShell {
-            packages = [
-              toolsPackages
-            ];
-            inherit shellHook;
-          };
-          default = self.devShells.${system}.devFromWheel;
+          inherit tools310 tools311 tools312;
+          tools = self.devShells.${system}.tools310;
+          inherit dev310 dev311 dev312;
+          dev = self.devShells.${system}.dev310;
+          default = self.devShells.${system}.dev;
         };
       });
 }
