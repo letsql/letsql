@@ -10,13 +10,14 @@ from attr.validators import (
 )
 
 import letsql
-from letsql.expr.relations import (
-    CachedNode,
-    replace_cache_table,
-)
 from letsql.common.utils.hotfix_utils import (
     maybe_hotfix,
     none_tokenized,
+)
+from letsql.expr.operations.images import SegmentAnything, ImageRotate
+from letsql.expr.relations import (
+    CachedNode,
+    replace_cache_table,
 )
 
 
@@ -174,3 +175,13 @@ def letsql_cache(self, storage=None):
 @property
 def ls(self):
     return LETSQLAccessor(self)
+
+
+@maybe_hotfix(ibis.expr.types.binary.BinaryColumn, "segment_anything", none_tokenized)
+def predict_xgb(self: ibis.expr.types.binary.BinaryColumn, model_name: str, seed: list):
+    return SegmentAnything(arg=self, model_name=model_name, seed=seed).to_expr()
+
+
+@maybe_hotfix(ibis.expr.types.binary.BinaryColumn, "rotate", none_tokenized)
+def rotate(self: ibis.expr.types.binary.BinaryColumn):
+    return ImageRotate(arg=self).to_expr()
