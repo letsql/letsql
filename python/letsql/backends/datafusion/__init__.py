@@ -553,7 +553,6 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
         partial = toolz.functoolz.partial(construct, model_name)
 
         def create_named_wrapper(func, name, signature):
-            @functools.wraps(func)
             def register_xgb_model(*args, **kwargs):
                 return func(*args, **kwargs)
 
