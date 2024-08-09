@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -40,12 +42,42 @@ def _get_datafusion_dataframe(con, expr, **kwargs):
     return con.con.sql(raw_sql)
 
 
+SESSION_ID_PREFIX = "letsql_session_id_"
+
+
+@contextmanager
+def _execute_witch_switch(backend, expr: ir.Expr) -> ir.Expr:
+    switch_nodes = expr.op().find(
+        lambda n: isinstance(n, CachedNode)
+        and n.storage.key_prefix == backend.session_id
+    )
+
+    temporal_tables = []
+    for node in switch_nodes:
+        if isinstance(node, CachedNode):
+            temporal_tables.append(
+                (node.storage.get_key(node.parent.to_expr()), node.storage.source)
+            )
+
+    try:
+        yield
+    finally:
+        for table, conn in temporal_tables:
+            try:
+                conn.drop_table(table, force=True)
+            except Exception:
+                conn.drop_view(table, force=True)
+            finally:
+                pass
+
+
 class Backend(DataFusionBackend):
     name = "let"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._sources = SourceDict()
+        self.session_id = f"{SESSION_ID_PREFIX}{uuid.uuid4().hex}_"
 
     def register(
         self,
@@ -202,13 +234,15 @@ class Backend(DataFusionBackend):
 
     def execute(self, expr: ir.Expr, **kwargs: Any):
         expr = self._transform_to_native_backend(expr)
-        expr = self._register_and_transform_cache_tables(expr)
-        backend = self._get_source(expr)
 
-        if backend is self:
-            backend = super()
+        with _execute_witch_switch(self, expr):
+            expr = self._register_and_transform_cache_tables(expr)
+            backend = self._get_source(expr)
 
-        return backend.execute(expr.unbind(), **kwargs)
+            if backend is self:
+                backend = super()
+
+            return backend.execute(expr.unbind(), **kwargs)
 
     def _transform_to_native_backend(self, expr):
         native_backend = self._get_source(expr) is not self
@@ -269,6 +303,17 @@ class Backend(DataFusionBackend):
     def _cached(self, expr: ir.Table, storage=None):
         source = self._get_source(expr)
         storage = storage or SourceStorage(source=source)
+        op = CachedNode(
+            schema=expr.schema(),
+            parent=expr.op(),
+            source=source,
+            storage=storage,
+        )
+        return op.to_expr()
+
+    def _switch(self, expr: ir.Table, con):
+        source = self._get_source(expr)
+        storage = SourceStorage(source=con, key_prefix=self.session_id)
         op = CachedNode(
             schema=expr.schema(),
             parent=expr.op(),

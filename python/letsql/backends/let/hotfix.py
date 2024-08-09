@@ -168,6 +168,16 @@ def letsql_cache(self, storage=None):
 
 
 @maybe_hotfix(
+    ibis.expr.types.relations.Table,
+    "with_backend",
+    none_tokenized,
+)
+def letsql_switch(self, con):
+    current_backend = self._find_backend(use_default=True)
+    return current_backend._switch(self, con)
+
+
+@maybe_hotfix(
     ibis.expr.types.core.Expr,
     "ls",
     none_tokenized,

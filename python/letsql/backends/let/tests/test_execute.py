@@ -1,4 +1,5 @@
 import itertools
+import os
 import random
 from pathlib import Path
 
@@ -6,15 +7,16 @@ import ibis
 import numpy as np
 import pandas as pd
 import pytest
+import xgboost as xgb
 from ibis.expr import types as ir
 from pytest import param
+from sklearn.model_selection import train_test_split
 
 import letsql
 from letsql.tests.util import (
     assert_frame_equal,
 )
 from letsql.common.caching import SourceStorage
-
 
 KEY_PREFIX = letsql.config.options.cache.key_prefix
 
@@ -121,6 +123,47 @@ def ls_batting(parquet_batting):
 @pytest.fixture(scope="function")
 def ddb_batting(duckdb_con):
     return duckdb_con.table("batting")
+
+
+@pytest.fixture
+def tmp_model_dir(tmpdir):
+    # Create a temporary directory for the model
+    model_dir = tmpdir.mkdir("models")
+    return model_dir
+
+
+def train_xgb(
+    data,
+    objective="reg:squarederror",
+    features=None,
+    target="price",
+    max_depth=8,
+    n_estimators=100,
+):
+    # Split the data into features and target variable
+    if features is None:
+        features = ["carat", "depth", "x", "y", "z"]
+    X = data[features]
+    y = data[target]
+
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Instantiate an XGBoost regressor
+    model = xgb.XGBRegressor(
+        objective=objective,
+        random_state=42,
+        max_depth=max_depth,
+        n_estimators=n_estimators,
+    )
+
+    # Train the model
+    model.fit(X_train, y_train)
+
+    # Return the trained model
+    return model
 
 
 def test_join(con, alltypes, alltypes_df):
@@ -698,3 +741,27 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
 
     columns = list(actual.columns)
     assert_frame_equal(actual.sort_values(columns), expected.sort_values(columns))
+
+
+def test_backend_switch(csv_dir, tmp_model_dir, ls_con, pg):
+    from letsql.backends.let import SESSION_ID_PREFIX
+
+    data = pd.read_csv(csv_dir / "diamonds.csv")
+    model = train_xgb(data, "reg:squarederror")
+    model_path = os.path.join(tmp_model_dir, "model.json")
+    model.save_model(model_path)
+    predict_xgb = ls_con.register_xgb_model("diamonds_model", model_path)
+
+    diamonds_name = "diamonds"
+    features = ["carat", "depth", "x", "y", "z"]
+    table = pg.table(diamonds_name).select(features)
+    expr = (
+        table.pipe(ls_con.register, f"pg-{diamonds_name}")
+        .with_backend(ls_con)
+        .mutate(prediction=lambda t: predict_xgb(t.carat, t.depth, t.x, t.y, t.z))
+    )
+
+    assert expr.execute() is not None
+    assert not any(
+        table_name.startswith(SESSION_ID_PREFIX) for table_name in ls_con.list_tables()
+    )
