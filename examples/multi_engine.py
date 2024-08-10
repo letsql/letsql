@@ -1,3 +1,5 @@
+import ibis
+
 import letsql as ls
 
 
