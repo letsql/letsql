@@ -19,6 +19,7 @@ import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
 import ibis.expr.schema as sch
 import ibis.expr.types as ir
+import ibis.selectors as s
 import json
 import pyarrow as pa
 import pyarrow.dataset as ds
@@ -38,6 +39,7 @@ import letsql.internal as df
 from letsql.backends.datafusion.compiler import DataFusionCompiler
 from letsql.backends.datafusion.provider import IbisTableProvider
 from letsql.expr.pyaggregator import PyAggregator, make_struct_type
+from letsql.expr.selectors import pick
 from letsql.internal import (
     SessionConfig,
     SessionContext,
@@ -545,12 +547,12 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
         def construct(*args: Any, **kwargs: Any) -> ir.Value:
             return node(*args, **kwargs).to_expr()
 
-        def on_expr(e, **kwargs):
-            return construct(*(e[c] for c in features), **kwargs)
-
-        construct.on_expr = on_expr
-
         partial = toolz.functoolz.partial(construct, model_name)
+
+        def on_expr(*args, **kwargs):
+            columns = s.c(*features)
+            expr = pick(columns, lambda cols: partial(*cols), **kwargs)
+            return expr
 
         def create_named_wrapper(func, name, signature):
             def predict_xgb(*args, **kwargs):
@@ -568,6 +570,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
 
         new_signature = inspect.Signature(_fields_to_parameters(fields)[1:])
         wrapper = create_named_wrapper(partial, model_name, new_signature)
+        wrapper.on_expr = on_expr
         return wrapper
 
     def read_csv(
