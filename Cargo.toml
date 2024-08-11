@@ -16,7 +16,7 @@ datafusion-common = { version = ">=40.0.0,<41", features = ["pyarrow"] }
 datafusion-expr = ">=40.0.0,<41"
 prost = ">=0.12,<0.14"
 prost-types = ">=0.12,<0.14"
-datafusion-optimizer = ">=40.0.0,<41"
+datafusion-optimizer = ">=40.0.0, <42"
 datafusion-sql = ">=40.0.0,<41"
 futures = "0.3"
 async-trait = "0.1"
