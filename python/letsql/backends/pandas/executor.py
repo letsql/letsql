@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from packaging.version import parse as vparse
 
+import ibis.backends.pandas.executor as pandas_executor
 import ibis.backends.pandas.kernels as pandas_kernels
 import ibis.expr.operations as ops
 from ibis.backends.pandas.convert import PandasConverter
@@ -34,25 +35,15 @@ from ibis.common.exceptions import OperationNotDefinedError, UnboundExpressionEr
 from ibis.formats.pandas import PandasData, PandasType
 from ibis.util import any_of, gen_name
 
+from letsql.expr.relations import Read
 # ruff: noqa: F811
-
-
-from typing import Any
-from ibis.expr.schema import Schema
-from ibis.common.collections import FrozenOrderedDict
-
-
-class Read(ops.Relation):
-    name: str
-    schema: Schema
-    source: Any
-    read_kwargs: Any  # tuple of str -> Any?
-    values = FrozenOrderedDict()
 
 
 class PandasExecutor(Dispatched, PandasUtils):
     name = "pandas"
     kernels = pandas_kernels
+
+    _original = pandas_executor.PandasExecutor
 
     @classmethod
     def visit(cls, op: ops.Node, **kwargs):
@@ -803,14 +794,11 @@ class PandasExecutor(Dispatched, PandasUtils):
             return df
 
     @classmethod
-    def visit(cls, op: Read, name, schema, source, read_kwargs):
-        _read_kwargs = dict(read_kwargs)
-        methodname = _read_kwargs.pop("methodname")
-        cloned = op.source.connect()
-        method = getattr(cloned, methodname)
-        invoked = method(**_read_kwargs)
-        inner_op = invoked.op()
-        df = inner_op.source.dictionary[_read_kwargs["table_name"]]
-        if list(df.dtypes.items()) != op.schema.to_pandas():
+    def visit(cls, op: Read, method, name, schema, source, read_kwargs):
+        temp_source = source.connect()
+        # invoke the method to populate temp_source
+        _ = method(temp_source, **dict(read_kwargs))
+        df = temp_source.dictionary[name]
+        if list(df.dtypes.items()) != schema.to_pandas():
             raise ValueError
         return df

@@ -73,6 +73,14 @@ def connect() -> Backend:
 def __getattr__(name):
     import ibis
 
+    try:
+        import importlib
+
+        # what if the user creates an expr directly from ibis and we don't hotfix?
+        importlib.import_module(f"letsql.backends.{name}.hotfix")
+    except ModuleNotFoundError:
+        pass
+
     return load_backend(name) or ibis.__getattr__(name)
 
 
