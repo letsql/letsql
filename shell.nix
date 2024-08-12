@@ -28,7 +28,7 @@ let
       Darwin) suffix=dylib ;;
       *)      suffix=so    ;;
     esac
-    source=$repo_dir/target/debug/maturin/libletsql.$suffix
+    source=$repo_dir/target/release/maturin/libletsql.$suffix
     target=$repo_dir/python/letsql/_internal.abi3.so
     if [ ! -e "$source" ]; then
       ${toolsPackages}/bin/maturin build --release
