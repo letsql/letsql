@@ -33,6 +33,15 @@ def images_table():
     return table
 
 
+def make_images_expr(images_table):
+    con = ls.connect()
+    images = con.register(images_table, table_name="images")
+    expr = images.data.segment_anything(
+        "mobile_sam-tiny-vitt.safetensors", [0.5, 0.6]
+    ).name("segmented")
+    return expr
+
+
 def test_tensor_mean_all():
     context = SessionContext()
     query = "select tensor_mean_all(make_array(1.0, 2.0, 3.0));"
@@ -54,32 +63,17 @@ def test_tensor_mean_all_over_matrix():
 def test_segment_anything(images_table):
     context = SessionContext()
     context.register_record_batches("images", [images_table.to_batches()])
-
-    rows = context.sql(
-        """
-        SELECT segment_anything('mobile_sam-tiny-vitt.safetensors', data, make_array(0.5, 0.6)) as segmented
-        FROM images
-        LIMIT 3
-        """
-    ).to_pylist()
-
+    sql = make_images_expr(images_table).compile()
+    rows = context.sql(sql).to_pylist()
     output = [Image.open(io.BytesIO(row["segmented"])) for row in rows]
     assert output is not None
     assert all(image.format == IMAGE_FORMAT for image in output)
 
 
 def test_segment_anything_op(images_table):
-    con = ls.connect()
-    images = con.register(images_table, table_name="images")
-
-    expr = images.data.segment_anything("mobile_sam-tiny-vitt.safetensors", [0.5, 0.6])
-
-    segmented = expr.execute()
-    assert segmented is not None
-
-    output = [Image.open(io.BytesIO(data)) for data in segmented.to_list()]
-    assert output is not None
-    assert all(image.format == IMAGE_FORMAT for image in output)
+    sql = make_images_expr(images_table).compile()
+    expected = """SELECT SEGMENT_ANYTHING('mobile_sam-tiny-vitt.safetensors', "t0"."data", MAKE_ARRAY(0.5, 0.6)) AS "segmented" FROM "images" AS "t0\""""
+    assert sql == expected
 
 
 def test_rotate(images_table):
