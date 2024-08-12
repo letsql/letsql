@@ -31,7 +31,7 @@ let
     source=$repo_dir/target/debug/maturin/libletsql.$suffix
     target=$repo_dir/python/letsql/_internal.abi3.so
     if [ ! -e "$source" ]; then
-      ${toolsPackages}/bin/maturin build
+      ${toolsPackages}/bin/maturin build --release
     fi
     if [ ! -L "$target" -o "$(realpath "$source")" != "$(realpath "$target")" ]; then
       rm -f "$target"
