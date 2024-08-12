@@ -11,27 +11,27 @@ use datafusion_expr::{ColumnarValue, ScalarUDFImpl, Signature, Volatility};
 use crate::utils::{binary_to_img, make_scalar_function};
 
 #[derive(Debug, Clone)]
-pub(crate) struct RotateUDF {
+pub(crate) struct Rotate90UDF {
     signature: Signature,
     aliases: Vec<String>,
 }
 
-impl RotateUDF {
+impl Rotate90UDF {
     pub(crate) fn new() -> Self {
         Self {
             signature: Signature::variadic_any(Volatility::Immutable),
-            aliases: vec!["image_rotate".to_string()],
+            aliases: vec!["image_rotate90".to_string()],
         }
     }
 }
 
-impl ScalarUDFImpl for RotateUDF {
+impl ScalarUDFImpl for Rotate90UDF {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
     fn name(&self) -> &str {
-        "rotate"
+        "rotate90"
     }
 
     fn signature(&self) -> &Signature {
@@ -43,7 +43,7 @@ impl ScalarUDFImpl for RotateUDF {
     }
 
     fn invoke(&self, args: &[ColumnarValue]) -> Result<ColumnarValue> {
-        make_scalar_function(rotate_inner)(args)
+        make_scalar_function(rotate90_inner)(args)
     }
 
     fn aliases(&self) -> &[String] {
@@ -51,9 +51,9 @@ impl ScalarUDFImpl for RotateUDF {
     }
 }
 
-fn rotate_inner(args: &[ArrayRef]) -> Result<ArrayRef> {
+fn rotate90_inner(args: &[ArrayRef]) -> Result<ArrayRef> {
     if args.len() != 1 {
-        return exec_err!("rotate needs 1 arguments");
+        return exec_err!("rotate90 needs 1 arguments");
     }
 
     let images = as_binary_array(&args[0])?;

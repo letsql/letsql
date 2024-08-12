@@ -562,5 +562,5 @@ class DataFusionCompiler(SQLGlotCompiler):
     def visit_SegmentAnything(self, op, *, arg, model_name, seed):
         return self.f.segment_anything(sg.exp.convert(model_name), arg, seed)
 
-    def visit_ImageRotate(self, op, *, arg):
-        return self.f.image_rotate(arg)
+    def visit_Rotate90(self, op, *, arg):
+        return self.f.rotate90(arg)

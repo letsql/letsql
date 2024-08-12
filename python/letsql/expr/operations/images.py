@@ -12,7 +12,7 @@ class SegmentAnything(Value):
     shape = rlz.shape_like("arg")
 
 
-class ImageRotate(Value):
+class Rotate90(Value):
     arg: Value[dt.Binary]
 
     dtype = dt.binary

@@ -24,13 +24,22 @@ def images_table():
 
     table = pa.Table.from_arrays(
         [
-            pa.array(["tulips.png", "tulips2.png"]),
-            pa.array([output.getvalue(), output.getvalue()], type=pa.binary()),
+            pa.array(["tulips.png"]),
+            pa.array([output.getvalue()], type=pa.binary()),
         ],
         names=["name", "data"],
     )
 
     return table
+
+
+def make_images_expr(images_table):
+    con = ls.connect()
+    images = con.register(images_table, table_name="images")
+    expr = images.data.segment_anything(
+        "mobile_sam-tiny-vitt.safetensors", [0.5, 0.6]
+    ).name("segmented")
+    return expr
 
 
 def test_tensor_mean_all():
@@ -54,32 +63,17 @@ def test_tensor_mean_all_over_matrix():
 def test_segment_anything(images_table):
     context = SessionContext()
     context.register_record_batches("images", [images_table.to_batches()])
-
-    rows = context.sql(
-        """
-        SELECT segment_anything('mobile_sam-tiny-vitt.safetensors', data, make_array(0.5, 0.6)) as segmented
-        FROM images
-        LIMIT 3
-        """
-    ).to_pylist()
-
+    sql = make_images_expr(images_table).compile()
+    rows = context.sql(sql).to_pylist()
     output = [Image.open(io.BytesIO(row["segmented"])) for row in rows]
     assert output is not None
     assert all(image.format == IMAGE_FORMAT for image in output)
 
 
 def test_segment_anything_op(images_table):
-    con = ls.connect()
-    images = con.register(images_table, table_name="images")
-
-    expr = images.data.segment_anything("mobile_sam-tiny-vitt.safetensors", [0.5, 0.6])
-
-    segmented = expr.execute()
-    assert segmented is not None
-
-    output = [Image.open(io.BytesIO(data)) for data in segmented.to_list()]
-    assert output is not None
-    assert all(image.format == IMAGE_FORMAT for image in output)
+    sql = make_images_expr(images_table).compile()
+    expected = """SELECT SEGMENT_ANYTHING('mobile_sam-tiny-vitt.safetensors', "t0"."data", MAKE_ARRAY(0.5, 0.6)) AS "segmented" FROM "images" AS "t0\""""
+    assert sql == expected
 
 
 def test_rotate(images_table):
@@ -88,7 +82,7 @@ def test_rotate(images_table):
 
     rows = context.sql(
         """
-        SELECT image_rotate(data) as rotated
+        SELECT rotate90(data) as rotated
         FROM images
         LIMIT 3
         """
@@ -103,7 +97,7 @@ def test_rotate_op(images_table):
     con = ls.connect()
     images = con.register(images_table, table_name="images")
 
-    expr = images.data.rotate()
+    expr = images.data.rotate90()
 
     rotated = expr.execute()
     assert rotated is not None
