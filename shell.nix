@@ -43,8 +43,10 @@ in pkgs.mkShell {
     editableApp
     toolsPackages
     pkgs.poetry
+    pkgs.pkg-config
   ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
     pkgs.libiconv
   ];
+  PKG_CONFIG_PATH = "${pkgs.openssl.dev}/lib/pkgconfig";
   inherit shellHook;
 }
