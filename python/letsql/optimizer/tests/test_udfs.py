@@ -24,8 +24,8 @@ def images_table():
 
     table = pa.Table.from_arrays(
         [
-            pa.array(["tulips.png", "tulips2.png"]),
-            pa.array([output.getvalue(), output.getvalue()], type=pa.binary()),
+            pa.array(["tulips.png"]),
+            pa.array([output.getvalue()], type=pa.binary()),
         ],
         names=["name", "data"],
     )
