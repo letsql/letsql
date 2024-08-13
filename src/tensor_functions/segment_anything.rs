@@ -64,11 +64,13 @@ fn segment_anything_inner(args: &[ArrayRef]) -> Result<ArrayRef> {
 
     let str_array = as_string_array(&args[0])?;
 
-    let api = hf_hub::api::sync::Api::new().map_err(|e| Execution(e.to_string()))?;
-    let api = api.model("lmz/candle-sam".to_string());
-    let model = api
-        .get(str_array.value(0))
-        .map_err(|e| Execution(e.to_string()))?;
+    // let api = hf_hub::api::sync::Api::new().map_err(|e| Execution(e.to_string()))?;
+    // let api = api.model("lmz/candle-sam".to_string());
+    // let model = api
+    //     .get(str_array.value(0))
+    //     .map_err(|e| Execution(e.to_string()))?;
+
+    let model = std::path::PathBuf::from(str_array.value(0));
 
     let device = Device::Cpu;
 

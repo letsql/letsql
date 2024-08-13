@@ -1,4 +1,5 @@
 import io
+import urllib.request
 
 import pandas as pd
 import pyarrow as pa
@@ -14,6 +15,9 @@ import letsql as ls
 
 IMAGE_FORMAT = "JPEG"
 TULIPS_URL = "https://github.com/mohammadimtiazz/standard-test-images-for-Image-Processing/blob/master/standard_test_images/tulips.png?raw=true"
+SAM_MODEL_URL = (
+    "https://storage.googleapis.com/letsql-pins/models/mobile_sam-tiny-vitt.safetensors"
+)
 
 
 @pytest.fixture
@@ -33,13 +37,18 @@ def images_table():
     return table
 
 
-def make_images_expr(images_table):
+def make_images_expr(images_table, path):
     con = ls.connect()
     images = con.register(images_table, table_name="images")
-    expr = images.data.segment_anything(
-        "mobile_sam-tiny-vitt.safetensors", [0.5, 0.6]
-    ).name("segmented")
+    expr = images.data.segment_anything(str(path), [0.5, 0.6]).name("segmented")
     return expr
+
+
+@pytest.fixture(scope="session")
+def model_path(tmp_path_factory):
+    filename = tmp_path_factory.mktemp("models") / "mobile_sam-tiny-vitt.safetensors"
+    filename, _ = urllib.request.urlretrieve(SAM_MODEL_URL, filename)
+    return filename
 
 
 def test_tensor_mean_all():
@@ -60,19 +69,19 @@ def test_tensor_mean_all_over_matrix():
     assert_frame_equal(actual, expected)
 
 
-def test_segment_anything(images_table):
+def test_segment_anything(images_table, model_path):
     context = SessionContext()
     context.register_record_batches("images", [images_table.to_batches()])
-    sql = make_images_expr(images_table).compile()
+    sql = make_images_expr(images_table, model_path).compile()
     rows = context.sql(sql).to_pylist()
     output = [Image.open(io.BytesIO(row["segmented"])) for row in rows]
     assert output is not None
     assert all(image.format == IMAGE_FORMAT for image in output)
 
 
-def test_segment_anything_op(images_table):
-    sql = make_images_expr(images_table).compile()
-    expected = """SELECT SEGMENT_ANYTHING('mobile_sam-tiny-vitt.safetensors', "t0"."data", MAKE_ARRAY(0.5, 0.6)) AS "segmented" FROM "images" AS "t0\""""
+def test_segment_anything_op(images_table, model_path):
+    sql = make_images_expr(images_table, model_path).compile()
+    expected = f"""SELECT SEGMENT_ANYTHING('{model_path}', "t0"."data", MAKE_ARRAY(0.5, 0.6)) AS "segmented" FROM "images" AS "t0\""""
     assert sql == expected
 
 
