@@ -311,7 +311,7 @@ class Backend(DataFusionBackend):
         )
         return op.to_expr()
 
-    def _switch(self, expr: ir.Table, con):
+    def _into_backend(self, expr: ir.Table, con):
         source = self._get_source(expr)
         storage = SourceStorage(source=con, key_prefix=self.session_id)
         op = CachedNode(

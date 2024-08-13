@@ -757,7 +757,7 @@ def test_backend_switch(csv_dir, tmp_model_dir, ls_con, pg):
     table = pg.table(diamonds_name).select(features)
     expr = (
         table.pipe(ls_con.register, f"pg-{diamonds_name}")
-        .with_backend(ls_con)
+        .into_backend(ls_con)
         .mutate(prediction=lambda t: predict_xgb(t.carat, t.depth, t.x, t.y, t.z))
     )
 
