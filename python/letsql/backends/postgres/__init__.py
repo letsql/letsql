@@ -1,3 +1,4 @@
+import uuid
 from functools import partial
 from pathlib import Path
 from typing import Mapping, Any
@@ -12,6 +13,7 @@ from ibis.backends.postgres import Backend as IbisPostgresBackend
 from ibis.expr import types as ir
 from pandas.api.types import is_float_dtype
 
+from letsql.backends.let import SESSION_ID_PREFIX
 from letsql.common.caching import (
     SourceStorage,
 )
@@ -19,6 +21,10 @@ from letsql.expr.relations import CachedNode, replace_cache_table
 
 
 class Backend(IbisPostgresBackend):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session_id = f"{SESSION_ID_PREFIX}{uuid.uuid4().hex}_"
+
     @staticmethod
     def _register_and_transform_cache_tables(expr):
         """This function will sequentially execute any cache node that is not already cached"""
@@ -60,6 +66,17 @@ class Backend(IbisPostgresBackend):
             schema=expr.schema(),
             parent=expr.op(),
             source=self,
+            storage=storage,
+        )
+        return op.to_expr()
+
+    def _into_backend(self, expr: ir.Table, con):
+        source = expr._find_backend()
+        storage = SourceStorage(source=con, key_prefix=self.session_id)
+        op = CachedNode(
+            schema=expr.schema(),
+            parent=expr.op(),
+            source=source,
             storage=storage,
         )
         return op.to_expr()

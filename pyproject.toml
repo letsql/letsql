@@ -63,6 +63,7 @@ examples = [
 let = "letsql.backends.let"
 postgres = "letsql.backends.postgres"
 snowflake = "letsql.backends.snowflake"
+duckdb = "letsql.backends.duckdb"
 
 
 [tool.maturin]
@@ -141,6 +142,7 @@ examples = ["pins", "fsspec"]
 let = "letsql.backends.let"
 postgres = "letsql.backends.postgres"
 snowflake = "letsql.backends.snowflake"
+duckdb = "letsql.backends.duckdb"
 
 [tool.pytest.ini_options]
 filterwarnings = [
