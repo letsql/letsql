@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import ibis.expr.operations as ops
 import ibis.expr.types.core
 import ibis.expr.types.relations
@@ -8,6 +10,7 @@ from attr import (
 from attr.validators import (
     instance_of,
 )
+from ibis.common.graph import Graph
 
 import letsql
 from letsql.common.utils.hotfix_utils import (
@@ -173,7 +176,33 @@ def letsql_cache(self, storage=None):
     none_tokenized,
 )
 def letsql_into_backend(self, con):
-    current_backend = self._find_backend(use_default=True)
+    # all dependencies are before the node, that means all the children, but in here the children are like the father
+    # so what I want is all the nodes ops.UnboundTable, ops.DatabaseTable, ops.SQLQueryResult that don't have an ancestor
+    # that is a CachedNode, that is because the CachedNode changes the backend
+    graph, _ = Graph.from_bfs(self.op(), filter=None, context=None).toposort()
+
+    ancestors = defaultdict(list)
+
+    for node in reversed(graph):
+        for child in graph[node]:
+            ancestors[child].extend([node, *ancestors.get(node, [])])
+
+    backends = set()
+    node_types = (ops.DatabaseTable, ops.SQLQueryResult)
+    for table in self.op().find(node_types):
+        if (
+            cache := next(
+                (a for a in ancestors[table] if isinstance(a, CachedNode)), None
+            )
+        ) is not None:
+            backends.add(cache.storage.source)
+        else:
+            backends.add(table.source)
+
+    if len(backends) > 1:
+        raise ValueError
+
+    current_backend = backends.pop()
     return current_backend._into_backend(self, con)
 
 

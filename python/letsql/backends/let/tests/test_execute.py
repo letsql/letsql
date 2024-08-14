@@ -765,3 +765,19 @@ def test_backend_switch(csv_dir, tmp_model_dir, ls_con, pg):
     assert not any(
         table_name.startswith(SESSION_ID_PREFIX) for table_name in ls_con.list_tables()
     )
+
+
+def test_double_backend_switch(ls_con, pg, duckdb_con):
+    awards_players = pg.table("awards_players")
+    ddb_players = duckdb_con.table("ddb_players")
+    expr = (
+        awards_players[awards_players.lgID == "NL"]
+        .drop("yearID", "lgID")
+        .into_backend(duckdb_con)
+        .asof_join(ddb_players, on="playerID")
+        .into_backend(ls_con)
+    )
+
+    sql = letsql.to_sql(expr, pretty=True)
+    print()
+    print(sql)
