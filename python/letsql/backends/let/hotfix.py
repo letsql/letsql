@@ -1,3 +1,6 @@
+import toolz
+
+import dask
 import ibis.expr.operations as ops
 import ibis.expr.types.core
 import ibis.expr.types.relations
@@ -187,3 +190,34 @@ def segment_anything(
 @maybe_hotfix(ibis.expr.types.binary.BinaryColumn, "rotate90", none_tokenized)
 def rotate90(self: ibis.expr.types.binary.BinaryColumn):
     return Rotate90(arg=self).to_expr()
+
+
+@toolz.curry
+def letsql_invoke(_methodname, self, *args, **kwargs):
+    con = letsql.config._backend_init()
+    for dt in self.op().find(ops.DatabaseTable):
+        # fixme: use temp names to avoid collisions, remove / deregister after done
+        if dt not in con._sources.sources:
+            con.register(dt.to_expr(), dt.name)
+    method = getattr(con, _methodname)
+    return method(self, *args, **kwargs)
+
+
+for typ, methodnames in (
+    (
+        ibis.expr.types.core.Expr,
+        ("execute", "to_pyarrow", "to_pyarrow_batches"),
+    ),
+    (
+        # Join.execute is the only case outside of Expr.execute
+        ibis.expr.types.joins.Join,
+        ("execute",),
+    ),
+):
+    for methodname in methodnames:
+        maybe_hotfix(
+            typ,
+            methodname,
+            dask.base.tokenize(getattr(typ, methodname)),
+            letsql_invoke(methodname),
+        )
