@@ -72,7 +72,7 @@ def test_cache_simple(con, alltypes, alltypes_df):
             alltypes.int_col < alltypes.float_col * 2,
         ]
     )
-    cached = expr.cache()
+    cached = expr.cache(storage=SourceStorage(source=con))
     tables_after_caching = con.list_tables()
 
     expected = alltypes_df[
@@ -81,10 +81,10 @@ def test_cache_simple(con, alltypes, alltypes_df):
         & (alltypes_df["int_col"] < alltypes_df["float_col"] * 2)
     ][["smallint_col", "int_col", "float_col"]]
 
-    cached = cached.execute()
+    executed = cached.execute()
     tables_after_executing = con.list_tables()
 
-    assert_frame_equal(cached, expected)
+    assert_frame_equal(executed, expected)
     assert not any(
         table_name.startswith(KEY_PREFIX)
         for table_name in set(tables_after_caching).difference(initial_tables)
