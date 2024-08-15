@@ -132,6 +132,7 @@ def test_uncached_one(cached_two):
 
 
 def test_exists(cached_two):
+    cached_two = cached_two.ls.native_expr
     storage = cached_two.ls.storage
 
     assert not cached_two.ls.exists()
