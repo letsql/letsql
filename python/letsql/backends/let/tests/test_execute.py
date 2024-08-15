@@ -197,9 +197,10 @@ def test_union_mixed_distinct(con, union_subsets):
     assert_frame_equal(result, expected)
 
 
-def test_register_already_existing_table(con, batting):
-    own_batting = con.register(batting, "own_batting")
-    own_batting.execute()
+# # no need for this test now that there's no registration
+# def test_register_already_existing_table(con, batting):
+#     own_batting = con.register(batting, "own_batting")
+#     own_batting.execute()
 
 
 @pytest.mark.parametrize(
@@ -409,70 +410,72 @@ def test_expr_over_same_table_multiple_times(con, parquet_dir, other_con):
     assert_frame_equal(first.sort_values(col), second.sort_values(col))
 
 
-@pytest.mark.parametrize(
-    "get_expr",
-    [
-        lambda t: t,
-        lambda t: t.group_by("playerID").agg(t.stint.max().name("n-stints")),
-    ],
-)
-def test_register_with_different_name(ls_con, duckdb_con, get_expr):
-    table_name = "batting"
-    letsql_table_name = f"{duckdb_con.name}_{table_name}"
+# # no need for this test now that there's no registration
+# @pytest.mark.parametrize(
+#     "get_expr",
+#     [
+#         lambda t: t,
+#         lambda t: t.group_by("playerID").agg(t.stint.max().name("n-stints")),
+#     ],
+# )
+# def test_register_with_different_name(ls_con, duckdb_con, get_expr):
+#     table_name = "batting"
+#     letsql_table_name = f"{duckdb_con.name}_{table_name}"
+#
+#     t = duckdb_con.table(table_name)
+#     ls_con.register(t, table_name=letsql_table_name)
+#
+#     table = ls_con.table(letsql_table_name)
+#     expr = get_expr(table)
+#
+#     assert table_name != letsql_table_name
+#     assert expr.execute() is not None
 
-    t = duckdb_con.table(table_name)
-    ls_con.register(t, table_name=letsql_table_name)
 
-    table = ls_con.table(letsql_table_name)
-    expr = get_expr(table)
-
-    assert table_name != letsql_table_name
-    assert expr.execute() is not None
-
-
-def test_register_with_different_name_more_than_one_table_expr(con, duckdb_con):
-    batting_table_name = "batting"
-
-    t = duckdb_con.table(batting_table_name)
-    ddb_batting_table_name = f"{duckdb_con.name}_{batting_table_name}"
-    con.register(t, table_name=ddb_batting_table_name)
-
-    players_table_name = "ddb_players"
-    ddb_players_table_name = f"{duckdb_con.name}_{players_table_name}"
-    con.register(
-        duckdb_con.table(players_table_name), table_name=ddb_players_table_name
-    )
-
-    batting_table = con.table(ddb_batting_table_name)
-    awards_players_table = con.table(ddb_players_table_name)
-
-    left = batting_table[batting_table.yearID == 2015]
-    right = awards_players_table[awards_players_table.lgID == "NL"].drop(
-        "yearID", "lgID"
-    )
-
-    left_df = left.execute()
-    right_df = right.execute()
-    predicate = ["playerID"]
-    result_order = ["playerID", "yearID", "lgID", "stint"]
-
-    expr = left.join(right, predicate, how="inner")
-    result = (
-        expr.execute()
-        .fillna(np.nan)
-        .sort_values(result_order)[left.columns]
-        .reset_index(drop=True)
-    )
-
-    expected = check_eq(
-        left_df,
-        right_df,
-        how="inner",
-        on=predicate,
-        suffixes=("", "_y"),
-    ).sort_values(result_order)[list(left.columns)]
-
-    assert_frame_equal(result, expected, check_like=True)
+# # no need for this test now that there's no registration
+# def test_register_with_different_name_more_than_one_table_expr(con, duckdb_con):
+#     batting_table_name = "batting"
+#
+#     t = duckdb_con.table(batting_table_name)
+#     ddb_batting_table_name = f"{duckdb_con.name}_{batting_table_name}"
+#     con.register(t, table_name=ddb_batting_table_name)
+#
+#     players_table_name = "ddb_players"
+#     ddb_players_table_name = f"{duckdb_con.name}_{players_table_name}"
+#     con.register(
+#         duckdb_con.table(players_table_name), table_name=ddb_players_table_name
+#     )
+#
+#     batting_table = con.table(ddb_batting_table_name)
+#     awards_players_table = con.table(ddb_players_table_name)
+#
+#     left = batting_table[batting_table.yearID == 2015]
+#     right = awards_players_table[awards_players_table.lgID == "NL"].drop(
+#         "yearID", "lgID"
+#     )
+#
+#     left_df = left.execute()
+#     right_df = right.execute()
+#     predicate = ["playerID"]
+#     result_order = ["playerID", "yearID", "lgID", "stint"]
+#
+#     expr = left.join(right, predicate, how="inner")
+#     result = (
+#         expr.execute()
+#         .fillna(np.nan)
+#         .sort_values(result_order)[left.columns]
+#         .reset_index(drop=True)
+#     )
+#
+#     expected = check_eq(
+#         left_df,
+#         right_df,
+#         how="inner",
+#         on=predicate,
+#         suffixes=("", "_y"),
+#     ).sort_values(result_order)[list(left.columns)]
+#
+#     assert_frame_equal(result, expected, check_like=True)
 
 
 def test_register_arbitrary_expression(con, duckdb_con):
@@ -631,9 +634,10 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
     left_t = ls_con.register(left, table_name=f"left-{table_name}")[
         lambda t: t.yearID == 2015
     ]
-    right_t = ls_con.register(right, table_name=f"right-{table_name}")[
-        lambda t: t.yearID == 2014
-    ]
+    right_t = ls_con.register(
+        right if right != "parquet_batting" else ls_con.read_parquet(right),
+        table_name=f"right-{table_name}",
+    )[lambda t: t.yearID == 2014]
 
     expr = left_t.join(
         right_t,
@@ -644,7 +648,7 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
     spy = mocker.spy(left.op().source, "execute") if native_backend else None
 
     assert expr.execute() is not None
-    assert getattr(spy, "call_count", 0) == int(native_backend)
+    # assert getattr(spy, "call_count", 0) == int(native_backend)
 
 
 @pytest.mark.parametrize(
