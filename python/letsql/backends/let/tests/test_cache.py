@@ -200,7 +200,9 @@ def test_cache_recreate(con, alltypes, pg_alltypes):
             alltypes.int_col < alltypes.float_col * 2,
         ]
     )
-    expr.cache().execute()  # execute creation of tables
+    expr.cache(
+        storage=SourceStorage(source=con)
+    ).execute()  # execute creation of tables
 
     other = setup_backend(pg_alltypes, "functional_alltypes")
     other_alltypes = other.table("functional_alltypes")
@@ -213,7 +215,7 @@ def test_cache_recreate(con, alltypes, pg_alltypes):
             alltypes.int_col < alltypes.float_col * 2,
         ]
     )
-    other_expr.cache().execute()
+    other_expr.cache(storage=SourceStorage(source=other)).execute()
 
     con_cached_tables = set(
         table_name
