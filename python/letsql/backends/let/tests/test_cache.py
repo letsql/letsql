@@ -357,7 +357,8 @@ def test_postgres_cache_invalidation(pg, con):
         .group_by("playerID")
         .size()
         .order_by("playerID")
-        .cache()
+        .cache(storage=SourceStorage(source=con))
+        .ls.native_expr
     )
     dt = pg_t.op()
     (storage, uncached) = get_storage_uncached(con, expr_cached)
@@ -677,6 +678,7 @@ def test_pandas_snapshot(ls_con, alltypes_df):
         t.group_by(group_by)
         .agg({f"count_{col}": t[col].count() for col in t.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
+        .ls.native_expr
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
 
@@ -718,6 +720,7 @@ def test_duckdb_snapshot(ls_con, alltypes_df):
         t.group_by(group_by)
         .agg({f"count_{col}": t[col].count() for col in t.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
+        .ls.native_expr
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
 
@@ -752,6 +755,7 @@ def test_datafusion_snapshot(ls_con, alltypes_df):
         t.group_by(group_by)
         .agg({f"count_{col}": t[col].count() for col in t.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
+        .ls.native_expr
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
 
