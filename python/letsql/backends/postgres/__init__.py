@@ -24,7 +24,6 @@ class Backend(IbisPostgresBackend):
     @classmethod
     def connect_env(cls, **kwargs):
         from letsql.common.utils.postgres_utils import make_connection
-
         return make_connection(**kwargs)
 
     @classmethod
