@@ -27,5 +27,5 @@ expr = left.join(
     "playerID",
 ).cache(SourceStorage(source=pg))
 
-res = expr.execute()
+res = expr.ls.native_expr.execute()
 print(res)
