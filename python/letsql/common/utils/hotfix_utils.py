@@ -32,5 +32,6 @@ def maybe_hotfix(obj, attrname, target_tokenized, hotfix):
         setattr(obj, attrname, hotfix)
         logger.info("hotfixing", **dct)
     else:
+        print("not hotfixing", tokenized, target_tokenized)
         logger.info("not hotfixing", **dct)
     return hotfix
