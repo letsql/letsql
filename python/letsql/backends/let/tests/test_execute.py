@@ -567,7 +567,7 @@ def test_multiple_pipes(ls_con, pg, new_con):
 
 @pytest.mark.parametrize(
     "method",
-    ["to_pyarrow", "execute"],
+    ["to_pyarrow", "execute", "to_pyarrow_batches"],
 )
 @pytest.mark.parametrize("remote", [True, False])
 def test_duckdb_datafusion_roundtrip(ls_con, pg, duckdb_con, method, remote):

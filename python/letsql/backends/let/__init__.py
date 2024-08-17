@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import wraps
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -39,6 +40,22 @@ def _get_datafusion_dataframe(con, expr, **kwargs):
     raw_sql = con.compile(table_expr, **kwargs)
 
     return con.con.sql(raw_sql)
+
+
+def ensure_registration(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        self, expr, *rest = args
+        con = Backend()
+        con.do_connect()
+
+        for dt in expr.op().find(ops.DatabaseTable):
+            if dt not in con._sources.sources:
+                con.register(dt.to_expr(), dt.name)
+        response = f(*(con, expr, *rest), **kwargs)
+        return response
+
+    return wrapped
 
 
 class Backend(DataFusionBackend):
@@ -215,24 +232,6 @@ class Backend(DataFusionBackend):
         self._sources[registered_table.op()] = registered_table.op()
         return registered_table
 
-    def _execute(self, expr: ir.Expr, **kwargs: Any):
-        expr = self._transform_to_native_backend(expr)
-        expr = self._register_and_transform_cache_tables(expr)
-        backend = self._get_source(expr)
-
-        if isinstance(backend, self.__class__):
-            backend = super(self.__class__, backend)
-
-        return backend.execute(expr.unbind(), **kwargs)
-
-    def execute(self, expr: ir.Expr, **kwargs: Any):
-        con = letsql.connect()
-        for dt in expr.op().find(ops.DatabaseTable):
-            # fixme: use temp names to avoid collisions, remove / deregister after done
-            if dt not in con._sources.sources:
-                con.register(dt.to_expr(), dt.name)
-        return con._execute(expr, **kwargs)
-
     def _transform_to_native_backend(self, expr):
         native_backend = self._get_source(expr) is not self
         if native_backend:
@@ -244,23 +243,41 @@ class Backend(DataFusionBackend):
 
         return expr
 
-    def _to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
+    @ensure_registration
+    def execute(self, expr: ir.Expr, **kwargs: Any):
         expr = self._transform_to_native_backend(expr)
         expr = self._register_and_transform_cache_tables(expr)
         backend = self._get_source(expr)
+        if isinstance(backend, self.__class__):
+            backend = super(self.__class__, backend)
+        return backend.execute(expr.unbind(), **kwargs)
 
+    @ensure_registration
+    def to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
+        expr = self._transform_to_native_backend(expr)
+        expr = self._register_and_transform_cache_tables(expr)
+        backend = self._get_source(expr)
+        if isinstance(backend, self.__class__):
+            backend = super(self.__class__, backend)
+        return backend.to_pyarrow(expr.unbind(), **kwargs)
+
+    @ensure_registration
+    def to_pyarrow_batches(
+        self,
+        expr: ir.Expr,
+        *,
+        chunk_size: int = 1_000_000,
+        **kwargs: Any,
+    ) -> pa.ipc.RecordBatchReader:
+        expr = self._transform_to_native_backend(expr)
+        expr = self._register_and_transform_cache_tables(expr)
+        backend = self._get_source(expr)
         if isinstance(backend, self.__class__):
             backend = super(self.__class__, backend)
 
-        return backend.to_pyarrow(expr, **kwargs)
-
-    def to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
-        con = letsql.connect()
-        for dt in expr.op().find(ops.DatabaseTable):
-            # fixme: use temp names to avoid collisions, remove / deregister after done
-            if dt not in con._sources.sources:
-                con.register(dt.to_expr(), dt.name)
-        return con._to_pyarrow(expr, **kwargs)
+        return backend.to_pyarrow_batches(
+            expr.unbind(), chunk_size=chunk_size, **kwargs
+        )
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.
