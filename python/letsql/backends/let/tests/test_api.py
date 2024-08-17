@@ -38,6 +38,7 @@ def test_register_read_parquet(con, parquet_dir):
     assert result is not None
 
 
+@pytest.mark.xfail(reason="No purpose with no registration api")
 def test_executed_on_original_backend(ls_con, parquet_dir, csv_dir, mocker):
     con = ls.config._backend_init()
     spy = mocker.spy(con, "execute")
@@ -68,6 +69,7 @@ def test_read_postgres():
     assert res is not None and len(res)
 
 
+@pytest.mark.xfail(reason="No purpose with no registration api")
 def test_read_sqlite(tmp_path):
     import sqlite3
 

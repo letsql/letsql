@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+import ibis.expr.operations as ops
 import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
@@ -70,10 +71,13 @@ class Backend(DataFusionBackend):
                 backend = backends[0]
 
             if isinstance(backend, Backend):
-                if backend is self and table_or_expr in self._sources:
-                    table_or_expr = self._sources.get_table_or_op(table_or_expr)
-                    backend = self._sources.get_backend(table_or_expr)
-
+                if table_or_expr in backend._sources:
+                    old_table_expr, table_or_expr = (
+                        table_or_expr,
+                        backend._sources.get_table_or_op(table_or_expr),
+                    )
+                    backend = backend._sources.get_backend(old_table_expr)
+                source = table_or_expr.to_expr()
                 if (
                     isinstance(backend, DataFusionBackend)
                     or getattr(backend, "name", "") == DataFusionBackend.name
@@ -211,15 +215,23 @@ class Backend(DataFusionBackend):
         self._sources[registered_table.op()] = registered_table.op()
         return registered_table
 
-    def execute(self, expr: ir.Expr, **kwargs: Any):
+    def _execute(self, expr: ir.Expr, **kwargs: Any):
         expr = self._transform_to_native_backend(expr)
         expr = self._register_and_transform_cache_tables(expr)
         backend = self._get_source(expr)
 
-        if backend is self:
-            backend = super()
+        if isinstance(backend, self.__class__):
+            backend = super(self.__class__, backend)
 
         return backend.execute(expr.unbind(), **kwargs)
+
+    def execute(self, expr: ir.Expr, **kwargs: Any):
+        con = letsql.connect()
+        for dt in expr.op().find(ops.DatabaseTable):
+            # fixme: use temp names to avoid collisions, remove / deregister after done
+            if dt not in con._sources.sources:
+                con.register(dt.to_expr(), dt.name)
+        return con._execute(expr, **kwargs)
 
     def _transform_to_native_backend(self, expr):
         native_backend = self._get_source(expr) is not self
@@ -232,15 +244,23 @@ class Backend(DataFusionBackend):
 
         return expr
 
-    def to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
+    def _to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
         expr = self._transform_to_native_backend(expr)
         expr = self._register_and_transform_cache_tables(expr)
         backend = self._get_source(expr)
 
-        if backend is self:
-            backend = super()
+        if isinstance(backend, self.__class__):
+            backend = super(self.__class__, backend)
 
         return backend.to_pyarrow(expr, **kwargs)
+
+    def to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
+        con = letsql.connect()
+        for dt in expr.op().find(ops.DatabaseTable):
+            # fixme: use temp names to avoid collisions, remove / deregister after done
+            if dt not in con._sources.sources:
+                con.register(dt.to_expr(), dt.name)
+        return con._to_pyarrow(expr, **kwargs)
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.

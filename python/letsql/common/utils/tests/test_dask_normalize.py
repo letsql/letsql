@@ -82,7 +82,7 @@ def test_tokenize_duckdb_expr(batting, snapshot):
 
 
 def test_pandas_snapshot_key(alltypes_df, snapshot):
-    con = ibis.pandas.connect()
+    con = letsql.pandas.connect()
     t = con.create_table("t", alltypes_df)
     storage = SnapshotStorage(source=con)
     actual = storage.get_key(t)

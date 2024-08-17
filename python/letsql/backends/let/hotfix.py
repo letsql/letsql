@@ -194,20 +194,16 @@ def rotate90(self: ibis.expr.types.binary.BinaryColumn):
 
 @toolz.curry
 def letsql_invoke(_methodname, self, *args, **kwargs):
-    con = letsql.config._backend_init()
+    con = letsql.connect()
     for dt in self.op().find(ops.DatabaseTable):
         # fixme: use temp names to avoid collisions, remove / deregister after done
         if dt not in con._sources.sources:
             con.register(dt.to_expr(), dt.name)
-    method = getattr(con, _methodname)
+    method = getattr(con, f"_{_methodname}")
     return method(self, *args, **kwargs)
 
 
 for typ, methodnames in (
-    (
-        ibis.expr.types.core.Expr,
-        ("execute", "to_pyarrow", "to_pyarrow_batches"),
-    ),
     (
         # Join.execute is the only case outside of Expr.execute
         ibis.expr.types.joins.Join,

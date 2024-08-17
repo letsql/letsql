@@ -127,10 +127,10 @@ def test_join(con, alltypes, alltypes_df):
     first_10 = alltypes_df.head(10)
     in_memory = con.register(first_10, table_name="in_memory")
     expr = alltypes.join(in_memory, predicates=[alltypes.id == in_memory.id])
+    actual = expr.execute().sort_values("id")
     expected = pd.merge(
         alltypes_df, first_10, how="inner", on="id", suffixes=("", "_right")
     ).sort_values("id")
-    actual = expr.execute().sort_values("id")
 
     assert_frame_equal(actual, expected)
 
@@ -375,7 +375,7 @@ def test_multiple_execution_letsql_register_table(con, csv_dir):
     "other_con",
     [
         letsql.connect(),
-        ibis.datafusion.connect(),
+        letsql.datafusion.connect(),
         letsql.duckdb.connect(),
         letsql.postgres.connect(
             host="localhost",
@@ -645,7 +645,7 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
     )
 
     native_backend = isinstance(left, ir.Expr) and left is right
-    spy = mocker.spy(left.op().source, "execute") if native_backend else None
+    mocker.spy(left.op().source, "execute") if native_backend else None
 
     assert expr.execute() is not None
     # assert getattr(spy, "call_count", 0) == int(native_backend)
