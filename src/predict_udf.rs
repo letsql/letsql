@@ -1,10 +1,10 @@
 use std::any::Any;
 use std::sync::Arc;
 
-use arrow::array::Array;
+use arrow::array::{Array, Float64Array};
 use datafusion::error::{DataFusionError, Result};
 use datafusion::{
-    arrow::{array::Float64Array, datatypes::DataType},
+    arrow::{array::Float32Array, datatypes::DataType},
     logical_expr::Volatility,
 };
 use datafusion_common::ScalarValue;
@@ -52,7 +52,7 @@ impl ScalarUDFImpl for PredictUdf {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::Float64)
+        Ok(DataType::Float32)
     }
 
     /// This is the function that actually calculates the results.
@@ -68,22 +68,21 @@ impl ScalarUDFImpl for PredictUdf {
         };
 
         let mut result = Vec::new();
-        let mut rows: Vec<Vec<f64>> = Vec::new();
+        let mut rows: Vec<Vec<f32>> = Vec::new();
         for arg in args.iter().skip(1) {
-            let array = &arg.clone().into_array(0).unwrap();
+            let array = &arg.clone().into_array(0)?;
             let values = array
                 .as_any()
                 .downcast_ref::<Float64Array>()
-                .ok_or_else(|| DataFusionError::Internal("Expected Float64Array".to_string()))
-                .unwrap();
+                .ok_or_else(|| DataFusionError::Internal("Expected Float64Array".to_string()))?;
             if rows.is_empty() {
                 for i in 0..values.len() {
-                    let single: Vec<f64> = vec![values.value(i)];
+                    let single: Vec<f32> = vec![values.value(i) as f32];
                     rows.push(single)
                 }
             } else {
                 for i in 0..values.len() {
-                    let x = values.value(i);
+                    let x = values.value(i) as f32;
                     rows.get_mut(i).unwrap().push(x)
                 }
             }
@@ -94,7 +93,7 @@ impl ScalarUDFImpl for PredictUdf {
         }
 
         let predictions = model.unwrap().predict(&result);
-        let res = Float64Array::from(predictions);
+        let res = Float32Array::from(predictions);
         Ok(ColumnarValue::Array(Arc::new(res)))
     }
 
