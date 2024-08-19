@@ -35,8 +35,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: start services
-        run: docker compose up --build --wait
+      - name: download test data
+        run: just download-data
 
       - name: Rust latest
         run: rustup update
@@ -51,6 +51,9 @@ jobs:
       - name: maturin develop
         run: poetry run maturin develop --release
         working-directory: ${{ github.workspace }}
+
+      - name: start services
+        run: docker compose up --build --wait
 
       - name: poetry pytest
         run: poetry run pytest --import-mode=importlib python/letsql/tests/test_examples.py -v
