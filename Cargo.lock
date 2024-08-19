@@ -1628,7 +1628,7 @@ dependencies = [
 [[package]]
 name = "gbdt"
 version = "0.1.3"
-source = "git+https://github.com/letsql/gbdt-rs.git?branch=feat/add-feature-mapping#cd66bdecafaaba69061ec7d24fefd2e8c2f78c7b"
+source = "git+https://github.com/letsql/gbdt-rs.git?branch=feat/convert-to-f32#cd66bdecafaaba69061ec7d24fefd2e8c2f78c7b"
 dependencies = [
  "cfg-if",
  "itertools 0.12.1",
