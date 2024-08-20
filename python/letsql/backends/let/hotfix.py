@@ -199,13 +199,17 @@ def letsql_invoke(_methodname, self, *args, **kwargs):
         # fixme: use temp names to avoid collisions, remove / deregister after done
         if dt not in con._sources.sources:
             con.register(dt.to_expr(), dt.name)
-    method = getattr(con, f"{_methodname}").__wrapped__
-    return method(con, self, *args, **kwargs)
+    method = getattr(con, f"{_methodname}")
+    return method(self, *args, **kwargs)
 
 
 for typ, methodnames in (
     (
-        # Join.execute is the only case outside of Expr.execute
+        ibis.expr.types.core.Expr,
+        ("execute", "to_pyarrow", "to_pyarrow_batches"),
+    ),
+    (
+        # Join.execute is the only case outside Expr.execute
         ibis.expr.types.joins.Join,
         ("execute",),
     ),
