@@ -1,12 +1,11 @@
 import itertools
 import random
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 import ibis
 import numpy as np
 import pandas as pd
 import pytest
-from ibis.expr import types as ir
 from pytest import param
 
 import letsql
@@ -136,7 +135,7 @@ def test_join(con, alltypes, alltypes_df):
 
 
 @pytest.mark.parametrize("how", ["semi", "anti"])
-def test_filtering_join(con, batting, awards_players, how):
+def test_filtering_join(batting, awards_players, how):
     left = batting[batting.yearID == 2015]
     right = awards_players[awards_players.lgID == "NL"].drop("yearID", "lgID")
 
@@ -144,8 +143,6 @@ def test_filtering_join(con, batting, awards_players, how):
     right_df = right.execute()
     predicate = ["playerID"]
     result_order = ["playerID", "yearID", "lgID", "stint"]
-
-    right = con.register(right_df, table_name="right")
 
     expr = left.join(right, predicate, how=how)
     result = (
@@ -216,9 +213,9 @@ def test_union_mixed_distinct(con, union_subsets):
         lambda t: t.yearID.between(2013, 2016),
     ],
 )
-def test_join_non_trivial_filters(ls_con, pg, duckdb_con, left_filter):
-    awards_players = ls_con.register(duckdb_con.table("ddb_players"), "ddb_players")
-    batting = ls_con.register(pg.table("batting"), table_name="pg-batting")
+def test_join_non_trivial_filters(pg, duckdb_con, left_filter):
+    awards_players = duckdb_con.table("ddb_players")
+    batting = pg.table("batting")
 
     left = batting[left_filter]
     right = awards_players[awards_players.lgID == "NL"].drop("yearID", "lgID")
@@ -291,11 +288,9 @@ def test_join_non_trivial_filters(ls_con, pg, duckdb_con, left_filter):
     ],
 )
 def test_join_with_trivial_predicate(
-    con, duckdb_con, awards_players, predicate, how, pandas_value
+    duckdb_con, awards_players, predicate, how, pandas_value
 ):
-    ddb_players = con.register(
-        duckdb_con.table("ddb_players"), table_name="ddb_players"
-    )
+    ddb_players = duckdb_con.table("ddb_players")
 
     n = 5
 
@@ -421,7 +416,7 @@ def test_register_arbitrary_expression(con, duckdb_con):
     assert_frame_equal(result, expected, check_like=True)
 
 
-def test_register_arbitrary_expression_multiple_tables(con, duckdb_con):
+def test_arbitrary_expression_multiple_tables(duckdb_con):
     batting_table_name = "batting"
     batting_table = duckdb_con.table(batting_table_name)
 
@@ -439,10 +434,9 @@ def test_register_arbitrary_expression_multiple_tables(con, duckdb_con):
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
     expr = left.join(right, predicate, how="inner")
-    table = con.register(expr, table_name="expr_table")
 
     result = (
-        table.execute()
+        expr.execute()
         .fillna(np.nan)
         .sort_values(result_order)[left.columns]
         .reset_index(drop=True)
@@ -466,7 +460,7 @@ def test_register_arbitrary_expression_multiple_tables(con, duckdb_con):
         letsql.duckdb.connect(),
     ],
 )
-def test_multiple_pipes(ls_con, pg, new_con):
+def test_multiple_pipes(pg, new_con):
     """This test address the issue reported on bug #69
     link: https://github.com/letsql/letsql/issues/69
 
@@ -476,12 +470,10 @@ def test_multiple_pipes(ls_con, pg, new_con):
     """
 
     table_name = "batting"
-    pg_t = pg.table(table_name)[lambda t: t.yearID == 2015].pipe(
-        ls_con.register, f"pg-{table_name}"
-    )
+    pg_t = pg.table(table_name)[lambda t: t.yearID == 2015]
     db_t = new_con.register(pg_t.to_pyarrow(), f"{table_name}")[
         lambda t: t.yearID == 2014
-    ].pipe(ls_con.register, f"db-{table_name}")
+    ]
 
     expr = pg_t.join(
         db_t,
@@ -504,15 +496,11 @@ def test_duckdb_datafusion_roundtrip(ls_con, pg, duckdb_con, method, remote):
     storage = SourceStorage(source=source)
 
     table_name = "batting"
-    pg_t = (
-        pg.table(table_name)[lambda t: t.yearID == 2015]
-        .pipe(ls_con.register, f"pg-{table_name}")
-        .cache(storage)
-    )
+    pg_t = pg.table(table_name)[lambda t: t.yearID == 2015].cache(storage)
 
     db_t = duckdb_con.register(pg_t.to_pyarrow_batches(), f"ls-{table_name}")[
         lambda t: t.yearID == 2014
-    ].pipe(ls_con.register, f"db-{table_name}")
+    ]
 
     expr = pg_t.join(
         db_t,
@@ -523,16 +511,12 @@ def test_duckdb_datafusion_roundtrip(ls_con, pg, duckdb_con, method, remote):
     assert any(table_name.startswith(KEY_PREFIX) for table_name in source.list_tables())
 
 
-def test_to_pyarrow_native_execution(ls_con, pg, mocker):
+def test_to_pyarrow_native_execution(pg, mocker):
     table_name = "batting"
     spy = mocker.spy(pg, "to_pyarrow")
 
-    pg_t = pg.table(table_name)[lambda t: t.yearID == 2015].pipe(
-        ls_con.register, f"pg-{table_name}"
-    )
-    db_t = pg.table(table_name)[lambda t: t.yearID == 2014].pipe(
-        ls_con.register, f"db-{table_name}"
-    )
+    pg_t = pg.table(table_name)[lambda t: t.yearID == 2015]
+    db_t = pg.table(table_name)[lambda t: t.yearID == 2014]
 
     expr = pg_t.join(
         db_t,
@@ -554,15 +538,13 @@ def test_to_pyarrow_native_execution(ls_con, pg, mocker):
     ],
 )
 def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
-    table_name = "batting"
     left, right = map(request.getfixturevalue, tables)
 
-    left_t = ls_con.register(left, table_name=f"left-{table_name}")[
+    left_t = (left if not isinstance(left, PosixPath) else ls_con.read_parquet(left))[
         lambda t: t.yearID == 2015
     ]
-    right_t = ls_con.register(
-        right if right != "parquet_batting" else ls_con.read_parquet(right),
-        table_name=f"right-{table_name}",
+    right_t = (
+        right if not isinstance(right, PosixPath) else ls_con.read_parquet(right)
     )[lambda t: t.yearID == 2014]
 
     expr = left_t.join(
@@ -570,11 +552,13 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
         "playerID",
     )
 
-    native_backend = isinstance(left, ir.Expr) and left is right
-    mocker.spy(left.op().source, "execute") if native_backend else None
+    native_backend = (
+        backend := left_t._find_backend(use_default=False)
+    ) is right_t._find_backend(use_default=False) and backend.name != "let"
+    spy = mocker.spy(backend, "execute") if native_backend else None
 
     assert expr.execute() is not None
-    # assert getattr(spy, "call_count", 0) == int(native_backend)
+    assert getattr(spy, "call_count", 0) == int(native_backend)
 
 
 @pytest.mark.parametrize(
