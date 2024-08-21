@@ -668,7 +668,7 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     name = ibis.util.gen_name("tmp_table")
 
     # create a temp table we can mutate
-    pd_con = ibis.pandas.connect()
+    pd_con = letsql.pandas.connect()
     table = pd_con.create_table(name, alltypes_df)
     t = ls_con.register(table, f"let_{table.op().name}")
     cached_expr = (

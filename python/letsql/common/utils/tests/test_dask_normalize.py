@@ -61,7 +61,7 @@ def test_tokenize_datafusion_parquet_expr(alltypes_df, tmp_path, snapshot):
 
 
 def test_tokenize_pandas_expr(alltypes_df, snapshot):
-    con = ibis.pandas.connect()
+    con = letsql.pandas.connect()
     typ = type(con)
     t = con.create_table("t", alltypes_df)
     with patch_normalize_token(type(t.op().source)) as mocks:
