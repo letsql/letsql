@@ -612,3 +612,21 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
 
     columns = list(actual.columns)
     assert_frame_equal(actual.sort_values(columns), expected.sort_values(columns))
+
+
+@pytest.mark.xfail(reason="not implemented yet")
+def test_no_registration_same_table_name(ls_con, pg_batting):
+    ddb_con = letsql.duckdb.connect()
+    ddb_batting = ddb_con.register(
+        pg_batting[["playerID", "yearID"]].to_pyarrow_batches(), "batting"
+    )
+    ls_batting = ls_con.register(
+        pg_batting[["playerID", "stint"]].to_pyarrow_batches(), "batting"
+    )
+
+    expr = ddb_batting.join(
+        ls_batting,
+        "playerID",
+    )
+
+    assert expr.execute() is not None
