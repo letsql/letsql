@@ -111,7 +111,7 @@ jobs:
         with:
           path: dist
           merge-multiple: true
-      - name: Publish to PyPI
+      - name: Publish to TestPyPI
         uses: PyO3/maturin-action@v1
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.TEST_PYPI_API_TOKEN }}
