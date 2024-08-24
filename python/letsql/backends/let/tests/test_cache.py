@@ -353,8 +353,7 @@ def test_postgres_cache_invalidation(pg, con):
         pg.drop_table(to_name)
     pg_t = pg.create_table(name=to_name, obj=pg.table(from_name))
     expr_cached = (
-        con.register(pg_t, table_name=to_name)
-        .group_by("playerID")
+        pg_t.group_by("playerID")
         .size()
         .order_by("playerID")
         .cache(storage=SourceStorage(source=con))
@@ -410,11 +409,7 @@ def test_postgres_snapshot(pg, con):
     pg_t = pg.create_table(name=to_name, obj=pg.table(from_name))
     storage = SnapshotStorage(source=con)
     expr_cached = (
-        con.register(pg_t, table_name=to_name)
-        .group_by("playerID")
-        .size()
-        .order_by("playerID")
-        .cache(storage=storage)
+        pg_t.group_by("playerID").size().order_by("playerID").cache(storage=storage)
     )
     dt = pg_t.op()
     (storage, uncached) = get_storage_uncached(con, expr_cached)
@@ -453,8 +448,7 @@ def test_duckdb_cache_parquet(con, pg, tmp_path):
     pg.table(name).to_parquet(parquet_path)
     expr = (
         letsql.duckdb.connect()
-        .read_parquet(parquet_path)
-        .pipe(con.register, f"duckdb-{name}")[lambda t: t.yearID > 2000]
+        .read_parquet(parquet_path)[lambda t: t.yearID > 2000]
         .cache(storage=ParquetCacheStorage(source=con, path=tmp_path))
     )
     expr.execute()
@@ -466,8 +460,7 @@ def test_duckdb_cache_csv(con, pg, tmp_path):
     pg.table(name).to_csv(csv_path)
     expr = (
         letsql.duckdb.connect()
-        .read_csv(csv_path)
-        .pipe(con.register, f"duckdb-{name}")[lambda t: t.yearID > 2000]
+        .read_csv(csv_path)[lambda t: t.yearID > 2000]
         .cache(storage=ParquetCacheStorage(source=con, path=tmp_path))
     )
     expr.execute()
@@ -477,8 +470,7 @@ def test_duckdb_cache_arrow(con, pg, tmp_path):
     name = "batting"
     expr = (
         letsql.duckdb.connect()
-        .register(pg.table(name).to_pyarrow(), name)
-        .pipe(con.register, f"duckdb-{name}")[lambda t: t.yearID > 2000]
+        .register(pg.table(name).to_pyarrow(), name)[lambda t: t.yearID > 2000]
         .cache(storage=ParquetCacheStorage(source=con, path=tmp_path))
     )
     expr.execute()
@@ -488,8 +480,7 @@ def test_cross_source_storage(con, pg):
     name = "batting"
     expr = (
         letsql.duckdb.connect()
-        .register(pg.table(name).to_pyarrow(), name)
-        .pipe(con.register, f"duckdb-{name}")[lambda t: t.yearID > 2000]
+        .register(pg.table(name).to_pyarrow(), name)[lambda t: t.yearID > 2000]
         .cache(storage=SourceStorage(source=pg))
     )
     expr.execute()
@@ -504,8 +495,7 @@ def test_caching_of_registered_arbitrary_expression(con, pg, tmp_path):
     ]
     expected = expr.execute()
 
-    table = con.register(expr, table_name="expr")
-    result = table.cache(
+    result = expr.cache(
         storage=ParquetCacheStorage(source=con, path=tmp_path)
     ).execute()
 
@@ -558,12 +548,10 @@ def test_multi_engine_cache(pg, ls_con, tmp_path, other_con):
     other_con = letsql.duckdb.connect()
 
     table_name = "batting"
-    pg_t = pg.table(table_name)[lambda t: t.yearID > 2014].pipe(
-        ls_con.register, f"pg-{table_name}"
-    )
+    pg_t = pg.table(table_name)[lambda t: t.yearID > 2014]
     db_t = other_con.register(pg.table(table_name).to_pyarrow(), f"{table_name}")[
         lambda t: t.stint == 1
-    ].pipe(ls_con.register, f"db-{table_name}")
+    ]
 
     expr = pg_t.join(
         db_t,
@@ -584,8 +572,7 @@ def test_repeated_cache(pg, ls_con, tmp_path):
         path=tmp_path,
     )
     t = (
-        pg.table("batting")
-        .pipe(ls_con.register, "pg-batting")[lambda t: t.yearID > 2014]
+        pg.table("batting")[lambda t: t.yearID > 2014]
         .cache(storage=storage)[lambda t: t.stint == 1]
         .cache(storage=storage)
     )
@@ -628,10 +615,7 @@ def test_replace_table_matching_kwargs(pg, ls_con, tmp_path):
         path=tmp_path,
     )
     expr = (
-        pg.table("batting")
-        .pipe(ls_con.register, "pg-batting")[lambda t: t.yearID > 2014]
-        .limit(1)
-        .cache(storage=storage)
+        pg.table("batting")[lambda t: t.yearID > 2014].limit(1).cache(storage=storage)
     )
 
     assert expr.ls.native_expr is not None
@@ -645,10 +629,7 @@ def test_cache_default_path_set(pg, ls_con, tmp_path):
     )
 
     expr = (
-        pg.table("batting")
-        .pipe(ls_con.register, "pg-batting")[lambda t: t.yearID > 2014]
-        .limit(1)
-        .cache(storage=storage)
+        pg.table("batting")[lambda t: t.yearID > 2014].limit(1).cache(storage=storage)
     )
 
     result = expr.execute()
@@ -672,10 +653,10 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     # create a temp table we can mutate
     pd_con = letsql.pandas.connect()
     table = pd_con.create_table(name, alltypes_df)
-    t = ls_con.register(table, f"let_{table.op().name}")
+    # t = ls_con.register(table, f"let_{table.op().name}")
     cached_expr = (
-        t.group_by(group_by)
-        .agg({f"count_{col}": t[col].count() for col in t.columns})
+        table.group_by(group_by)
+        .agg({f"count_{col}": table[col].count() for col in table.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
@@ -694,10 +675,10 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     # test NO cache invalidation
     pd_con.reconnect()
     table2 = pd_con.create_table(name, pd.concat((alltypes_df, alltypes_df)))
-    t = ls_con.register(table2, f"let_{table2.op().name}")
+    # t = ls_con.register(table2, f"let_{table2.op().name}")
     cached_expr = (
-        t.group_by(group_by)
-        .agg({f"count_{col}": t[col].count() for col in t.columns})
+        table2.group_by(group_by)
+        .agg({f"count_{col}": table2[col].count() for col in table2.columns})
         .cache(storage)
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
@@ -713,10 +694,10 @@ def test_duckdb_snapshot(ls_con, alltypes_df):
     # create a temp table we can mutate
     db_con = letsql.duckdb.connect()
     table = db_con.create_table(name, alltypes_df)
-    t = ls_con.register(table, f"let_{table.op().name}")
+    # t = ls_con.register(table, f"let_{table.op().name}")
     cached_expr = (
-        t.group_by(group_by)
-        .agg({f"count_{col}": t[col].count() for col in t.columns})
+        table.group_by(group_by)
+        .agg({f"count_{col}": table[col].count() for col in table.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
@@ -747,10 +728,10 @@ def test_datafusion_snapshot(ls_con, alltypes_df):
     # create a temp table we can mutate
     df_con = letsql.datafusion.connect()
     table = df_con.create_table(name, alltypes_df)
-    t = ls_con.register(table, f"let_{table.op().name}")
+    # t = ls_con.register(table, f"let_{table.op().name}")
     cached_expr = (
-        t.group_by(group_by)
-        .agg({f"count_{col}": t[col].count() for col in t.columns})
+        table.group_by(group_by)
+        .agg({f"count_{col}": table[col].count() for col in table.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
@@ -850,7 +831,7 @@ def test_caching_pandas(ls_con, csv_dir):
     cache = SourceStorage(source=pandas_con)
     t = (
         pandas_con.read_csv(diamonds_path)
-        .pipe(ls_con.register, "DIAMONDS")
+        # .pipe(ls_con.register, "DIAMONDS")
         .cache(storage=cache)
     )
     assert t.execute() is not None

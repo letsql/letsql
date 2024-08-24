@@ -43,14 +43,11 @@ def test_executed_on_original_backend(ls_con, parquet_dir, csv_dir, mocker):
     con = ls.config._backend_init()
     spy = mocker.spy(con, "execute")
 
-    table_name = "batting"
     parquet_table = ls.read_parquet(parquet_dir / "batting.parquet")[
         lambda t: t.yearID == 2015
-    ].pipe(ls_con.register, f"parquet-{table_name}")
+    ]
 
-    csv_table = ls.read_csv(csv_dir / "batting.csv")[lambda t: t.yearID == 2014].pipe(
-        ls_con.register, f"csv-{table_name}"
-    )
+    csv_table = ls.read_csv(csv_dir / "batting.csv")[lambda t: t.yearID == 2014]
 
     expr = parquet_table.join(
         csv_table,
