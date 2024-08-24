@@ -11,6 +11,9 @@ from attr import (
 from attr.validators import (
     instance_of,
 )
+from ibis.common.exceptions import (
+    IbisError,
+)
 
 import letsql
 from letsql.common.caching import (
@@ -164,12 +167,36 @@ class LETSQLAccessor:
 
 
 @hotfix(
+    ibis.expr.types.core.Expr,
+    "_find_backend",
+    "9e19dfcd3404a043987ff26dce7a40ad",
+)
+def _letsql_find_backend(self, *, use_default=True):
+    # FIXME: push this into LETSQLAccessor
+    try:
+        current_backend = self._find_backend._original(self, use_default=use_default)
+    except IbisError as e:
+        if "Multiple backends found" in e.args[0]:
+            current_backend = letsql.options.backend
+        else:
+            raise e
+    return current_backend
+
+
+@hotfix(
     ibis.expr.types.relations.Table,
     "cache",
     "654b574765abdd475264851b89112881",
 )
 def letsql_cache(self, storage=None):
-    current_backend = self._find_backend(use_default=True)
+    # FIXME: push this into LETSQLAccessor
+    try:
+        current_backend = self._find_backend(use_default=True)
+    except IbisError as e:
+        if "Multiple backends found" in e.args[0]:
+            current_backend = letsql.options.backend
+        else:
+            raise e
     storage = storage or SourceStorage(source=current_backend)
     op = CachedNode(
         schema=self.schema(),
