@@ -215,7 +215,7 @@ for typ, methodnames in (
     ),
 ):
     for methodname in methodnames:
-        maybe_hotfix(
+        hotfix(
             typ,
             methodname,
             dask.base.tokenize(getattr(typ, methodname)),

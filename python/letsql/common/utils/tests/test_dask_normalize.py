@@ -3,7 +3,6 @@ import pathlib
 import re
 
 import dask
-import ibis
 import pytest
 
 import letsql.common.utils.dask_normalize  # noqa: F401
