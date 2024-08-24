@@ -14,7 +14,7 @@ from attr.validators import (
 
 import letsql
 from letsql.common.utils.hotfix_utils import (
-    maybe_hotfix,
+    hotfix,
     none_tokenized,
 )
 from letsql.expr.operations.images import SegmentAnything, Rotate90
@@ -160,7 +160,7 @@ class LETSQLAccessor:
             return None
 
 
-@maybe_hotfix(
+@hotfix(
     ibis.expr.types.relations.Table,
     "cache",
     "654b574765abdd475264851b89112881",
@@ -170,7 +170,7 @@ def letsql_cache(self, storage=None):
     return current_backend._cached(self, storage=storage)
 
 
-@maybe_hotfix(
+@hotfix(
     ibis.expr.types.core.Expr,
     "ls",
     none_tokenized,
@@ -180,14 +180,14 @@ def ls(self):
     return LETSQLAccessor(self)
 
 
-@maybe_hotfix(ibis.expr.types.binary.BinaryColumn, "segment_anything", none_tokenized)
+@hotfix(ibis.expr.types.binary.BinaryColumn, "segment_anything", none_tokenized)
 def segment_anything(
     self: ibis.expr.types.binary.BinaryColumn, model_name: str, seed: list
 ):
     return SegmentAnything(arg=self, model_name=model_name, seed=seed).to_expr()
 
 
-@maybe_hotfix(ibis.expr.types.binary.BinaryColumn, "rotate90", none_tokenized)
+@hotfix(ibis.expr.types.binary.BinaryColumn, "rotate90", none_tokenized)
 def rotate90(self: ibis.expr.types.binary.BinaryColumn):
     return Rotate90(arg=self).to_expr()
 
