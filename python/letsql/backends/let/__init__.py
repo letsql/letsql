@@ -13,9 +13,6 @@ from sqlglot import exp, parse_one
 
 import letsql.backends.let.hotfix  # noqa: F401
 from letsql.backends.datafusion import Backend as DataFusionBackend
-from letsql.common.caching import (
-    SourceStorage,
-)
 from letsql.common.collections import SourceDict
 from letsql.expr.relations import (
     CachedNode,
@@ -287,17 +284,6 @@ class Backend(DataFusionBackend):
             return self
         else:
             return sources[0]
-
-    def _cached(self, expr: ir.Table, storage=None):
-        source = self._get_source(expr)
-        storage = storage or SourceStorage(source=source)
-        op = CachedNode(
-            schema=expr.schema(),
-            parent=expr.op(),
-            source=source,
-            storage=storage,
-        )
-        return op.to_expr()
 
     def _register_and_transform_cache_tables(self, expr):
         """This function will sequentially execute any cache node that is not already cached"""

@@ -13,6 +13,9 @@ from attr.validators import (
 )
 
 import letsql
+from letsql.common.caching import (
+    SourceStorage,
+)
 from letsql.common.utils.hotfix_utils import (
     hotfix,
     none_tokenized,
@@ -167,7 +170,14 @@ class LETSQLAccessor:
 )
 def letsql_cache(self, storage=None):
     current_backend = self._find_backend(use_default=True)
-    return current_backend._cached(self, storage=storage)
+    storage = storage or SourceStorage(source=current_backend)
+    op = CachedNode(
+        schema=self.schema(),
+        parent=self.op(),
+        source=current_backend,
+        storage=storage,
+    )
+    return op.to_expr()
 
 
 @hotfix(
