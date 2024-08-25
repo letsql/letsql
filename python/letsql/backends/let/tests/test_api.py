@@ -20,8 +20,8 @@ def parquet_dir():
     return data_dir
 
 
-def test_register_read_csv(con, csv_dir):
-    api_batting = con.register(
+def test_register_read_csv(ls_con, csv_dir):
+    api_batting = ls_con.register(
         ls.read_csv(csv_dir / "batting.csv"), table_name="api_batting"
     )
     result = api_batting.execute()
@@ -29,8 +29,8 @@ def test_register_read_csv(con, csv_dir):
     assert result is not None
 
 
-def test_register_read_parquet(con, parquet_dir):
-    api_batting = con.register(
+def test_register_read_parquet(ls_con, parquet_dir):
+    api_batting = ls_con.register(
         ls.read_parquet(parquet_dir / "batting.parquet"), table_name="api_batting"
     )
     result = api_batting.execute()
