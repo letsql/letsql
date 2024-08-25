@@ -45,6 +45,7 @@ def remove_unexpected_tables(dirty):
         if table not in expected_tables:
             dirty.drop_table(table, force=True)
 
+    # FIXME: why is this happening twice?
     for table in dirty.list_tables():
         if table not in expected_tables:
             dirty.drop_view(table, force=True)
@@ -72,6 +73,7 @@ def ls_con(dirty_ls_con):
     yield dirty_ls_con
     for table_name in dirty_ls_con.list_tables():
         dirty_ls_con.drop_table(table_name, force=True)
+    # FIXME: why is this happening twice?
     for table_name in dirty_ls_con.list_tables():
         dirty_ls_con.drop_view(table_name, force=True)
 
