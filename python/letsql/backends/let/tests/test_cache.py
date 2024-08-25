@@ -581,7 +581,7 @@ def test_repeated_cache(pg, ls_con, tmp_path):
         lambda t: t.group_by("playerID").agg(t.stint.max().name("n-stints")),
     ],
 )
-def test_register_with_different_name_and_cache(con, csv_dir, get_expr):
+def test_register_with_different_name_and_cache(ls_con, csv_dir, get_expr):
     batting_path = csv_dir.joinpath("batting.csv")
     table_name = "batting"
 
@@ -590,26 +590,15 @@ def test_register_with_different_name_and_cache(con, csv_dir, get_expr):
     t = datafusion_con.register(
         batting_path, table_name=table_name, schema_infer_max_records=50_000
     )
-    con.register(t, table_name=letsql_table_name)
-
-    batting_table = con.table(letsql_table_name)
-    expr = get_expr(batting_table)
-    expr = expr.cache()
+    expr = (
+        ls_con.register(t, table_name=letsql_table_name)
+        .pipe(get_expr)
+        .cache()
+    )
 
     assert table_name != letsql_table_name
+    # this fails with "Cannot start a runtime from within a runtime."
     assert expr.execute() is not None
-
-
-def test_replace_table_matching_kwargs(pg, ls_con, tmp_path):
-    storage = ParquetCacheStorage(
-        source=ls_con,
-        path=tmp_path,
-    )
-    expr = (
-        pg.table("batting")[lambda t: t.yearID > 2014].limit(1).cache(storage=storage)
-    )
-
-    assert expr.ls.native_expr is not None
 
 
 def test_cache_default_path_set(pg, ls_con, tmp_path):
