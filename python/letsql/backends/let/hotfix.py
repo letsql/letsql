@@ -55,37 +55,9 @@ class LETSQLAccessor:
         return tuple(node.storage for node in self.cached_nodes)
 
     @property
-    def _backends(self):
-        (backends, _) = self.expr._find_backends()
-        return backends
-
-    @property
-    def is_letsql(self):
-        names = set(backend.name for backend in self._backends)
-        if letsql.backends.let.Backend.name in names:
-            if len(names) > 1:
-                raise ValueError
-            else:
-                return True
-        else:
-            return False
-
-    @property
-    def ls_con(self):
-        if self.is_letsql:
-            (con,) = self._backends
-            return con
-        else:
-            return None
-
-    @property
     def backends(self):
-        if self.is_letsql:
-            return tuple(
-                set((self.ls_con,) + tuple(dt.source for dt in self.native_dts))
-            )
-        else:
-            return self._backends
+        (_backends, _) = self.expr._find_backends()
+        return tuple(set(_backends))
 
     @property
     def is_multiengine(self):
@@ -95,22 +67,6 @@ class LETSQLAccessor:
     @property
     def dts(self):
         return self.op.find(self.node_types)
-
-    @property
-    def native_dts(self):
-        return tuple(self.native_expr.op().find(self.node_types))
-
-    @property
-    def native_expr(self):
-        native_expr = self.expr
-        if self.is_letsql:
-            _sources = self.ls_con._sources
-
-            def replace_table(_node, _, **_kwargs):
-                return _sources.get_table_or_op(_node, _node.__recreate__(_kwargs))
-
-            native_expr = self.op.replace(replace_table).to_expr()
-        return native_expr
 
     @property
     def is_cached(self):
@@ -138,7 +94,7 @@ class LETSQLAccessor:
         if self.is_cached and (self.exists() or not self.uncached_one.ls.has_cached):
             return self.storage.get_key(
                 self.storage.source._register_and_transform_cache_tables(
-                    self.native_expr.ls.uncached_one
+                    self.uncached_one
                 )
             )
         else:
@@ -160,7 +116,7 @@ class LETSQLAccessor:
                         cn.parent.to_expr()
                     )
                 )
-                for cn in self.native_expr.op().find(CachedNode)[::-1]
+                for cn in self.cached_nodes[::-1]
             )
         else:
             return None

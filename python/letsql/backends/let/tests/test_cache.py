@@ -190,49 +190,40 @@ def setup_backend(table, table_name):
     return other
 
 
-def test_cache_recreate(con, alltypes, pg_alltypes):
-    expr = alltypes.select(
-        alltypes.smallint_col, alltypes.int_col, alltypes.float_col
-    ).filter(
-        [
-            alltypes.float_col > 0,
-            alltypes.smallint_col == 9,
-            alltypes.int_col < alltypes.float_col * 2,
-        ]
-    )
-    expr.cache(
-        storage=SourceStorage(source=con)
-    ).execute()  # execute creation of tables
+def test_cache_recreate(alltypes):
+    def make_expr(alltypes):
+        return alltypes.select(
+            alltypes.smallint_col, alltypes.int_col, alltypes.float_col
+        ).filter(
+            [
+                alltypes.float_col > 0,
+                alltypes.smallint_col == 9,
+                alltypes.int_col < alltypes.float_col * 2,
+            ]
+        )
 
-    other = setup_backend(pg_alltypes, "functional_alltypes")
-    other_alltypes = other.table("functional_alltypes")
-    other_expr = other_alltypes.select(
-        alltypes.smallint_col, alltypes.int_col, alltypes.float_col
-    ).filter(
-        [
-            alltypes.float_col > 0,
-            alltypes.smallint_col == 9,
-            alltypes.int_col < alltypes.float_col * 2,
-        ]
-    )
-    other_expr.cache(storage=SourceStorage(source=other)).execute()
+    alltypes_df = alltypes.execute()
+    cons = (con0, con1) = letsql.connect(), letsql.connect()
+    ts = tuple(con.register(alltypes_df, "alltypes") for con in cons)
+    exprs = tuple(make_expr(t) for t in ts)
 
-    con_cached_tables = set(
-        table_name
-        for table_name in con.list_tables()
-        if table_name.startswith(KEY_PREFIX)
-    )
-    other_cached_tables = set(
-        table_name
-        for table_name in other.list_tables()
-        if table_name.startswith(KEY_PREFIX)
+    for con, expr in zip(cons, exprs):
+        expr.cache(storage=SourceStorage(source=con)).execute()
+
+    (con_cached_tables0, con_cached_tables1) = (
+        set(
+            table_name
+            for table_name in con.list_tables()
+            if table_name.startswith(KEY_PREFIX)
+        )
+        for con in cons
     )
 
-    assert con_cached_tables
-    assert con_cached_tables == other_cached_tables
-    for table_name in other_cached_tables:
+    assert con_cached_tables0
+    assert con_cached_tables0 == con_cached_tables1
+    for table_name in con_cached_tables1:
         assert_frame_equal(
-            con.table(table_name).to_pandas(), other.table(table_name).to_pandas()
+            con0.table(table_name).to_pandas(), con1.table(table_name).to_pandas()
         )
 
 
@@ -359,7 +350,7 @@ def test_postgres_cache_invalidation(pg, con):
         .cache(storage=SourceStorage(source=con))
     )
     dt = pg_t.op()
-    (storage, uncached) = get_storage_uncached(con, expr_cached)
+    (storage, uncached) = (expr_cached.ls.storage, expr_cached.ls.uncached_one)
 
     # assert initial state
     assert not storage.exists(uncached)
@@ -412,7 +403,7 @@ def test_postgres_snapshot(pg, con):
         pg_t.group_by("playerID").size().order_by("playerID").cache(storage=storage)
     )
     dt = pg_t.op()
-    (storage, uncached) = get_storage_uncached(con, expr_cached)
+    (storage, uncached) = (expr_cached.ls.storage, expr_cached.ls.uncached_one)
 
     # assert initial state
     assert not storage.exists(uncached)
@@ -521,23 +512,23 @@ def test_read_parquet_compute_and_cache(con, parquet_dir, tmp_path):
     assert expr.execute() is not None
 
 
-def test_read_csv_and_cache(con, csv_dir, tmp_path):
+def test_read_csv_and_cache(ls_con, csv_dir, tmp_path):
     batting_path = csv_dir / "batting.csv"
-    t = con.read_csv(batting_path, table_name=f"csv_batting-{uuid.uuid4()}")
-    expr = t.cache(storage=ParquetCacheStorage(source=con, path=tmp_path))
+    t = ls_con.read_csv(batting_path, table_name=f"csv_batting-{uuid.uuid4()}")
+    expr = t.cache(storage=ParquetCacheStorage(source=ls_con, path=tmp_path))
     assert expr.execute() is not None
 
 
-def test_read_csv_compute_and_cache(con, csv_dir, tmp_path):
+def test_read_csv_compute_and_cache(ls_con, csv_dir, tmp_path):
     batting_path = csv_dir / "batting.csv"
-    t = con.read_csv(
+    t = ls_con.read_csv(
         batting_path,
         table_name=f"csv_batting-{uuid.uuid4()}",
         schema_infer_max_records=50_000,
     )
     expr = (
         t[t.yearID == 2015]
-        .cache(storage=ParquetCacheStorage(source=con, path=tmp_path))
+        .cache(storage=ParquetCacheStorage(source=ls_con, path=tmp_path))
         .cache()
     )
     assert expr.execute() is not None

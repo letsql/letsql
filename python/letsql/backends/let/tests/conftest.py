@@ -37,12 +37,7 @@ def pg():
 
 @pytest.fixture(scope="session")
 def dirty(pg):
-    con = ls.connect()
-
-    for table_name in expected_tables:
-        con.register(pg.table(table_name), table_name=table_name)
-
-    return con
+    return pg
 
 
 def remove_unexpected_tables(dirty):
