@@ -44,9 +44,9 @@ jobs:
         run: poetry run pytest --import-mode=importlib python/letsql/backends/snowflake -v
         working-directory: ${{ github.workspace }}
         env:
-          SNOWFLAKE_PASSWORD: ${{ secrets.GITHUB_SNOWFLAKE_PASSWORD }}
-          SNOWFLAKE_USER: ${{ secrets.GITHUB_SNOWFLAKE_USER }}
-          SNOWFLAKE_WAREHOUSE: ${{ secrets.GITHUB_SNOWFLAKE_WAREHOUSE }}
-          SNOWFLAKE_ROLE: ${{ secrets.GITHUB_SNOWFLAKE_ROLE }}
-          SNOWFLAKE_ACCOUNT: ${{ secrets.GITHUB_SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_GH_USER_PASSWORD }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_GH_USER_NAME }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_GH_WAREHOUSE }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_GH_ROLE }}
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_GH_ACCOUNT }}
 
