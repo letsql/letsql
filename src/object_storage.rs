@@ -463,14 +463,15 @@ pub(crate) async fn register_object_store_and_config_extensions(
         _ => {}
     }
 
-    // let options = &get_options(scheme);
-
     // Clone and modify the default table options based on the provided options
     let mut table_options = ctx.state().default_table_options().clone();
     if let Some(format) = format {
         table_options.set_config_format(format);
     }
-    table_options.alter_with_string_hash_map(options)?;
+
+    if let "s3" | "oss" | "cos" | "gs" | "gcs" = scheme {
+        table_options.alter_with_string_hash_map(options)?;
+    }
 
     // Retrieve the appropriate object store based on the scheme, URL, and modified table options
     let store = get_object_store(&ctx.state(), scheme, url, &table_options).await?;
