@@ -59,6 +59,7 @@ class Backend(DataFusionBackend):
             backend = None
             if not backends:
                 if not has_unbound:
+                    # presumes MemoryTable?
                     source = super().execute(source)
                     table_or_expr = None
             elif len(backends) > 1:

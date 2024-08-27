@@ -183,13 +183,6 @@ def test_op_after_cache(alltypes):
     assert letsql.to_sql(cached) == letsql.to_sql(full_expr)
 
 
-def setup_backend(table, table_name):
-    other = Backend()
-    other.do_connect()
-    other.register(table, table_name=table_name)
-    return other
-
-
 def test_cache_recreate(alltypes):
     def make_expr(alltypes):
         return alltypes.select(
@@ -208,6 +201,7 @@ def test_cache_recreate(alltypes):
     exprs = tuple(make_expr(t) for t in ts)
 
     for con, expr in zip(cons, exprs):
+        # FIXME: execute one, simply check the other returns true for `expr.ls.exists()`
         expr.cache(storage=SourceStorage(source=con)).execute()
 
     (con_cached_tables0, con_cached_tables1) = (
