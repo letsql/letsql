@@ -20,18 +20,18 @@ def parquet_dir():
     return data_dir
 
 
-def test_register_read_csv(ls_con, csv_dir):
-    api_batting = ls_con.register(
-        ls.read_csv(csv_dir / "batting.csv"), table_name="api_batting"
-    )
+def test_register_read_csv(csv_dir):
+    # this will use ls.options.backend: do we want to clear it out between function invocations?
+    api_batting = ls.read_csv(csv_dir / "batting.csv", table_name="api_batting")
     result = api_batting.execute()
 
     assert result is not None
 
 
-def test_register_read_parquet(ls_con, parquet_dir):
-    api_batting = ls_con.register(
-        ls.read_parquet(parquet_dir / "batting.parquet"), table_name="api_batting"
+def test_register_read_parquet(parquet_dir):
+    # this will use ls.options.backend: do we want to clear it out between function invocations?
+    api_batting = ls.read_parquet(
+        parquet_dir / "batting.parquet", table_name="api_batting"
     )
     result = api_batting.execute()
 
@@ -39,7 +39,7 @@ def test_register_read_parquet(ls_con, parquet_dir):
 
 
 @pytest.mark.xfail(reason="No purpose with no registration api")
-def test_executed_on_original_backend(ls_con, parquet_dir, csv_dir, mocker):
+def test_executed_on_original_backend(parquet_dir, csv_dir, mocker):
     con = ls.config._backend_init()
     spy = mocker.spy(con, "execute")
 
