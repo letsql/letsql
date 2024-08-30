@@ -15,9 +15,6 @@ import toolz
 from ibis import _
 
 import letsql
-from letsql.backends.let import (
-    Backend,
-)
 from letsql.expr.udf import (
     agg,
 )
@@ -584,11 +581,7 @@ def test_register_with_different_name_and_cache(ls_con, csv_dir, get_expr):
     t = datafusion_con.register(
         batting_path, table_name=table_name, schema_infer_max_records=50_000
     )
-    expr = (
-        ls_con.register(t, table_name=letsql_table_name)
-        .pipe(get_expr)
-        .cache()
-    )
+    expr = ls_con.register(t, table_name=letsql_table_name).pipe(get_expr).cache()
 
     assert table_name != letsql_table_name
     # this fails with "Cannot start a runtime from within a runtime."
