@@ -572,7 +572,7 @@ def test_repeated_cache(pg, ls_con, tmp_path):
         lambda t: t.group_by("playerID").agg(t.stint.max().name("n-stints")),
     ],
 )
-def test_register_with_different_name_and_cache(ls_con, csv_dir, get_expr):
+def test_register_with_different_name_and_cache(csv_dir, get_expr):
     batting_path = csv_dir.joinpath("batting.csv")
     table_name = "batting"
 
@@ -581,7 +581,7 @@ def test_register_with_different_name_and_cache(ls_con, csv_dir, get_expr):
     t = datafusion_con.register(
         batting_path, table_name=table_name, schema_infer_max_records=50_000
     )
-    expr = ls_con.register(t, table_name=letsql_table_name).pipe(get_expr).cache()
+    expr = t.pipe(get_expr).cache()
 
     assert table_name != letsql_table_name
     assert expr.execute() is not None
