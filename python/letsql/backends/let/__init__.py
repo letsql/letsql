@@ -75,11 +75,12 @@ class Backend(DataFusionBackend):
                     )
                     backend = backend._sources.get_backend(old_table_expr)
                 source = table_or_expr.to_expr()
-                if (
-                    isinstance(backend, DataFusionBackend)
-                    or getattr(backend, "name", "") == DataFusionBackend.name
-                ):
-                    source = _get_datafusion_dataframe(backend, source)
+
+            if (
+                isinstance(backend, DataFusionBackend)
+                or getattr(backend, "name", "") == DataFusionBackend.name
+            ):
+                source = _get_datafusion_dataframe(backend, source)
 
         registered_table = super().register(source, table_name=table_name, **kwargs)
         self._sources[registered_table.op()] = table_or_expr or registered_table.op()

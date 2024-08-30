@@ -584,7 +584,6 @@ def test_register_with_different_name_and_cache(ls_con, csv_dir, get_expr):
     expr = ls_con.register(t, table_name=letsql_table_name).pipe(get_expr).cache()
 
     assert table_name != letsql_table_name
-    # this fails with "Cannot start a runtime from within a runtime."
     assert expr.execute() is not None
 
 
