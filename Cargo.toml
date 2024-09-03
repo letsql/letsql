@@ -34,6 +34,6 @@ candle-transformers = "0.6.0"
 imageproc = "0.25.0"
 aws-config = "0.55"
 aws-credential-types = "0.55"
-dirs = "4.0.0"
+dirs = "4.0.0, ||, ^5"
 object_store = { version = "0.10.1", features = ["aws", "gcp", "http"] }
 url = "2.2"
