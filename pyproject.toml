@@ -101,6 +101,8 @@ connectorx = "^0.3.2"
 psycopg2-binary = "^2.9.9"
 sqlalchemy = "^2.0.29"
 pyarrow = ">=13.0.0,<19"
+pyarrow-hotfix = ">=0.4,<1"
+geoarrow-types = ">=0.2,<1"
 duckdb = {version = ">=0.10.3,<2", optional = true}
 snowflake-connector-python = {version = ">=3.10.1,<4", optional = true}
 datafusion = {version = ">=34.0.0,<41", optional = true}
