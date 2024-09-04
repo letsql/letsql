@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import urllib.parse
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -19,7 +20,6 @@ from letsql.common.caching import (
 from letsql.common.collections import SourceDict
 from letsql.expr.relations import (
     CachedNode,
-    replace_cache_table,
 )
 from letsql.expr.translate import sql_to_ibis
 
@@ -138,7 +138,8 @@ class Backend(DataFusionBackend):
         from letsql.backends.postgres import Backend
 
         backend = Backend()
-        backend = backend._from_url(uri, database=database)
+        parsed = urllib.parse.urlparse(uri)
+        backend = backend._from_url(parsed, database=database)
         table = backend.table(table_name)
         registered_table = super().register_table_provider(table, table_name=table_name)
         self._sources[registered_table.op()] = table.op()
@@ -308,13 +309,13 @@ class Backend(DataFusionBackend):
 
         return out.to_expr()
 
-    def _to_sqlglot(
-        self, expr: ir.Expr, *, limit: str | None = None, params=None, **_: Any
-    ):
-        op = expr.op()
-        out = op.map_clear(replace_cache_table)
-
-        return super()._to_sqlglot(out.to_expr(), limit=limit, params=params)
+    # def to_sqlglot(
+    #     self, expr: ir.Expr, *, limit: str | None = None, params=None, **_: Any
+    # ):
+    #     op = expr.op()
+    #     out = op.map_clear(replace_cache_table)
+    #
+    #     return self.compiler.to_sqlglot(out.to_expr(), limit=limit, params=params)
 
     def sql(
         self,
