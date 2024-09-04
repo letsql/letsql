@@ -15,7 +15,7 @@ from pandas.api.types import is_float_dtype
 from letsql.common.caching import (
     SourceStorage,
 )
-from letsql.expr.relations import CachedNode, replace_cache_table
+from letsql.expr.relations import CachedNode
 
 
 class Backend(IbisPostgresBackend):
@@ -62,14 +62,6 @@ class Backend(IbisPostgresBackend):
     ) -> Any:
         expr = self._register_and_transform_cache_tables(expr)
         return super().execute(expr, params=params, limit=limit, **kwargs)
-
-    def _to_sqlglot(
-        self, expr: ir.Expr, *, limit: str | None = None, params=None, **_: Any
-    ):
-        op = expr.op()
-        out = op.map_clear(replace_cache_table)
-
-        return super()._to_sqlglot(out.to_expr(), limit=limit, params=params)
 
     def _cached(self, expr: ir.Table, storage=None):
         storage = storage or SourceStorage(source=self)
