@@ -213,12 +213,13 @@ def normalize_namespace(ns):
 
 @dask.base.normalize_token.register(ScalarUDF)
 def normalize_scalar_udf(udf):
-    typs = tuple(arg.dtype for arg in udf.args)
+    # Stringify dtype because some instabilities seem to be introduced by dask PR 11320
+    typs = tuple(str(arg.dtype) for arg in udf.args)
     return dask.base._normalize_seq_func(
         (
             ScalarUDF,
             typs,
-            udf.dtype,
+            str(udf.dtype),
             udf.__func__,
             # we are insensitive to these for now
             # udf.__udf_namespace__,
@@ -234,12 +235,13 @@ def normalize_agg_udf(udf):
         # TODO: determine if sql string already contains
         #       the relevant information of `where`
         raise NotImplementedError
-    typs = tuple(arg.dtype for arg in args)
+    # Stringify dtype because some instabilities seem to be introduced by dask PR 11320
+    typs = tuple(str(arg.dtype) for arg in args)
     return dask.base._normalize_seq_func(
         (
             AggUDF,
             typs,
-            udf.dtype,
+            str(udf.dtype),
             udf.__func__,
             # we are insensitive to these for now
             # udf.__udf_namespace__,
