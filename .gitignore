@@ -82,4 +82,6 @@ ci/ibis_testing.db
 
 .letsql_cache/*
 
-.direnv/
+.direnv/# pixi environments
+.pixi
+*.egg-info
