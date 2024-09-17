@@ -23,7 +23,7 @@ arrow = ">=52.2.0, <54"
 gbdt = { git = "https://github.com/letsql/gbdt-rs.git", rev = "8262de1d20ab6dc7c7e6778b243578d190fb6a62" }
 parking_lot = { version = "0.12" }
 arrow-ord = ">=52.2.0, <54"
-datafusion-functions-aggregate = { version = ">=40.0.0,<42" }
+datafusion-functions-aggregate = { version = ">=40.0.0, <43" }
 arrow-schema = "52.2.0"
 arrow_convert = "0.6.8"
 itertools = "0.13.0"
