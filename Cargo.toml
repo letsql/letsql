@@ -27,7 +27,7 @@ datafusion-functions-aggregate = { version = ">=40.0.0,<42" }
 arrow-schema = "52.2.0"
 arrow_convert = "0.6.8"
 itertools = "0.13.0"
-candle-core = "0.6.0"
+candle-core = "0.6.0, ||, ^0"
 image = "0.25.2"
 candle-nn = "0.6.0"
 candle-transformers = "0.6.0"
