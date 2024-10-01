@@ -26,7 +26,7 @@ class Backend(IbisPostgresBackend):
 
     @classmethod
     def connect_examples(cls):
-        return cls().connect(
+        return cls().connect_env(
             host="examples.letsql.com",
             user="letsql",
             password="letsql",
