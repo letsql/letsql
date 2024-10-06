@@ -42,3 +42,12 @@ class CachedNode(ops.Relation):
     source: Any
     storage: Any
     values = FrozenDict()
+
+
+class Read(ops.Relation):
+    method: Any
+    name: str
+    schema: Schema
+    source: Any
+    read_kwargs: Any  # tuple of str -> Any?
+    values = FrozenDict()
