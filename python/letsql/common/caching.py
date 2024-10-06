@@ -63,7 +63,7 @@ class CacheStorage:
 
 
 @frozen
-class Cache(ABC):
+class Cache:
     strategy = field(validator=instance_of(CacheStrategy))
     storage = field(validator=instance_of(CacheStorage))
     key_prefix = field(
@@ -79,6 +79,7 @@ class Cache(ABC):
         return self.storage.key_exists(key)
 
     def get_key(self, expr):
+        # FIXME: let strategy solely determine key
         return self.key_prefix + self.strategy.get_key(expr)
 
     def get(self, expr: ir.Expr):
@@ -164,6 +165,9 @@ class ParquetStorage(CacheStorage):
         factory=functools.partial(letsql.options.get, "cache.default_path"),
     )
 
+    def __attrs_post_init__(self):
+        self.path.mkdir(exist_ok=True, parents=True)
+
     def get_loc(self, key):
         return self.path.joinpath(key + ".parquet")
 
@@ -248,7 +252,6 @@ class ParquetSnapshot:
     cache = field(validator=instance_of(Cache), init=False)
 
     def __attrs_post_init__(self):
-        self.path.mkdir(exist_ok=True, parents=True)
         cache = Cache(
             strategy=SnapshotStrategy(),
             storage=ParquetStorage(
@@ -275,7 +278,6 @@ class ParquetCacheStorage:
     cache = field(validator=instance_of(Cache), init=False)
 
     def __attrs_post_init__(self):
-        self.path.mkdir(exist_ok=True, parents=True)
         cache = Cache(
             strategy=ModificationTimeStragegy(),
             storage=ParquetStorage(
