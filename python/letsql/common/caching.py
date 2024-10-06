@@ -235,6 +235,33 @@ def chained_getattr(self, attr):
 
 
 @frozen
+class ParquetSnapshot:
+    source = field(
+        validator=instance_of(ibis.backends.BaseBackend),
+        factory=letsql.config._backend_init,
+    )
+    path = field(
+        validator=instance_of(pathlib.Path),
+        converter=abs_path_converter,
+        factory=functools.partial(letsql.options.get, "cache.default_path"),
+    )
+    cache = field(validator=instance_of(Cache), init=False)
+
+    def __attrs_post_init__(self):
+        self.path.mkdir(exist_ok=True, parents=True)
+        cache = Cache(
+            strategy=SnapshotStrategy(),
+            storage=ParquetStorage(
+                self.source,
+                self.path,
+            ),
+        )
+        object.__setattr__(self, "cache", cache)
+
+    __getattr__ = chained_getattr
+
+
+@frozen
 class ParquetCacheStorage:
     source = field(
         validator=instance_of(ibis.backends.BaseBackend),
