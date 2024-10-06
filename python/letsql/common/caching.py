@@ -260,9 +260,6 @@ class ParquetCacheStorage:
 
     __getattr__ = chained_getattr
 
-    def get_loc(self, loc):
-        return self.cache.storage.get_loc(loc)
-
 
 @frozen
 class SourceStorage:
