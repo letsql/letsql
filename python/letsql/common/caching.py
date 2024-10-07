@@ -4,7 +4,6 @@ import functools
 import operator
 import pathlib
 from abc import (
-    ABC,
     abstractmethod,
 )
 
