@@ -3,6 +3,8 @@ from typing import Callable
 
 import ibis as ix
 
+import pyarrow as pa
+
 
 def compose(func, other, *args, **keywords):
     def composition(self, *a, **kw):
@@ -63,6 +65,12 @@ class PartialExpr:
         return PartialExpr(bound)
 
     def __ror__(self, value):
+        if isinstance(value, pa.RecordBatchReader):
+            backend = ix.get_backend()
+            value = backend.read_in_memory(
+                value
+            )  # TODO: ix.memtable does not work for record batch reader
+
         return self.func(value)
 
 

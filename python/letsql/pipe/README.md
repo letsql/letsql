@@ -67,7 +67,7 @@ multiple partial expressions in one large pipeline, for example:
     )
 ```
 
-Notice the use of each `|` pipe to "glue" together each partial expression.
+Notice the use of each `|` pipe to "glue" together each partial expression, it should be used for that. 
 
 ### Proposal: Pipe Operator should receive multiple arguments
 
