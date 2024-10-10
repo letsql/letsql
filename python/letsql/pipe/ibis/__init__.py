@@ -58,11 +58,46 @@ class PartialExpr:
     def head(self, n: int = 5) -> "PartialExpr":
         return self._compose(ix.Table.head, n)
 
+    def group_by(self, *by, **key_exprs):
+        return PartialGroupedTable(
+            compose(self.func, ix.Table.group_by, *by, **key_exprs)
+        )
+
     def __call__(self, *args, **keywords):
         def bound(other, *a, **kw):
             return self.func(other, *args, *a, **keywords, **kw)
 
         return PartialExpr(bound)
+
+    def __ror__(self, value):
+        if isinstance(value, pa.RecordBatchReader):
+            backend = ix.get_backend()
+            value = backend.read_in_memory(
+                value
+            )  # TODO: ix.memtable does not work for record batch reader
+
+        return self.func(value)
+
+
+class PartialGroupedTable:
+    def __init__(self, func: Callable):
+        update_wrapper(self, func)
+        self.func = func
+
+    def _compose(self, other, *args, **kwargs):
+        return PartialExpr(compose(self.func, other, *args, **kwargs))
+
+    def __call__(self, *args, **keywords):
+        def bound(other, *a, **kw):
+            return self.func(other, *args, *a, **keywords, **kw)
+
+        return PartialGroupedTable(bound)
+
+    def aggregate(self, *metrics, **kwds):
+        def bound(*args, **keywords):
+            return self.func(*args, **keywords).aggregate(*metrics, **kwds)
+
+        return PartialGroupedTable(bound)
 
     def __ror__(self, value):
         if isinstance(value, pa.RecordBatchReader):
@@ -81,5 +116,7 @@ mutate = PartialExpr(ix.Table.mutate)
 head = PartialExpr(ix.Table.head)
 filter = PartialExpr(ix.Table.filter)
 sql = PartialExpr(ix.Table.sql)
+
+group_by = PartialExpr(ix.Table.group_by)
 
 _ = ix._

@@ -122,4 +122,32 @@ def test_pandas_read_csv(data_dir):
     assert pipeline.execute() is not None
 
 
+def test_mage_etl():
+    import io
+    import requests
+
+    def load():
+        url = "https://raw.githubusercontent.com/mage-ai/datasets/master/restaurant_user_transactions.csv"
+        response = requests.get(url)
+        return pd.read_csv(io.StringIO(response.text), sep=",")
+
+    restaurants = ibis.memtable(
+        load(), name="restaurants"
+    )  # cannot use | operator because it returns a pd.DataFrame
+
+    group_by_pipeline = (
+        select(user_id=_["user ID"])
+        .group_by("user_id")
+        .aggregate(number_of_meals=_.user_id.count())
+    )
+
+    renamed = restaurants.rename(lambda x: x.lower().replace(" ", "_"))
+    result = (restaurants | group_by_pipeline).execute()
+
+    join_pipeline = join(result, "user_id").head(100)
+    result = (renamed | join_pipeline).execute()
+
+    assert isinstance(result, pd.DataFrame)
+
+
 # TODO: add another example test on how to expand the reading options of the pipe
