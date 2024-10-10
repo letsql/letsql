@@ -7,21 +7,6 @@ from letsql.pipe.ibis import select, join, limit, mutate, sql, head, _
 from pandas.testing import assert_frame_equal
 
 
-def read_csv_with_pandas(path, chunk_size=10_000):
-    import pyarrow as pa
-    from itertools import chain
-
-    chunks = pd.read_csv(path, chunksize=chunk_size)
-
-    batches = map(pa.RecordBatch.from_pandas, chunks)
-    first = next(batches)
-    schema = first.schema
-
-    return pa.RecordBatchReader.from_batches(
-        schema, (chunk for chunk in chain((first,), batches))
-    )
-
-
 @pytest.fixture
 def left():
     left = pd.DataFrame({"a": list(range(10)), "b": [f"b_{i}" for i in range(10, 20)]})
@@ -114,6 +99,21 @@ def test_sql(penguins):
     assert pipeline.execute() is not None
 
 
+def read_csv_with_pandas(path, chunk_size=10_000):
+    import pyarrow as pa
+    from itertools import chain
+
+    chunks = pd.read_csv(path, chunksize=chunk_size)
+
+    batches = map(pa.RecordBatch.from_pandas, chunks)
+    first = next(batches)
+    schema = first.schema
+
+    return pa.RecordBatchReader.from_batches(
+        schema, (chunk for chunk in chain((first,), batches))
+    )
+
+
 def test_pandas_read_csv(data_dir):
     """This test exemplifies some syntactic sugar when building pipelines"""
     path = data_dir / "csv" / "diamonds.csv"
@@ -122,7 +122,10 @@ def test_pandas_read_csv(data_dir):
     assert pipeline.execute() is not None
 
 
-def test_mage_etl():
+def test_etl_like_workflow():
+    """This test is inspired by the ETL Pipeline Tutorial from mage.ai
+    URL: https://docs.mage.ai/guides/load-api-data
+    """
     import io
     import requests
 
