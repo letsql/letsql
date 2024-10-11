@@ -55,7 +55,7 @@ def normalize_datafusion_databasetable(dt):
     if dt.source.name not in ("datafusion", "let"):
         raise ValueError
     ep_str = str(dt.source.con.table(dt.name).execution_plan())
-    if ep_str.startswith(("ParquetExec:", "CsvExec:")):
+    if ep_str.startswith(("ParquetExec:", "CsvExec:", "CustomExec")):
         return dask.base._normalize_seq_func(
             (
                 dt.schema.to_pandas(),
