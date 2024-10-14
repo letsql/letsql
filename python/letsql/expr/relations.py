@@ -1,8 +1,12 @@
+import functools
 from typing import Any
 
-from ibis import Schema
+import ibis
+from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
 from ibis.expr import operations as ops
+
+import letsql as ls
 
 
 def replace_cache_table(node, _, **kwargs):
@@ -42,3 +46,29 @@ class CachedNode(ops.Relation):
     source: Any
     storage: Any
     values = FrozenDict()
+
+
+gen_name = functools.partial(ibis.util.gen_name, "remote-expr-placeholder")
+
+
+class RemoteTable(ops.DatabaseTable):
+    remote_expr: Expr
+
+    @classmethod
+    def from_expr(cls, con, expr, name=None):
+        name = name or gen_name()
+        return cls(
+            name=name,
+            schema=expr.schema(),
+            source=con,
+            remote_expr=expr,
+        )
+
+    @classmethod
+    def from_rbr(cls, con, rbr, name=None):
+        expr = ls.connect().register(rbr, gen_name())
+        return cls.from_expr(con, expr, name)
+
+
+def into_backend(expr, con, name=None):
+    return RemoteTable.from_expr(con=con, expr=expr, name=name).to_expr()

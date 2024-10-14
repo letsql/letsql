@@ -27,6 +27,7 @@ from letsql.expr.operations.images import SegmentAnything, Rotate90
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
+    RemoteTable,
 )
 
 
@@ -190,7 +191,7 @@ def letsql_invoke(_methodname, self, *args, **kwargs):
     con = letsql.connect()
     for dt in self.op().find(ops.DatabaseTable):
         # fixme: use temp names to avoid collisions, remove / deregister after done
-        if dt not in con._sources.sources:
+        if dt not in con._sources.sources and not isinstance(dt, RemoteTable):
             con.register(dt.to_expr(), dt.name)
     method = getattr(con, f"{_methodname}")
     return method(self, *args, **kwargs)
