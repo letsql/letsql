@@ -825,18 +825,18 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "dask"
-version = "2024.8.0"
+version = "2024.9.1"
 description = "Parallel PyData with Task Scheduling"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 files = [
-    {file = "dask-2024.8.0-py3-none-any.whl", hash = "sha256:250ea3df30d4a25958290eec4f252850091c6cfaed82d098179c3b25bba18309"},
-    {file = "dask-2024.8.0.tar.gz", hash = "sha256:f1fec39373d2f101bc045529ad4e9b30e34e6eb33b7aa0fa7073aec7b1bf9eee"},
+    {file = "dask-2024.9.1-py3-none-any.whl", hash = "sha256:3757bb6c976f0436fef6bd6ad32f8983ee5ce7d8a738a1f643e208cd390ec794"},
+    {file = "dask-2024.9.1.tar.gz", hash = "sha256:06eccc6a68d2882bcd9de24548fa96e8d0da7fbfff0baed3f3c2a526b73dfbb4"},
 ]
 
 [package.dependencies]
 click = ">=8.1"
-cloudpickle = ">=1.5.0"
+cloudpickle = ">=3.0.0"
 fsspec = ">=2021.09.0"
 importlib-metadata = {version = ">=4.13.0", markers = "python_version < \"3.12\""}
 packaging = ">=20.0"
@@ -845,11 +845,11 @@ pyyaml = ">=5.3.1"
 toolz = ">=0.10.0"
 
 [package.extras]
-array = ["numpy (>=1.21)"]
-complete = ["dask[array,dataframe,diagnostics,distributed]", "lz4 (>=4.3.2)", "pyarrow (>=7.0)", "pyarrow-hotfix"]
+array = ["numpy (>=1.24)"]
+complete = ["dask[array,dataframe,diagnostics,distributed]", "lz4 (>=4.3.2)", "pyarrow (>=14.0.1)"]
 dataframe = ["dask-expr (>=1.1,<1.2)", "dask[array]", "pandas (>=2.0)"]
-diagnostics = ["bokeh (>=2.4.2)", "jinja2 (>=2.10.3)"]
-distributed = ["distributed (==2024.8.0)"]
+diagnostics = ["bokeh (>=3.1.0)", "jinja2 (>=2.10.3)"]
+distributed = ["distributed (==2024.9.1)"]
 test = ["pandas[test]", "pre-commit", "pytest", "pytest-cov", "pytest-rerunfailures", "pytest-timeout", "pytest-xdist"]
 
 [[package]]
@@ -4446,4 +4446,4 @@ snowflake = ["snowflake-connector-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "189524bb137fd1a459b3f1c9257b8334eb846e730c49d11c169c578c9d7ace7a"
+content-hash = "71c904c892652f83a24e1de2886deaf166f2cdf52ba5781a581eac1ce6e8f3a8"
