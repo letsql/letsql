@@ -125,15 +125,20 @@ def get_postgres_n_changes(dt):
 
 
 def get_postgres_n_reltuples(dt):
+    # FIXME: determine how to track "temporary" tables
     (con, name) = (dt.source, dt.name)
+    which = "reltuples"
     sql = f"""
-        SELECT reltuples
+        SELECT {which}
         FROM pg_class
         WHERE relname = '{name}'
+        AND relpersistence = 'p'
     """
     do_checkpoint(con)
     do_analyze(con, name)
-    ((n_reltuples,),) = con.sql(sql).execute().values
+    (n_reltuples, *rest) = con.sql(sql).execute()[which]
+    if rest:
+        raise ValueError(str((n_reltuples, rest)))
     return n_reltuples
 
 
