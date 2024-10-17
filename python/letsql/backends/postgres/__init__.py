@@ -10,9 +10,15 @@ import sqlglot as sg
 import sqlglot.expressions as sge
 from ibis.backends.postgres import Backend as IbisPostgresBackend
 from ibis.expr import types as ir
+from ibis.util import (
+    gen_name,
+)
 from pandas.api.types import is_float_dtype
 
 from letsql.expr.relations import CachedNode, replace_cache_table
+from letsql.common.utils.defer_utils import (
+    read_csv_rbr,
+)
 
 
 class Backend(IbisPostgresBackend):
@@ -182,3 +188,33 @@ class Backend(IbisPostgresBackend):
                 else None
             ),
         ).sql(self.dialect)
+
+    def read_csv(
+        self,
+        path,
+        table_name=None,
+        chunksize=10_000,
+        password=None,
+        temporary=False,
+        **kwargs,
+    ):
+        from letsql.common.utils.postgres_utils import (
+            PgADBC,
+            make_table_temporary,
+        )
+
+        if chunksize is None:
+            raise ValueError
+        if table_name is None:
+            if not temporary:
+                raise ValueError(
+                    "If `table_name` is not provided, `temporary` must be True"
+                )
+            else:
+                table_name = gen_name("ls-read-csv")
+        pgadbc = PgADBC(self, password)
+        pd_rbr = read_csv_rbr(path, **kwargs)
+        pgadbc.adbc_ingest(table_name, pd_rbr)
+        if temporary:
+            make_table_temporary(self, table_name)
+        return self.table(table_name)
