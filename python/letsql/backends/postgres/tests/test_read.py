@@ -9,7 +9,7 @@ def test_read_csv(con):
     table_name = f"testing-{name}"
     path = ls.options.pins.get_path(name)
     assert table_name not in con.tables
-    t = con.read_csv(path, table_name)
+    t = con.read_csv(path, table_name, password="postgres")
     assert table_name in con.tables
     assert t.execute().equals(pd.read_csv(path))
 
@@ -22,7 +22,7 @@ def test_read_csv_raises(con):
     with pytest.raises(
         ValueError, match="If `table_name` is not provided, `temporary` must be True"
     ):
-        con.read_csv(path)
+        con.read_csv(path, password="postgres")
     assert table_name not in con.tables
 
 
@@ -31,7 +31,7 @@ def test_read_csv_temporary(con):
     table_name = f"testing-{name}"
     path = ls.options.pins.get_path(name)
     assert table_name not in con.tables
-    t = con.read_csv(path, temporary=True)
+    t = con.read_csv(path, temporary=True, password="postgres")
     assert t.op().name in con.tables
     assert t.execute().equals(pd.read_csv(path))
 
@@ -41,7 +41,7 @@ def test_read_csv_named_temporary(con):
     table_name = f"testing-{name}"
     path = ls.options.pins.get_path(name)
     assert table_name not in con.tables
-    t = con.read_csv(path, table_name, temporary=True)
+    t = con.read_csv(path, table_name, temporary=True, password="postgres")
     assert table_name == t.op().name
     assert table_name in con.tables
     assert t.execute().equals(pd.read_csv(path))
@@ -52,7 +52,7 @@ def test_read_parquet(con):
     table_name = f"testing-{name}"
     path = ls.options.pins.get_path(name)
     assert table_name not in con.tables
-    t = con.read_parquet(path, table_name)
+    t = con.read_parquet(path, table_name, password="postgres")
     assert table_name in con.tables
     assert t.execute().equals(pd.read_parquet(path))
 
@@ -65,7 +65,7 @@ def test_read_parquet_raises(con):
     with pytest.raises(
         ValueError, match="If `table_name` is not provided, `temporary` must be True"
     ):
-        con.read_parquet(path)
+        con.read_parquet(path, password="postgres")
     assert table_name not in con.tables
 
 
@@ -74,7 +74,7 @@ def test_read_parquet_temporary(con):
     table_name = f"testing-{name}"
     path = ls.options.pins.get_path(name)
     assert table_name not in con.tables
-    t = con.read_parquet(path, temporary=True)
+    t = con.read_parquet(path, temporary=True, password="postgres")
     assert t.op().name in con.tables
     assert t.execute().equals(pd.read_parquet(path))
 
@@ -84,7 +84,7 @@ def test_read_parquet_named_temporary(con):
     table_name = f"testing-{name}"
     path = ls.options.pins.get_path(name)
     assert table_name not in con.tables
-    t = con.read_parquet(path, table_name, temporary=True)
+    t = con.read_parquet(path, table_name, temporary=True, password="postgres")
     assert table_name == t.op().name
     assert table_name in con.tables
     assert t.execute().equals(pd.read_parquet(path))
