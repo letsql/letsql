@@ -64,7 +64,7 @@ def read_csv_rbr(*args, schema=None, chunksize=DEFAULT_CHUNKSIZE, dtype=None, **
         (el, gen) = toolz.peek(gen)
         schema = el.schema
     rbr = pa.RecordBatchReader.from_batches(
-        schema,
+        schema.to_pyarrow(),
         gen,
     )
     return rbr
