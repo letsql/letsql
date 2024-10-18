@@ -123,7 +123,7 @@ class Backend(IbisPostgresBackend):
         self,
         path: str | Path,
         table_name: str | None = None,
-        password: str | None = None,
+        password: str | None = "postgres",
         temporary: bool = False,
         **kwargs: Any,
     ) -> ir.Table:
