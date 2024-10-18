@@ -22,6 +22,7 @@ from letsql.common.utils.hotfix_utils import (
 )
 from letsql.expr.relations import (
     CachedNode,
+    Read,
     replace_cache_table,
 )
 
@@ -126,7 +127,12 @@ class LETSQLAccessor:
 def _letsql_find_backend(self, *, use_default=True):
     # FIXME: push this into LETSQLAccessor
     try:
-        current_backend = self._find_backend._original(self, use_default=use_default)
+        if tuple(op.source for op in self.op().find(Read)):
+            current_backend = letsql.options.backend
+        else:
+            current_backend = self._find_backend._original(
+                self, use_default=use_default
+            )
     except IbisError as e:
         if "Multiple backends found" in e.args[0]:
             current_backend = letsql.options.backend
