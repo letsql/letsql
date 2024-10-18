@@ -48,6 +48,9 @@ def test_read_csv_named_temporary(con):
 
 
 def test_read_parquet(con):
+    import os
+
+    print("pax", os.environ.get("POSTGRES_PASSWORD"))
     name = "astronauts"
     table_name = f"testing-{name}"
     path = ls.options.pins.get_path(name)
