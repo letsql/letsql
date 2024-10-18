@@ -12,6 +12,8 @@ import letsql as ls
 def replace_cache_table(node, _, **kwargs):
     if isinstance(node, CachedNode):
         return kwargs["parent"]
+    elif isinstance(node, RemoteTable):
+        return kwargs["remote_expr"]
     else:
         return node.__recreate__(kwargs)
 
