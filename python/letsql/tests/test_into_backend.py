@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 
 import letsql as ls
@@ -52,6 +53,25 @@ def remove_unexpected_tables(dirty):
         raise ValueError
 
 
+def test_multiple_record_batches(pg):
+    con = ls.connect()
+
+    table = pg.table("batting")
+    left = con.register(table.to_pyarrow_batches(), "batting_0")
+    right = con.register(table.to_pyarrow_batches(), "batting_1")
+
+    expr = (
+        left.join(right, "playerID")
+        .limit(15)
+        .select(player_id="playerID", year_id="yearID_right")
+        .cache(SourceStorage(source=con))
+    )
+
+    res = expr.execute()
+    assert isinstance(res, pd.DataFrame)
+    assert 0 < len(res) <= 15
+
+
 def test_into_backend(pg):
     con = ls.connect()
 
@@ -64,4 +84,6 @@ def test_into_backend(pg):
         .cache(SourceStorage(source=con))
     )
 
-    assert expr.execute() is not None
+    assert ls.to_sql(expr).count("ls_batting") == 2
+    res = expr.execute()
+    assert 0 < len(res) <= 15
