@@ -64,4 +64,5 @@ def test_into_backend(pg):
         .cache(SourceStorage(source=con))
     )
 
+    assert ls.to_sql(expr).count("ls_batting") == 2
     assert expr.execute() is not None

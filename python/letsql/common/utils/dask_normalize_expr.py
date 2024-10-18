@@ -13,6 +13,7 @@ from ibis.expr.operations.udf import (
 import letsql
 from letsql.expr.relations import (
     make_native_op,
+    RemoteTable,
 )
 
 
@@ -54,8 +55,9 @@ def normalize_pandas_databasetable(dt):
 def normalize_datafusion_databasetable(dt):
     if dt.source.name not in ("datafusion", "let"):
         raise ValueError
-    ep_str = str(dt.source.con.table(dt.name).execution_plan())
-    if ep_str.startswith(("ParquetExec:", "CsvExec:", "CustomExec")):
+    table = dt.source.con.table(dt.name)
+    ep_str = str(table.execution_plan())
+    if ep_str.startswith(("ParquetExec:", "CsvExec:")):
         return dask.base._normalize_seq_func(
             (
                 dt.schema.to_pandas(),
@@ -66,6 +68,13 @@ def normalize_datafusion_databasetable(dt):
         )
     elif ep_str.startswith("MemoryExec:"):
         return normalize_memory_databasetable(dt)
+    elif ep_str.startswith("CustomExec") and isinstance(table, RemoteTable):
+        return dask.base._normalize_seq_func(
+            (
+                dt.schema.to_pandas(),
+                str(table.remote_expr),
+            )
+        )
     else:
         raise ValueError
 
