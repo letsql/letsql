@@ -10,7 +10,6 @@ import pyarrow_hotfix  # noqa: F401
 from ibis import BaseBackend
 from ibis.expr import types as ir, schema as sch
 from ibis.expr.operations import DatabaseTable
-from ibis.expr.schema import SchemaLike
 from sqlglot import exp, parse_one
 
 import letsql.backends.let.hotfix  # noqa: F401
@@ -19,6 +18,7 @@ from letsql.common.collections import SourceDict
 from letsql.expr.relations import (
     CachedNode,
     RemoteTable,
+    replace_cache_table,
 )
 
 
@@ -31,7 +31,7 @@ def _get_datafusion_table(con, table_name, database="public"):
 def _get_datafusion_dataframe(con, expr, **kwargs):
     con._register_udfs(expr)
     con._register_in_memory_tables(expr)
-    expr = con._register_and_transform_cache_tables(expr)
+    # expr = con._register_and_transform_cache_tables(expr)
 
     table_expr = expr.as_table()
     raw_sql = con.compile(table_expr, **kwargs)
@@ -342,12 +342,9 @@ class Backend(DataFusionBackend):
     def _to_sqlglot(
         self, expr: ir.Expr, *, limit: str | None = None, params=None, **_: Any
     ):
-        expr = self._register_and_transform_cache_tables(expr)
-
-        # op = expr.op()
-        # out = op.map_clear(replace_cache_table)
-
-        return super()._to_sqlglot(expr, limit=limit, params=params)
+        op = expr.op()
+        out = op.map_clear(replace_cache_table)
+        return super()._to_sqlglot(out.to_expr(), limit=limit, params=params)
 
     def _extract_catalog(self, query):
         tables = parse_one(query).find_all(exp.Table)
