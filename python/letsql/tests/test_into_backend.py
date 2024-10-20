@@ -4,7 +4,7 @@ import pytest
 import letsql as ls
 from letsql.common.caching import SourceStorage
 
-from letsql.expr.relations import into_backend
+from letsql.expr.relations import into_backend, RemoteTableReplacer
 
 expected_tables = (
     "array_types",
@@ -86,4 +86,22 @@ def test_into_backend(pg):
 
     assert ls.to_sql(expr).count("ls_batting") == 2
     res = expr.execute()
+    assert 0 < len(res) <= 15
+
+
+def test_into_backend_duckdb(pg):
+    import ibis
+
+    ddb = ibis.duckdb.connect()
+    t = into_backend(pg.table("batting"), ddb, "ls_batting")
+    expr = (
+        t.join(t, "playerID")
+        .limit(15)
+        .select(player_id="playerID", year_id="yearID_right")
+    )
+
+    expr = expr.op().replace(RemoteTableReplacer()).to_expr()
+    query = ibis.to_sql(expr, dialect="duckdb")
+
+    res = ddb.con.sql(query).df()
     assert 0 < len(res) <= 15

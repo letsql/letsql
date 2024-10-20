@@ -1,10 +1,12 @@
 import functools
+import itertools
 from typing import Any
 
 import ibis
 from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
 from ibis.expr import operations as ops
+from ibis.expr.operations import DatabaseTable
 
 import letsql as ls
 
@@ -16,6 +18,43 @@ def replace_cache_table(node, _, **kwargs):
         return kwargs["remote_expr"]
     else:
         return node.__recreate__(kwargs)
+
+
+class RemoteTableReplacer:
+    def __init__(self):
+        self.tables = {}
+        self.count = itertools.count()
+
+    def __call__(self, node, _, **kwargs):
+        for k, v in list(kwargs.items()):
+            try:
+                if v in self.tables:
+                    name = f"{v.name}_{next(self.count)}"
+                    kwargs[k] = DatabaseTable(
+                        name,
+                        schema=v.schema,
+                        source=v.source,
+                        namespace=v.namespace,
+                    )
+                    remote: RemoteTable = self.tables[v]
+                    batches = remote.remote_expr.to_pyarrow_batches()
+                    remote.source.register(batches, table_name=name)
+
+            except TypeError:  # v may not be hashable
+                continue
+
+        node = node.__recreate__(kwargs)
+        if isinstance(node, RemoteTable):
+            result = DatabaseTable(
+                node.name,
+                schema=node.schema,
+                source=node.source,
+                namespace=node.namespace,
+            )
+            self.tables[result] = node
+            node = result
+
+        return node
 
 
 def replace_source_factory(source: Any):
