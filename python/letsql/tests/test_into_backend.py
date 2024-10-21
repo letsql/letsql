@@ -163,3 +163,21 @@ def test_into_backend_duckdb_trino(trino_table):
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
+
+
+def test_multiple_into_backend_duckdb_letsql(trino_table):
+    db_con = ibis.duckdb.connect()
+    ls_con = ls.connect()
+
+    expr = (
+        trino_table.head(10_000)
+        .pipe(into_backend, db_con)
+        .pipe(make_merged)
+        .pipe(into_backend, ls_con)[lambda t: t.orderstatus == "F"]
+    )
+
+    expr = expr.op().replace(RemoteTableReplacer()).to_expr()
+    df = expr.execute()
+
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) > 0
