@@ -39,6 +39,36 @@ def pg():
     remove_unexpected_tables(conn)
 
 
+@pytest.fixture(scope="session")
+def trino_table():
+    return (
+        ibis.trino.connect(database="tpch", schema="sf1")
+        .table("orders")
+        .cast({"orderdate": "date"})
+    )
+
+
+def make_merged(expr):
+    agg = expr.group_by(["custkey", "orderdate"]).agg(
+        __.totalprice.sum().name("totalprice")
+    )
+    w = ibis.window(group_by="custkey", order_by="orderdate")
+    windowed = (
+        agg.mutate(__.totalprice.cumsum().over(w).name("curev"))
+        .mutate(__.curev.lag(1).over(w).name("curev@t-1"))
+        .select(["custkey", "orderdate", "curev", "curev@t-1"])
+    )
+    merged = expr.asof_join(
+        windowed,
+        on="orderdate",
+        predicates="custkey",
+    ).select(
+        [expr[c] for c in expr.columns]
+        + [windowed[c] for c in windowed.columns if c not in expr.columns]
+    )
+    return merged
+
+
 def remove_unexpected_tables(dirty):
     # drop tables
     for table in dirty.list_tables():
@@ -73,7 +103,15 @@ def test_multiple_record_batches(pg):
     assert 0 < len(res) <= 15
 
 
-def test_into_backend(pg):
+def test_into_backend_simple(pg):
+    con = ls.connect()
+    expr = into_backend(pg.table("batting"), con, "ls_batting")
+    res = expr.execute()
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) > 0
+
+
+def test_into_backend_complex(pg):
     con = ls.connect()
 
     t = into_backend(pg.table("batting"), con, "ls_batting")
@@ -120,36 +158,6 @@ def test_into_backend_duckdb_expr(pg):
 
     assert query.count("ls_batting") == 2
     assert 0 < len(res) <= 15
-
-
-@pytest.fixture(scope="session")
-def trino_table():
-    return (
-        ibis.trino.connect(database="tpch", schema="sf1")
-        .table("orders")
-        .cast({"orderdate": "date"})
-    )
-
-
-def make_merged(expr):
-    agg = expr.group_by(["custkey", "orderdate"]).agg(
-        __.totalprice.sum().name("totalprice")
-    )
-    w = ibis.window(group_by="custkey", order_by="orderdate")
-    windowed = (
-        agg.mutate(__.totalprice.cumsum().over(w).name("curev"))
-        .mutate(__.curev.lag(1).over(w).name("curev@t-1"))
-        .select(["custkey", "orderdate", "curev", "curev@t-1"])
-    )
-    merged = expr.asof_join(
-        windowed,
-        on="orderdate",
-        predicates="custkey",
-    ).select(
-        [expr[c] for c in expr.columns]
-        + [windowed[c] for c in windowed.columns if c not in expr.columns]
-    )
-    return merged
 
 
 def test_into_backend_duckdb_trino(trino_table):
