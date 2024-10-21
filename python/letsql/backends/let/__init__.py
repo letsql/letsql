@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -8,6 +9,7 @@ import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
 from ibis import BaseBackend
 from ibis.expr import types as ir, schema as sch
+from ibis.expr.operations import DatabaseTable
 from sqlglot import exp, parse_one
 
 import letsql.backends.let.hotfix  # noqa: F401
@@ -15,6 +17,7 @@ from letsql.backends.datafusion import Backend as DataFusionBackend
 from letsql.common.collections import SourceDict
 from letsql.expr.relations import (
     CachedNode,
+    RemoteTable,
     replace_cache_table,
 )
 
@@ -288,8 +291,38 @@ class Backend(DataFusionBackend):
     def _register_and_transform_cache_tables(self, expr):
         """This function will sequentially execute any cache node that is not already cached"""
 
+        tables = {}
+        count = itertools.count()
+
         def fn(node, _, **kwargs):
+            for k, v in list(kwargs.items()):
+                try:
+                    if v in tables:
+                        name = f"{v.name}_{next(count)}"
+                        kwargs[k] = DatabaseTable(
+                            name,
+                            schema=v.schema,
+                            source=v.source,
+                            namespace=v.namespace,
+                        )
+                        remote: RemoteTable = tables[v]
+                        batches = remote.remote_expr.to_pyarrow_batches()
+                        remote.source.register(batches, table_name=name)
+
+                except TypeError:  # v may not be hashable
+                    continue
+
             node = node.__recreate__(kwargs)
+            if isinstance(node, RemoteTable):
+                result = DatabaseTable(
+                    node.name,
+                    schema=node.schema,
+                    source=node.source,
+                    namespace=node.namespace,
+                )
+                tables[result] = node
+                node = result
+
             if isinstance(node, CachedNode):
                 uncached, storage = node.parent, node.storage
                 uncached_to_expr = uncached.to_expr()
@@ -310,7 +343,6 @@ class Backend(DataFusionBackend):
     ):
         op = expr.op()
         out = op.map_clear(replace_cache_table)
-
         return super()._to_sqlglot(out.to_expr(), limit=limit, params=params)
 
     def _extract_catalog(self, query):
