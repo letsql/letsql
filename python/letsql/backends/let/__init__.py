@@ -31,7 +31,6 @@ def _get_datafusion_table(con, table_name, database="public"):
 def _get_datafusion_dataframe(con, expr, **kwargs):
     con._register_udfs(expr)
     con._register_in_memory_tables(expr)
-    # expr = con._register_and_transform_cache_tables(expr)
 
     table_expr = expr.as_table()
     raw_sql = con.compile(table_expr, **kwargs)
