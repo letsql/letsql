@@ -85,8 +85,7 @@ class RemoteTableReplacer:
                         remote.source.register(batches, table_name=name)
                         updated[v] = kwargs[k]
 
-                except Exception as e:  # v may not be hashable
-                    print(e)
+                except TypeError:  # v may not be hashable
                     continue
 
             if len(updated) > 0:
@@ -101,6 +100,9 @@ class RemoteTableReplacer:
                 namespace=node.namespace,
             )
             self.tables[result] = RemoteTableCounter(node)
+            remote_expr = node.remote_expr.op().replace(RemoteTableReplacer()).to_expr()
+            batches = remote_expr.to_pyarrow_batches()
+            node.source.register(batches, table_name=node.name)
             node = result
 
         return node
