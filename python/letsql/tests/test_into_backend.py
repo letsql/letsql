@@ -137,13 +137,15 @@ def test_into_backend_duckdb(pg):
         .select(player_id="playerID", year_id="yearID_right")
     )
 
-    expr = expr.op().replace(RemoteTableReplacer()).to_expr()
+    replacer = RemoteTableReplacer()
+    expr = expr.op().replace(replacer).to_expr()
     query = ibis.to_sql(expr, dialect="duckdb")
 
     res = ddb.con.sql(query).df()
 
     assert query.count("ls_batting") == 2
     assert 0 < len(res) <= 15
+    assert len(replacer.created) == 3
 
 
 def test_into_backend_duckdb_expr(pg):
@@ -151,26 +153,30 @@ def test_into_backend_duckdb_expr(pg):
     t = into_backend(pg.table("batting"), ddb, "ls_batting")
     expr = t.join(t, "playerID").limit(15).select(__.playerID * 2)
 
-    expr = expr.op().replace(RemoteTableReplacer()).to_expr()
+    replacer = RemoteTableReplacer()
+    expr = expr.op().replace(replacer).to_expr()
     query = ibis.to_sql(expr, dialect="duckdb")
 
     res = ddb.con.sql(query).df()
 
     assert query.count("ls_batting") == 2
     assert 0 < len(res) <= 15
+    assert len(replacer.created) == 3
 
 
 def test_into_backend_duckdb_trino(trino_table):
     db_con = ibis.duckdb.connect()
     expr = trino_table.head(10_000).pipe(into_backend, db_con).pipe(make_merged)
 
-    expr = expr.op().replace(RemoteTableReplacer()).to_expr()
+    replacer = RemoteTableReplacer()
+    expr = expr.op().replace(replacer).to_expr()
     query = ibis.to_sql(expr, dialect="duckdb")
 
     df = db_con.con.sql(query).df()  # to bypass execute hotfix
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
+    assert len(replacer.created) == 3
 
 
 def test_multiple_into_backend_duckdb_letsql(trino_table):
@@ -184,8 +190,10 @@ def test_multiple_into_backend_duckdb_letsql(trino_table):
         .pipe(into_backend, ls_con)[lambda t: t.orderstatus == "F"]
     )
 
-    expr = expr.op().replace(RemoteTableReplacer()).to_expr()
+    replacer = RemoteTableReplacer()
+    expr = expr.op().replace(replacer).to_expr()
     df = expr.execute()
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
+    assert len(replacer.created) == 5
