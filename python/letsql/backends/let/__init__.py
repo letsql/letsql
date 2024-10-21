@@ -16,6 +16,7 @@ from letsql.common.collections import SourceDict
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
+    RemoteTableReplacer,
 )
 
 
@@ -244,6 +245,7 @@ class Backend(DataFusionBackend):
 
     def _get_backend_and_expr(self, expr):
         expr = self._transform_to_native_backend(expr)
+        expr, _ = self._register_and_transform_remote_tables(expr)
         expr = self._register_and_transform_cache_tables(expr)
         backend = self._get_source(expr)
         if isinstance(backend, self.__class__):
@@ -316,3 +318,8 @@ class Backend(DataFusionBackend):
     def _extract_catalog(self, query):
         tables = parse_one(query).find_all(exp.Table)
         return {table.name: self.table(table.name) for table in tables}
+
+    @staticmethod
+    def _register_and_transform_remote_tables(expr):
+        replacer = RemoteTableReplacer()
+        return expr.op().replace(replacer).to_expr(), replacer.created
