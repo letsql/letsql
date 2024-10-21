@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -224,12 +225,15 @@ class Backend(DataFusionBackend):
         return expr
 
     def execute(self, expr: ir.Expr, **kwargs: Any):
-        backend, expr = self._get_backend_and_expr(expr)
-        return backend.execute(expr.unbind(), **kwargs)
+        with self._get_backend_and_expr(expr) as resource:
+            backend, expr = resource
+            result = backend.execute(expr, **kwargs)
+        return result
 
     def to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
-        backend, expr = self._get_backend_and_expr(expr)
-        return backend.to_pyarrow(expr.unbind(), **kwargs)
+        with self._get_backend_and_expr(expr) as resource:
+            backend, expr = resource
+        return backend.to_pyarrow(expr, **kwargs)
 
     def to_pyarrow_batches(
         self,
@@ -238,19 +242,24 @@ class Backend(DataFusionBackend):
         chunk_size: int = 1_000_000,
         **kwargs: Any,
     ) -> pa.ipc.RecordBatchReader:
-        backend, expr = self._get_backend_and_expr(expr)
-        return backend.to_pyarrow_batches(
-            expr.unbind(), chunk_size=chunk_size, **kwargs
-        )
+        with self._get_backend_and_expr(expr) as resource:
+            backend, expr = resource
+        return backend.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
 
+    @contextmanager
     def _get_backend_and_expr(self, expr):
         expr = self._transform_to_native_backend(expr)
-        expr, _ = self._register_and_transform_remote_tables(expr)
+        expr, created = self._register_and_transform_remote_tables(expr)
         expr = self._register_and_transform_cache_tables(expr)
         backend = self._get_source(expr)
         if isinstance(backend, self.__class__):
             backend = super(self.__class__, backend)
-        return backend, expr
+        yield backend, expr.unbind()
+        for table in created:  # TODO verify that is the right backend to drop the table
+            try:
+                backend.drop_table(table)
+            except Exception:
+                backend.drop_view(table)
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.
