@@ -6,9 +6,7 @@ import ibis
 from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
 from ibis.expr import operations as ops
-from ibis.expr.operations import DatabaseTable, Relation, Node
-
-import letsql as ls
+from ibis.expr.operations import Relation, Node
 
 
 def replace_cache_table(node, _, **kwargs):
@@ -70,11 +68,12 @@ class RemoteTableReplacer:
                     if v in self.tables:
                         remote: RemoteTableCounter = self.tables[v]
                         name = f"{v.name}_{next(remote.count)}"
-                        kwargs[k] = DatabaseTable(
+                        kwargs[k] = MarkedRemoteTable(
                             name,
                             schema=v.schema,
                             source=v.source,
                             namespace=v.namespace,
+                            remote_expr=v.remote_expr,
                         )
 
                         replacer = RemoteTableReplacer()
@@ -95,11 +94,12 @@ class RemoteTableReplacer:
 
         node = node.__recreate__(kwargs)
         if isinstance(node, RemoteTable):
-            result = DatabaseTable(
+            result = MarkedRemoteTable(
                 node.name,
                 schema=node.schema,
                 source=node.source,
                 namespace=node.namespace,
+                remote_expr=node.remote_expr,
             )
             self.tables[result] = RemoteTableCounter(node)
             replacer = RemoteTableReplacer()
@@ -149,7 +149,7 @@ gen_name = functools.partial(ibis.util.gen_name, "remote-expr-placeholder")
 
 
 class RemoteTable(ops.DatabaseTable):
-    remote_expr: Expr
+    remote_expr: Expr = None
 
     @classmethod
     def from_expr(cls, con, expr, name=None):
@@ -161,10 +161,9 @@ class RemoteTable(ops.DatabaseTable):
             remote_expr=expr,
         )
 
-    @classmethod
-    def from_rbr(cls, con, rbr, name=None):
-        expr = ls.connect().register(rbr, gen_name())
-        return cls.from_expr(con, expr, name)
+
+class MarkedRemoteTable(ops.DatabaseTable):
+    remote_expr: Expr = None
 
 
 def into_backend(expr, con, name=None):
