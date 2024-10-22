@@ -128,7 +128,6 @@ def test_into_backend_complex(pg):
     assert 0 < len(res) <= 15
 
 
-@pytest.mark.skip(reason="TypeError: object of type 'curry' has no len()")
 def test_into_backend_cache(pg):
     con = ls.connect()
     ddb_con = ls.duckdb.connect()
