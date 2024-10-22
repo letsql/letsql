@@ -60,7 +60,7 @@ class RemoteTableReplacer:
     def __init__(self):
         self.tables = {}
         self.count = itertools.count()
-        self.created = set()
+        self.created = {}
 
     def __call__(self, node, _, **kwargs):
         if isinstance(node, Relation):
@@ -84,7 +84,8 @@ class RemoteTableReplacer:
                         batches = remote_expr.to_pyarrow_batches()
                         remote.source.register(batches, table_name=name)
                         updated[v] = kwargs[k]
-                        self.created.update((name, *replacer.created))
+                        self.created[name] = remote.source
+                        self.created.update(replacer.created)
 
                 except TypeError:  # v may not be hashable
                     continue
@@ -101,11 +102,12 @@ class RemoteTableReplacer:
                 namespace=node.namespace,
             )
             self.tables[result] = RemoteTableCounter(node)
-            table_replacer = RemoteTableReplacer()
-            remote_expr = node.remote_expr.op().replace(table_replacer).to_expr()
+            replacer = RemoteTableReplacer()
+            remote_expr = node.remote_expr.op().replace(replacer).to_expr()
             batches = remote_expr.to_pyarrow_batches()
             node.source.register(batches, table_name=node.name)
-            self.created.update((node.name, *table_replacer.created))
+            self.created[node.name] = node.source
+            self.created.update(replacer.created)
             node = result
 
         return node

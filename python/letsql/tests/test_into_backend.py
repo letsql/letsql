@@ -1,10 +1,10 @@
 import ibis
 import pandas as pd
 import pytest
-from ibis import _ as __
+from ibis import _
 
 import letsql as ls
-from letsql.common.caching import SourceStorage
+from letsql.common.caching import SourceStorage, ParquetCacheStorage
 from letsql.expr.relations import into_backend, RemoteTableReplacer
 
 expected_tables = (
@@ -50,12 +50,12 @@ def trino_table():
 
 def make_merged(expr):
     agg = expr.group_by(["custkey", "orderdate"]).agg(
-        __.totalprice.sum().name("totalprice")
+        _.totalprice.sum().name("totalprice")
     )
     w = ibis.window(group_by="custkey", order_by="orderdate")
     windowed = (
-        agg.mutate(__.totalprice.cumsum().over(w).name("curev"))
-        .mutate(__.curev.lag(1).over(w).name("curev@t-1"))
+        agg.mutate(_.totalprice.cumsum().over(w).name("curev"))
+        .mutate(_.curev.lag(1).over(w).name("curev@t-1"))
         .select(["custkey", "orderdate", "curev", "curev@t-1"])
     )
     merged = expr.asof_join(
@@ -128,6 +128,26 @@ def test_into_backend_complex(pg):
     assert 0 < len(res) <= 15
 
 
+@pytest.mark.skip(reason="not implemented")
+def test_into_backend_cache(pg):
+    con = ls.connect()
+    ddb_con = ls.duckdb.connect()
+
+    t = into_backend(pg.table("batting"), con, "ls_batting")
+
+    expr = (
+        t.join(t, "playerID")
+        .limit(15)
+        .cache(SourceStorage(source=con))
+        .pipe(into_backend, ddb_con)
+        .select(player_id="playerID", year_id="yearID_right")
+        .cache(ParquetCacheStorage(source=ddb_con))
+    )
+
+    res = expr.execute()
+    assert 0 < len(res) <= 15
+
+
 def test_into_backend_duckdb(pg):
     ddb = ibis.duckdb.connect()
     t = into_backend(pg.table("batting"), ddb, "ls_batting")
@@ -151,7 +171,7 @@ def test_into_backend_duckdb(pg):
 def test_into_backend_duckdb_expr(pg):
     ddb = ibis.duckdb.connect()
     t = into_backend(pg.table("batting"), ddb, "ls_batting")
-    expr = t.join(t, "playerID").limit(15).select(__.playerID * 2)
+    expr = t.join(t, "playerID").limit(15).select(_.playerID * 2)
 
     replacer = RemoteTableReplacer()
     expr = expr.op().replace(replacer).to_expr()

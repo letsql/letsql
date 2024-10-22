@@ -255,11 +255,11 @@ class Backend(DataFusionBackend):
         if isinstance(backend, self.__class__):
             backend = super(self.__class__, backend)
         yield backend, expr.unbind()
-        for table in created:  # TODO verify that is the right backend to drop the table
+        for table, con in created.items():
             try:
-                backend.drop_table(table)
+                con.drop_table(table)
             except Exception:
-                backend.drop_view(table)
+                con.drop_view(table)
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.
