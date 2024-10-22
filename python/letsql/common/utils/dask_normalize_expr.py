@@ -13,6 +13,7 @@ from ibis.expr.operations.udf import (
 import letsql
 from letsql.expr.relations import (
     make_native_op,
+    MarkedRemoteTable,
 )
 
 
@@ -154,6 +155,13 @@ def normalize_letsql_databasetable(dt):
     if dt.source.name != "let":
         raise ValueError
     native_source = dt.source._sources.get_backend(dt)
+    if isinstance(dt, MarkedRemoteTable):
+        return dask.base._normalize_seq_func(
+            (
+                dt.schema.to_pandas(),
+                normalize_expr(dt.remote_expr),
+            )
+        )
     if native_source.name == "let":
         return normalize_datafusion_databasetable(dt)
     new_dt = make_native_op(dt)

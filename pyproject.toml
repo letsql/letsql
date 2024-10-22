@@ -68,6 +68,7 @@ let = "letsql.backends.let"
 postgres = "letsql.backends.postgres"
 snowflake = "letsql.backends.snowflake"
 datafusion = "letsql.backends.datafusion"
+duckdb = "letsql.backends.duckdb"
 
 
 [tool.maturin]
@@ -149,6 +150,7 @@ let = "letsql.backends.let"
 postgres = "letsql.backends.postgres"
 snowflake = "letsql.backends.snowflake"
 datafusion = "letsql.backends.datafusion"
+duckdb = "letsql.backends.duckdb"
 
 [tool.pytest.ini_options]
 filterwarnings = [

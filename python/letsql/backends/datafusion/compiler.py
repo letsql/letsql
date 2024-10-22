@@ -558,3 +558,17 @@ class DataFusionCompiler(SQLGlotCompiler):
     def visit_StructColumn(self, op, *, names, values):
         args = (arg for args in zip(map(sg.exp.convert, names), values) for arg in args)
         return self.f.named_struct(*args)
+
+    def visit_MarkedRemoteTable(
+        self,
+        op,
+        *,
+        name: str,
+        schema,
+        source,
+        namespace: ops.Namespace,
+        remote_expr,
+    ):
+        return sg.table(
+            name, db=namespace.database, catalog=namespace.catalog, quoted=self.quoted
+        )
