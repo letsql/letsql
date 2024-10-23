@@ -22,10 +22,12 @@ from letsql.common.utils.hotfix_utils import (
 from letsql.config import (
     _backend_init,
 )
+from letsql.executor.utils import uncached
 from letsql.expr.relations import (
     CachedNode,
     Read,
     replace_cache_table,
+    RemoteTable,
 )
 
 
@@ -40,7 +42,16 @@ class LETSQLAccessor:
 
     @property
     def cached_nodes(self):
-        return self.op.find(CachedNode)
+        def _find(node):
+            cached = node.find(CachedNode)
+            if not cached:
+                yield None
+            else:
+                for no in cached:
+                    yield from _find(no.parent.op())
+                    yield no
+
+        return tuple(filter(None, _find(self.op)))
 
     @property
     def storage(self):
@@ -55,8 +66,13 @@ class LETSQLAccessor:
 
     @property
     def backends(self):
-        (_backends, _) = self.expr._find_backends()
-        return tuple(set(_backends))
+        _backends, _ = self.expr._find_backends()
+        _backends = set(_backends)
+        for node in self.cached_nodes:
+            candidates, _ = node.parent._find_backends()
+            _backends.update(candidates)
+
+        return tuple(_backends)
 
     @property
     def is_multiengine(self):
@@ -65,7 +81,12 @@ class LETSQLAccessor:
 
     @property
     def dts(self):
-        return self.op.find(self.node_types)
+        nodes = set(self.op.find(self.node_types))
+        for node in self.cached_nodes:
+            candidates = node.parent.op().find(self.node_types)
+            nodes.update(candidates)
+
+        return tuple(nodes)
 
     @property
     def is_cached(self):
@@ -73,7 +94,15 @@ class LETSQLAccessor:
 
     @property
     def has_cached(self):
-        return bool(tuple(self.op.find_topmost(CachedNode)))
+        def _has_cached(node):
+            if tuple(node.find_topmost(CachedNode)):
+                return True
+            elif tables := node.find_topmost(RemoteTable):
+                return any(_has_cached(table.remote_expr.op()) for table in tables)
+            else:
+                return False
+
+        return _has_cached(self.op)
 
     @property
     def uncached(self):
@@ -85,7 +114,7 @@ class LETSQLAccessor:
     @property
     def uncached_one(self):
         if self.is_cached:
-            return self.op.parent.to_expr()
+            return uncached(self.op)
         else:
             return self.expr
 
@@ -107,16 +136,20 @@ class LETSQLAccessor:
             return None
 
     def exists(self):
+        from letsql.executor.utils import exists as ex
+
+        def _exists(node):
+            cached = node.find(CachedNode)
+            if not cached:
+                yield None
+            else:
+                for no in cached:
+                    yield ex(no)
+                    yield from _exists(no.parent.op())
+
         if self.is_cached:
             # must iterate from the bottom up else we execute downstream cached tables
-            return all(
-                cn.storage.exists(
-                    cn.storage.source._register_and_transform_cache_tables(
-                        cn.parent.to_expr()
-                    )
-                )
-                for cn in self.cached_nodes[::-1]
-            )
+            return all(val for val in _exists(self.op) if val is not None)
         else:
             return None
 
@@ -150,18 +183,21 @@ def _letsql_find_backend(self, *, use_default=True):
 )
 def letsql_cache(self, storage=None):
     # FIXME: push this into LETSQLAccessor
-    try:
-        current_backend = self._find_backend(use_default=True)
-    except IbisError as e:
-        if "Multiple backends found" in e.args[0]:
-            current_backend = _backend_init()
-        else:
-            raise e
-    storage = storage or SourceStorage(source=current_backend)
+    if storage is None:
+        try:
+            current_backend = self._find_backend(use_default=True)
+        except IbisError as e:
+            # FIXME if one of the backends can register RecordBatchReader that should be the preferred one
+            if "Multiple backends found" in e.args[0]:
+                current_backend = _backend_init()
+            else:
+                raise e
+        storage = SourceStorage(source=current_backend)
+
     op = CachedNode(
         schema=self.schema(),
-        parent=self.op(),
-        source=current_backend,
+        parent=self,
+        source=storage.source,
         storage=storage,
     )
     return op.to_expr()

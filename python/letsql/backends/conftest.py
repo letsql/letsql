@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from letsql.executor.utils import uncached as udx
 from letsql.expr.relations import CachedNode
 
 
