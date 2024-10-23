@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import importlib
 
+import letsql.executor as executor
 from letsql import examples
 from letsql.config import options
 from letsql.expr import api
 from letsql.expr.api import *  # noqa: F403
 from letsql.backends.let import Backend
-
+from letsql.executor import *  # noqa: F403
 
 try:
     import importlib.metadata as importlib_metadata
@@ -21,6 +22,7 @@ __all__ = [  # noqa: PLE0604
     "examples",
     "connect",
     "options",
+    *executor.__all__,
     *api.__all__,
 ]
 

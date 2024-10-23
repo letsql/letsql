@@ -35,10 +35,6 @@ from ibis.expr.types import (
     struct,
 )
 
-from letsql.expr.relations import (
-    RemoteTable,
-)
-
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -71,7 +67,6 @@ __all__ = (
     "desc",
     "difference",
     "e",
-    "execute",
     "following",
     "greatest",
     "ifelse",
@@ -106,9 +101,6 @@ __all__ = (
     "table",
     "time",
     "today",
-    "to_parquet",
-    "to_pyarrow",
-    "to_pyarrow_batches",
     "to_sql",
     "timestamp",
     "union",
@@ -1603,56 +1595,3 @@ def _check_collisions(expr: ir.Expr):
 
     if bad_names:
         raise ValueError(f"name collision detected: {bad_names}")
-
-
-def execute(expr: ir.Expr, **kwargs: Any):
-    import letsql
-
-    _check_collisions(expr)
-    con = letsql.connect()
-    for t in expr.op().find(ops.DatabaseTable):
-        if t not in con._sources.sources and not isinstance(t, RemoteTable):
-            con.register(t.to_expr(), t.name)
-
-    return con.execute(expr, **kwargs)
-
-
-def to_pyarrow_batches(
-    expr: ir.Expr,
-    *,
-    chunk_size: int = 1_000_000,
-    **kwargs: Any,
-):
-    import letsql
-
-    _check_collisions(expr)
-    con = letsql.connect()
-    for t in expr.op().find(ops.DatabaseTable):
-        if t not in con._sources.sources and not isinstance(t, RemoteTable):
-            con.register(t.to_expr(), t.name)
-
-    return con.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
-
-
-def to_pyarrow(expr: ir.Expr, **kwargs: Any):
-    import letsql
-
-    _check_collisions(expr)
-    con = letsql.connect()
-    for t in expr.op().find(ops.DatabaseTable):
-        if t not in con._sources.sources and not isinstance(t, RemoteTable):
-            con.register(t.to_expr(), t.name)
-
-    return con.to_pyarrow(expr, **kwargs)
-
-
-def to_parquet(expr: ir.Expr, path: str | Path, **kwargs: Any):
-    import letsql
-
-    _check_collisions(expr)
-    con = letsql.connect()
-    for t in expr.op().find(ops.DatabaseTable):
-        if t not in con._sources.sources and not isinstance(t, RemoteTable):
-            con.register(t.to_expr(), t.name)
-
-    return con.to_parquet(expr, path, **kwargs)

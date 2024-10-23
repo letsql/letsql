@@ -28,6 +28,7 @@ from letsql.common.utils.postgres_utils import (
     do_analyze,
     get_postgres_n_scans,
 )
+from letsql.expr.relations import into_backend
 from letsql.expr.udf import (
     agg,
 )
@@ -200,7 +201,7 @@ def test_cache_recreate(alltypes):
 
     for con, expr in zip(cons, exprs):
         # FIXME: execute one, simply check the other returns true for `expr.ls.exists()`
-        expr.cache(storage=SourceStorage(source=con)).execute()
+        expr.cache(storage=SourceStorage(source=con)).pipe(letsql.execute)
 
     (con_cached_tables0, con_cached_tables1) = (
         set(
@@ -246,7 +247,7 @@ def test_cache_execution(alltypes):
             ]
         )
         .select(alltypes.int_col * 4)
-        .execute()
+        .pipe(letsql.execute)
     )
 
     assert_frame_equal(actual, expected)
@@ -587,13 +588,11 @@ def test_read_csv_compute_and_cache(ls_con, csv_dir, tmp_path):
 
 @pytest.mark.parametrize("other_con", [letsql.connect(), letsql.duckdb.connect()])
 def test_multi_engine_cache(pg, ls_con, tmp_path, other_con):
-    other_con = letsql.duckdb.connect()
-
     table_name = "batting"
     pg_t = pg.table(table_name)[lambda t: t.yearID > 2014]
     db_t = other_con.register(pg.table(table_name).to_pyarrow(), f"db-{table_name}")[
         lambda t: t.stint == 1
-    ]
+    ].pipe(into_backend, pg)
 
     expr = pg_t.join(
         db_t,

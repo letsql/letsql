@@ -1,4 +1,4 @@
-from operator import methodcaller
+import re
 
 import ibis
 import pandas as pd
@@ -95,16 +95,16 @@ def test_multiple_record_batches(pg):
         .cache(SourceStorage(source=con))
     )
 
-    res = expr.execute()
+    res = ls.execute(expr)
     assert isinstance(res, pd.DataFrame)
     assert 0 < len(res) <= 15
 
 
-@pytest.mark.parametrize("method", ["to_pyarrow", "to_pyarrow_batches", "execute"])
+@pytest.mark.parametrize("method", [ls.to_pyarrow, ls.to_pyarrow_batches, ls.execute])
 def test_into_backend_simple(pg, method):
     con = ls.connect()
     expr = into_backend(pg.table("batting"), con, "ls_batting")
-    res = methodcaller(method)(expr)
+    res = method(expr)
 
     if isinstance(res, pa.RecordBatchReader):
         res = next(res)
@@ -112,7 +112,7 @@ def test_into_backend_simple(pg, method):
     assert len(res) > 0
 
 
-@pytest.mark.parametrize("method", ["to_pyarrow", "to_pyarrow_batches", "execute"])
+@pytest.mark.parametrize("method", [ls.to_pyarrow, ls.to_pyarrow_batches, ls.execute])
 def test_into_backend_complex(pg, method):
     con = ls.connect()
 
@@ -125,8 +125,7 @@ def test_into_backend_complex(pg, method):
         .cache(SourceStorage(source=con))
     )
 
-    assert ls.to_sql(expr).count("ls_batting") == 2
-    res = methodcaller(method)(expr)
+    res = method(expr)
 
     if isinstance(res, pa.RecordBatchReader):
         res = next(res)
@@ -169,7 +168,7 @@ def test_into_backend_duckdb(pg):
 
     res = ddb.con.sql(query).df()
 
-    assert query.count("ls_batting") == 2
+    assert len(re.findall(r"\d+_ls_batting", query)) == 2
     assert 0 < len(res) <= 15
     assert len(replacer.created) == 3
 
@@ -185,7 +184,7 @@ def test_into_backend_duckdb_expr(pg):
 
     res = ddb.con.sql(query).df()
 
-    assert query.count("ls_batting") == 2
+    assert len(re.findall(r"\d+_ls_batting", query)) == 2
     assert 0 < len(res) <= 15
     assert len(replacer.created) == 3
 
@@ -222,7 +221,7 @@ def test_multiple_into_backend_duckdb_letsql(trino_table):
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
-    assert len(replacer.created) == 5
+    assert len(replacer.created) == 2
 
 
 @pytest.mark.benchmark
