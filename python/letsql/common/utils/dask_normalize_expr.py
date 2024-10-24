@@ -197,7 +197,8 @@ def normalize_module(module):
 @dask.base.normalize_token.register(Read)
 def normalize_read(read):
     path = dict(read.read_kwargs).get("path") or dict(read.read_kwargs).get("source")
-    if isinstance(path, str):
+    if isinstance(path, (str, pathlib.Path)):
+        path = str(path)
         if path.startswith("http") or path.startswith("https:"):
             import requests
 
@@ -224,6 +225,8 @@ def normalize_read(read):
                     "st_ino",
                 )
             }
+        else:
+            raise NotImplementedError(f'Don\'t know how to deal with path "{path}"')
     elif isinstance(path, (list, tuple)) and all(isinstance(el, str) for el in path):
         raise NotImplementedError
     return dask.base._normalize_seq_func((read.schema, dct))
