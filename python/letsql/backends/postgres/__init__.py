@@ -175,6 +175,7 @@ class Backend(IbisPostgresBackend):
         password=None,
         temporary=False,
         mode="create",
+        schema=None,
         **kwargs,
     ):
         if chunksize is None:
@@ -186,7 +187,7 @@ class Backend(IbisPostgresBackend):
                 )
             else:
                 table_name = gen_name("ls-read-csv")
-        record_batches = read_csv_rbr(path, **kwargs)
+        record_batches = read_csv_rbr(path, schema=schema, **kwargs)
         return self.read_record_batches(
             record_batches=record_batches,
             table_name=table_name,
