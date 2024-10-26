@@ -229,7 +229,7 @@ def normalize_read(read):
             raise NotImplementedError(f'Don\'t know how to deal with path "{path}"')
     elif isinstance(path, (list, tuple)) and all(isinstance(el, str) for el in path):
         raise NotImplementedError
-    return dask.base._normalize_seq_func((read.schema, dct))
+    return dask.base._normalize_seq_func((read.schema, dct, read.read_kwargs))
 
 
 @dask.base.normalize_token.register(ir.DatabaseTable)
