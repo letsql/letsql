@@ -1,5 +1,6 @@
 import functools
 import itertools
+import pickle
 from typing import Any
 
 import ibis
@@ -217,12 +218,16 @@ class Read(ops.Relation):
     name: str
     schema: Schema
     source: Any
-    read_kwargs: Any
+    pickled_read_kwargs: Any
     values = FrozenDict()
+
+    @property
+    def read_kwargs(self):
+        return {k: pickle.loads(v) for k, v in self.pickled_read_kwargs}
 
     def make_dt(self):
         method = getattr(self.source, self.method_name)
-        dt = method(**dict(self.read_kwargs)).op()
+        dt = method(**self.read_kwargs).op()
         return dt
 
     def make_unbound_dt(self):

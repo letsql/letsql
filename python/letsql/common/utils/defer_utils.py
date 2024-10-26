@@ -1,3 +1,5 @@
+import pickle
+
 import ibis
 import ibis.backends.sql.compiler
 import pandas as pd
@@ -24,11 +26,13 @@ from letsql.expr.relations import (
 DEFAULT_CHUNKSIZE = 10_000
 
 
-def make_read_kwargs(f, *args, **kwargs):
-    # FIXME: if any kwarg is a dictionary, we'll fail Concrete's hashable requirement, so just pickle
+def make_pickled_read_kwargs(f, *args, **kwargs):
     read_kwargs = get_arguments(f, *args, **kwargs)
     kwargs = read_kwargs.pop("kwargs", {})
-    tpl = tuple(read_kwargs.items()) + tuple(kwargs.items())
+    tpl = tuple(
+        (k, pickle.dumps(v))
+        for k, v in tuple(read_kwargs.items()) + tuple(kwargs.items())
+    )
     return tpl
 
 
@@ -79,18 +83,25 @@ def deferred_read_csv(con, path, table_name=None, schema=None, **kwargs):
     if schema is None:
         schema = infer_schema(path)
     if con.name == "pandas":
-        # FIXME: determine how to best handle schema
-        read_kwargs = make_read_kwargs(method, path, table_name, **kwargs)
-    else:
-        read_kwargs = make_read_kwargs(
-            method, path, table_name, schema=schema, **kwargs
+        dtype = {col: typ.to_pandas() for col, typ in schema.items()}
+        pickled_read_kwargs = make_pickled_read_kwargs(
+            method, path, table_name, dtype=dtype, **kwargs
         )
+    else:
+        if con.name in ("datafusion", "let"):
+            pickled_read_kwargs = make_pickled_read_kwargs(
+                method, path, table_name, schema=schema.to_pyarrow(), **kwargs
+            )
+        else:
+            pickled_read_kwargs = make_pickled_read_kwargs(
+                method, path, table_name, schema=schema, **kwargs
+            )
     return Read(
         method_name=method_name,
         name=table_name,
         schema=schema,
         source=con,
-        read_kwargs=read_kwargs,
+        pickled_read_kwargs=pickled_read_kwargs,
     ).to_expr()
 
 
@@ -100,13 +111,13 @@ def deferred_read_parquet(con, path, table_name=None, **kwargs):
     if table_name is None:
         table_name = gen_name(f"letsql-{method_name}")
     schema = ls.connect().read_parquet(path).schema()
-    read_kwargs = make_read_kwargs(method, path, table_name, **kwargs)
+    pickled_read_kwargs = make_pickled_read_kwargs(method, path, table_name, **kwargs)
     return Read(
         method_name=method_name,
         name=table_name,
         schema=schema,
         source=con,
-        read_kwargs=read_kwargs,
+        pickled_read_kwargs=pickled_read_kwargs,
     ).to_expr()
 
 

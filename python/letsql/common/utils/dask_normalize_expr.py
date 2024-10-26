@@ -196,7 +196,7 @@ def normalize_module(module):
 
 @dask.base.normalize_token.register(Read)
 def normalize_read(read):
-    path = dict(read.read_kwargs).get("path") or dict(read.read_kwargs).get("source")
+    path = read.read_kwargs.get("path") or read.read_kwargs.get("source")
     if isinstance(path, (str, pathlib.Path)):
         path = str(path)
         if path.startswith("http") or path.startswith("https:"):
