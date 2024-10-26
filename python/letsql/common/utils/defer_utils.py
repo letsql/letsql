@@ -49,6 +49,7 @@ def read_csv_rbr(*args, schema=None, chunksize=DEFAULT_CHUNKSIZE, dtype=None, **
         raise ValueError("chunksize must not be `None`")
     if schema is not None:
         dtype = {col: typ.to_pandas() for col, typ in schema.items()}
+        schema = schema.to_pyarrow()
     # schema is always nullable (this is good)
     gen = map(
         pa.RecordBatch.from_pandas,
@@ -63,7 +64,7 @@ def read_csv_rbr(*args, schema=None, chunksize=DEFAULT_CHUNKSIZE, dtype=None, **
         (el, gen) = toolz.peek(gen)
         schema = el.schema
     rbr = pa.RecordBatchReader.from_batches(
-        schema.to_pyarrow(),
+        schema,
         gen,
     )
     return rbr
