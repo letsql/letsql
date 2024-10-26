@@ -2420,9 +2420,9 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
     {version = ">=1.22.4", markers = "python_version < \"3.11\""},
     {version = ">=1.23.2", markers = "python_version == \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -3021,8 +3021,8 @@ files = [
 annotated-types = ">=0.6.0"
 pydantic-core = "2.23.4"
 typing-extensions = [
-    {version = ">=4.12.2", markers = "python_version >= \"3.13\""},
     {version = ">=4.6.1", markers = "python_version < \"3.13\""},
+    {version = ">=4.12.2", markers = "python_version >= \"3.13\""},
 ]
 
 [package.extras]
@@ -4572,4 +4572,4 @@ snowflake = ["snowflake-connector-python"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "1a6dcde809bfd6eecf7c8b4484446078ed2336c76b641aa70a9f68bdc6091d42"
+content-hash = "eb39d9d84305a58fb329004b257d73a1ac7200a84a84ce5bbd9085a690203576"
