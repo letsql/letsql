@@ -243,6 +243,9 @@ def test_cached_deferred_read(con, pins_resource, filter_, request, tmp_path):
 def test_cached_csv_mutate(con, iris_csv, tmp_path):
     target_path = ensure_tmp_csv(iris_csv.name, tmp_path)
     storage = ParquetCacheStorage(source=ls.connect(), path=tmp_path)
+    # make sure the con is "clean"
+    if iris_csv.table_name in con.tables:
+        con.drop_table(iris_csv.table_name, force=True)
 
     df = iris_csv.df
     kwargs = {"mode": "replace"} if con.name == "postgres" else {}
