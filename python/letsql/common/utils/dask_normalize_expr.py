@@ -6,6 +6,7 @@ import dask
 import ibis
 import ibis.expr.operations.relations as ir
 import sqlglot as sg
+import toolz
 from ibis.expr.operations.udf import (
     AggUDF,
     ScalarUDF,
@@ -229,7 +230,9 @@ def normalize_read(read):
             raise NotImplementedError(f'Don\'t know how to deal with path "{path}"')
     elif isinstance(path, (list, tuple)) and all(isinstance(el, str) for el in path):
         raise NotImplementedError
-    return dask.base._normalize_seq_func((read.schema, dct, read.read_kwargs))
+    # we want hash indifferent to table name
+    read_kwargs = toolz.dissoc(read.read_kwargs, "table_name")
+    return dask.base._normalize_seq_func((read.schema, dct, read_kwargs))
 
 
 @dask.base.normalize_token.register(ir.DatabaseTable)
