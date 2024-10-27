@@ -321,11 +321,14 @@ def normalize_agg_udf(udf):
 @dask.base.normalize_token.register(ibis.expr.types.Expr)
 def normalize_expr(expr):
     # FIXME: replace bound table names with their hashes
+    op = expr.ls.uncached_one.op()
+    if isinstance(op, Read):
+        # special case for caching Read so we're indifferent to table_name
+        return dask.base.normalize_token(op)
     sql = unbound_expr_to_default_sql(expr.ls.uncached.unbind())
     if not expr_is_bound(expr):
         return sql
 
-    op = expr.op()
     if mem_dts := op.find(ir.InMemoryTable):
         # these should have been replaced by the time we get to them
         raise ValueError(f"{mem_dts}")
