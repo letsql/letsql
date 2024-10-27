@@ -14,8 +14,14 @@ from sqlglot import exp, parse_one
 import letsql.backends.let.hotfix  # noqa: F401
 from letsql.backends.datafusion import Backend as DataFusionBackend
 from letsql.common.collections import SourceDict
+from letsql.common.utils.defer_utils import (
+    read_csv_rbr,
+    infer_csv_schema_pandas,
+    make_pickled_read_kwargs,
+)
 from letsql.expr.relations import (
     CachedNode,
+    Read,
     replace_cache_table,
     RemoteTableReplacer,
 )
@@ -351,3 +357,27 @@ class Backend(DataFusionBackend):
     def _register_and_transform_remote_tables(expr):
         replacer = RemoteTableReplacer()
         return expr.op().replace(replacer).to_expr(), replacer.created
+
+    def _read_csv_pandas(self, source, table_name, **kwargs):
+        rbr = read_csv_rbr(source, **kwargs)
+        return self.register(rbr, table_name=table_name)
+
+    def read_csv_pandas(self, source, table_name, schema=None, **kwargs):
+        method_name = "_read_csv_pandas"
+        if schema is None:
+            schema = infer_csv_schema_pandas(source)
+        read = Read(
+            method_name=method_name,
+            name=table_name,
+            schema=schema,
+            source=self,
+            # hash is sensitive to table_name
+            pickled_read_kwargs=make_pickled_read_kwargs(
+                getattr(self, method_name),
+                source=source,
+                table_name=table_name,
+                schema=schema,
+                **kwargs,
+            ),
+        )
+        return read.to_expr()
