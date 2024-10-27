@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Mapping
 
+import dask
 import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
@@ -362,10 +363,13 @@ class Backend(DataFusionBackend):
         rbr = read_csv_rbr(source, **kwargs)
         return self.register(rbr, table_name=table_name)
 
-    def read_csv_pandas(self, source, table_name, schema=None, **kwargs):
+    def read_csv_pandas(self, source, table_name=None, schema=None, **kwargs):
         method_name = "_read_csv_pandas"
         if schema is None:
             schema = infer_csv_schema_pandas(source)
+        table_name_none = table_name is None
+        if table_name_none:
+            table_name = "t"
         read = Read(
             method_name=method_name,
             name=table_name,
@@ -380,4 +384,20 @@ class Backend(DataFusionBackend):
                 **kwargs,
             ),
         )
+        if table_name_none:
+            table_name = dask.base.tokenize(read)
+            read = Read(
+                method_name=method_name,
+                name=table_name,
+                schema=schema,
+                source=self,
+                # hash is sensitive to table_name
+                pickled_read_kwargs=make_pickled_read_kwargs(
+                    getattr(self, method_name),
+                    source=source,
+                    table_name=table_name,
+                    schema=schema,
+                    **kwargs,
+                ),
+            )
         return read.to_expr()
