@@ -5,6 +5,7 @@ import types
 import dask
 import ibis
 import ibis.expr.operations.relations as ir
+import requests
 import sqlglot as sg
 import toolz
 from ibis.expr.operations.udf import (
@@ -195,37 +196,45 @@ def normalize_module(module):
     )
 
 
+def get_pathlib_path_mtime(path):
+    stat = path.stat()
+    dct = {
+        getattr(stat, attrname)
+        for attrname in (
+            "st_mtime",
+            "st_size",
+            # mtime, size <?-?> md5sum
+            "st_ino",
+        )
+    }
+    return dct
+
+
+def get_http_path_mtime(path):
+    resp = requests.head(path)
+    resp.raise_for_status()
+    dct = {
+        resp.headers[k]
+        for k in (
+            "Last-Modified",
+            "Content-Length",
+            "Content-Type",
+        )
+    }
+    return dct
+
+
 @dask.base.normalize_token.register(Read)
 def normalize_read(read):
     path = read.read_kwargs.get("path") or read.read_kwargs.get("source")
     if isinstance(path, (str, pathlib.Path)):
         path = str(path)
         if path.startswith("http") or path.startswith("https:"):
-            import requests
-
-            resp = requests.head(path)
-            resp.raise_for_status()
-            dct = {
-                k: resp.headers[k]
-                for k in (
-                    "Last-Modified",
-                    "Content-Length",
-                    "Content-Type",
-                )
-            }
+            dct = get_http_path_mtime(path)
+        elif (path := pathlib.Path(path)).exists():
+            dct = get_pathlib_path_mtime(path)
         elif path.startswith("s3"):
             raise NotImplementedError
-        elif (path := pathlib.Path(path)).exists():
-            stat = path.stat()
-            dct = {
-                attrname: getattr(stat, attrname)
-                for attrname in (
-                    "st_mtime",
-                    "st_size",
-                    # mtime, size <?-?> md5sum
-                    "st_ino",
-                )
-            }
         else:
             raise NotImplementedError(f'Don\'t know how to deal with path "{path}"')
     elif isinstance(path, (list, tuple)) and all(isinstance(el, str) for el in path):
