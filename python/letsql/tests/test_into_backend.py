@@ -137,7 +137,7 @@ def test_into_backend_cache(pg):
         .cache(ParquetCacheStorage(source=ddb_con))
     )
 
-    res = expr.execute()
+    res = ls.execute(expr)
     assert 0 < len(res) <= 15
 
 
@@ -193,7 +193,7 @@ def test_into_backend_duckdb_trino(trino_table):
 
 
 def test_multiple_into_backend_duckdb_letsql(trino_table):
-    db_con = ibis.duckdb.connect()
+    db_con = ls.duckdb.connect()
     ls_con = ls.connect()
 
     expr = (
@@ -205,7 +205,7 @@ def test_multiple_into_backend_duckdb_letsql(trino_table):
 
     replacer = RemoteTableReplacer()
     expr = expr.op().replace(replacer).to_expr()
-    df = expr.execute()
+    df = ls.execute(expr)
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
