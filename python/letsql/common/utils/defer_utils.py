@@ -1,3 +1,4 @@
+import functools
 import pickle
 
 import ibis
@@ -37,6 +38,7 @@ def make_pickled_read_kwargs(f, *args, **kwargs):
 
 
 @toolz.curry
+@functools.cache
 def infer_csv_schema_pandas(path, chunksize=DEFAULT_CHUNKSIZE, **kwargs):
     gen = pd.read_csv(path, chunksize=chunksize, **kwargs)
     df = next(gen)
