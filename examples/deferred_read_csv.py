@@ -18,7 +18,7 @@ expr = deferred_read_csv(con=pd_con, path=csv_path, table_name=csv_name)[
 # tables is empty
 assert csv_name not in pd_con.tables
 # and now we can execute
-print(len(expr.execute()))
+print(len(ls.execute(expr)))
 assert csv_name in pd_con.tables
 
 
@@ -30,7 +30,7 @@ expr = deferred_read_csv(con=pg, path=csv_path, table_name=csv_name)[
 # tables is empty
 assert csv_name not in pg.tables
 # and now we can execute
-print(len(expr.execute()))
+print(len(ls.execute(expr)))
 assert csv_name in pg.tables
 
 # NOTE: we can't re-run the expr in postgres
@@ -43,7 +43,7 @@ except Exception as e:
 expr = deferred_read_csv(con=pg, path=csv_path, table_name=csv_name, mode="replace")[
     lambda t: t.sepal_length > 6
 ]
-print(len(expr.execute()))
+print(len(ls.execute(expr)))
 
 # don't forget to clean up
 pg.drop_table(csv_name)
