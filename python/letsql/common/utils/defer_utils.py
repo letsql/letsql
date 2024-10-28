@@ -27,6 +27,10 @@ from letsql.expr.relations import (
 DEFAULT_CHUNKSIZE = 10_000
 
 
+def override_schema(schema, schema_override):
+    return ibis.schema(dict(schema) | dict(schema_override))
+
+
 def make_pickled_read_kwargs(f, *args, **kwargs):
     read_kwargs = get_arguments(f, *args, **kwargs)
     kwargs = read_kwargs.pop("kwargs", {})
