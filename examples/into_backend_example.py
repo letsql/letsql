@@ -3,13 +3,7 @@ from letsql.common.caching import SourceStorage
 from letsql.expr.relations import into_backend
 
 con = ls.connect()
-pg = ls.postgres.connect(
-    host="localhost",
-    port=5432,
-    user="postgres",
-    password="postgres",
-    database="ibis_testing",
-)
+pg = ls.postgres.connect_env()
 
 t = into_backend(pg.table("batting"), con, "ls_batting")
 

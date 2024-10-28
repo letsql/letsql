@@ -23,7 +23,6 @@ from letsql.common.utils.hotfix_utils import (
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
-    RemoteTable,
 )
 
 
@@ -168,34 +167,3 @@ def letsql_cache(self, storage=None):
 @property
 def ls(self):
     return LETSQLAccessor(self)
-
-
-@toolz.curry
-def letsql_invoke(_methodname, self, *args, **kwargs):
-    con = letsql.connect()
-    for dt in self.op().find(ops.DatabaseTable):
-        # fixme: use temp names to avoid collisions, remove / deregister after done
-        if dt not in con._sources.sources and not isinstance(dt, RemoteTable):
-            con.register(dt.to_expr(), dt.name)
-    method = getattr(con, f"{_methodname}")
-    return method(self, *args, **kwargs)
-
-
-for typ, methodnames in (
-    (
-        ibis.expr.types.core.Expr,
-        ("execute", "to_pyarrow", "to_pyarrow_batches"),
-    ),
-    (
-        # Join.execute is the only case outside Expr.execute
-        ibis.expr.types.joins.Join,
-        ("execute",),
-    ),
-):
-    for methodname in methodnames:
-        hotfix(
-            typ,
-            methodname,
-            dask.base.tokenize(getattr(typ, methodname)),
-            letsql_invoke(methodname),
-        )
