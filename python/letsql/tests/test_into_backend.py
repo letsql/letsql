@@ -28,7 +28,13 @@ expected_tables = (
 
 @pytest.fixture(scope="session")
 def pg():
-    conn = ls.postgres.connect_env()
+    conn = ls.postgres.connect(
+        host="localhost",
+        port=5432,
+        user="postgres",
+        password="postgres",
+        database="ibis_testing",
+    )
     yield conn
     remove_unexpected_tables(conn)
 
@@ -122,7 +128,7 @@ def test_into_backend_complex(pg):
     assert 0 < len(res) <= 15
 
 
-def test_into_backend_cache(pg):
+def test_into_backend_cache(pg, tmp_path):
     con = ls.connect()
     ddb_con = ls.duckdb.connect()
 
@@ -134,7 +140,7 @@ def test_into_backend_cache(pg):
         .cache(SourceStorage(source=con))
         .pipe(into_backend, ddb_con)
         .select(player_id="playerID", year_id="yearID_right")
-        .cache(ParquetCacheStorage(source=ddb_con))
+        .cache(ParquetCacheStorage(source=ddb_con, path=tmp_path))
     )
 
     res = ls.execute(expr)
@@ -210,3 +216,16 @@ def test_multiple_into_backend_duckdb_letsql(trino_table):
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
     assert len(replacer.created) == 5
+
+
+def test_into_backend_duckdb_trino_cached(trino_table, tmp_path):
+    db_con = ls.duckdb.connect()
+    expr = (
+        trino_table.head(10_000)
+        .pipe(into_backend, db_con)
+        .pipe(make_merged)
+        .cache(ParquetCacheStorage(path=tmp_path))
+    )
+    df = ls.execute(expr)
+    assert isinstance(df, pd.DataFrame)
+    assert len(df) > 0

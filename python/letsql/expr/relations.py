@@ -3,6 +3,7 @@ import itertools
 from typing import Any
 
 import ibis
+import pyarrow as pa
 from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
 from ibis.expr import operations as ops
@@ -16,6 +17,34 @@ def replace_cache_table(node, _, **kwargs):
         return kwargs["remote_expr"]
     else:
         return node.__recreate__(kwargs)
+
+
+# https://stackoverflow.com/questions/6703594/is-the-result-of-itertools-tee-thread-safe-python
+class SafeTee(object):
+    """tee object wrapped to make it thread-safe"""
+
+    def __init__(self, teeobj, lock):
+        self.teeobj = teeobj
+        self.lock = lock
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        with self.lock:
+            return next(self.teeobj)
+
+    def __copy__(self):
+        return SafeTee(self.teeobj.__copy__(), self.lock)
+
+    @classmethod
+    def tee(cls, iterable, n=2):
+        """tuple of n independent thread-safe iterators"""
+        from itertools import tee
+        from threading import Lock
+
+        lock = Lock()
+        return tuple(cls(teeobj, lock) for teeobj in tee(iterable, n))
 
 
 class RemoteTableCounter:
@@ -59,6 +88,7 @@ class RemoteTableReplacer:
         self.tables = {}
         self.count = itertools.count()
         self.created = {}
+        self.seen_expr = {}
 
     def __call__(self, node, _, **kwargs):
         if isinstance(node, Relation):
@@ -76,15 +106,10 @@ class RemoteTableReplacer:
                             remote_expr=v.remote_expr,
                         )
 
-                        replacer = RemoteTableReplacer()
-                        remote_expr = (
-                            remote.remote_expr.op().replace(replacer).to_expr()
-                        )
-                        batches = remote_expr.to_pyarrow_batches()
+                        batches = self.get_batches(remote.remote_expr)
                         remote.source.register(batches, table_name=name)
                         updated[v] = kwargs[k]
                         self.created[name] = remote.source
-                        self.created.update(replacer.created)
 
                 except TypeError:  # v may not be hashable
                     continue
@@ -102,15 +127,32 @@ class RemoteTableReplacer:
                 remote_expr=node.remote_expr,
             )
             self.tables[result] = RemoteTableCounter(node)
-            replacer = RemoteTableReplacer()
-            remote_expr = node.remote_expr.op().replace(replacer).to_expr()
-            batches = remote_expr.to_pyarrow_batches()
+            batches = self.get_batches(node.remote_expr)
             node.source.register(batches, table_name=node.name)
             self.created[node.name] = node.source
-            self.created.update(replacer.created)
             node = result
 
         return node
+
+    def get_batches(self, expr):
+        if not expr.op().find((RemoteTable, MarkedRemoteTable)):
+            if expr not in self.seen_expr:
+                batches = expr.to_pyarrow_batches()
+                result, keep = SafeTee.tee(batches, 2)
+                self.seen_expr[expr] = keep
+            else:
+                result, keep = SafeTee.tee(self.seen_expr[expr], 2)
+                self.seen_expr[expr] = keep
+        elif expr not in self.seen_expr:
+            batches = expr.op().replace(self).to_expr().to_pyarrow_batches()
+            result, keep = SafeTee.tee(batches, 2)
+            self.seen_expr[expr] = keep
+        else:
+            result, keep = SafeTee.tee(self.seen_expr[expr], 2)
+            self.seen_expr[expr] = keep
+
+        schema = expr.as_table().schema()
+        return pa.RecordBatchReader.from_batches(schema.to_pyarrow(), result)
 
 
 def replace_source_factory(source: Any):
