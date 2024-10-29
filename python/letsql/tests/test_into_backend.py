@@ -28,13 +28,7 @@ expected_tables = (
 
 @pytest.fixture(scope="session")
 def pg():
-    conn = ls.postgres.connect(
-        host="localhost",
-        port=5432,
-        user="postgres",
-        password="postgres",
-        database="ibis_testing",
-    )
+    conn = ls.postgres.connect_env()
     yield conn
     remove_unexpected_tables(conn)
 
