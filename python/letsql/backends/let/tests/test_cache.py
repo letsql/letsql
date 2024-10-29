@@ -425,7 +425,7 @@ def test_postgres_snapshot(pg, con):
     assert not executed0.equals(executed3)
 
 
-def test_postgres_parquet_snapshot(pg, con, tmp_path):
+def test_postgres_parquet_snapshot(pg, tmp_path):
     def modify_postgres_table(dt):
         (con, name) = (dt.source, dt.name)
         statement = f"""
@@ -462,25 +462,25 @@ def test_postgres_parquet_snapshot(pg, con, tmp_path):
     assert n_scans_before == 0
 
     # assert first execution state
-    executed0 = expr_cached.execute()
+    executed0 = letsql.execute(expr_cached)
     n_scans_after = assert_n_scans_changes(dt, n_scans_before)
     # should we test that SourceStorage.get is called?
     assert n_scans_after == 1
     assert storage.exists(uncached)
 
     # assert no change after re-execution of cached expr
-    executed1 = expr_cached.execute()
+    executed1 = letsql.execute(expr_cached)
     assert n_scans_after == get_postgres_n_scans(dt)
     assert executed0.equals(executed1)
 
     # assert NO cache invalidation
     modify_postgres_table(dt)
-    executed2 = expr_cached.execute()
+    executed2 = letsql.execute(expr_cached)
     assert executed0.equals(executed2)
     with pytest.raises(Exception):
         assert_n_scans_changes(dt, n_scans_after)
 
-    executed3 = expr_cached.ls.uncached.execute()
+    executed3 = letsql.execute(expr_cached.ls.uncached)
     assert not executed0.equals(executed3)
 
 
