@@ -205,7 +205,7 @@ def normalize_read(read):
             resp = requests.head(path)
             resp.raise_for_status()
             dct = {
-                resp.headers[k]
+                k: resp.headers[k]
                 for k in (
                     "Last-Modified",
                     "Content-Length",
@@ -217,7 +217,7 @@ def normalize_read(read):
         elif (path := pathlib.Path(path)).exists():
             stat = path.stat()
             dct = {
-                getattr(stat, attrname)
+                attrname: getattr(stat, attrname)
                 for attrname in (
                     "st_mtime",
                     "st_size",
