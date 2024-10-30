@@ -179,7 +179,7 @@ class ParquetStorage(CacheStorage):
 
     def _put(self, key, value):
         loc = self.get_loc(key)
-        value.to_expr().to_parquet(loc)
+        ls.to_parquet(value.to_expr(), loc)
         return self._get(key)
 
     def _drop(self, key):
@@ -214,7 +214,7 @@ class _SourceStorage(CacheStorage):
         ):
             self._source.create_table(key, expr)
         else:
-            self._source.create_table(key, expr.to_pyarrow())
+            self._source.create_table(key, ls.to_pyarrow(expr))
         return self._get(key)
 
     def _drop(self, key):
