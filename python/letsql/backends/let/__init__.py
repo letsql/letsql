@@ -16,6 +16,7 @@ from sqlglot import exp, parse_one
 import letsql.backends.let.hotfix  # noqa: F401
 from letsql.backends.datafusion import Backend as DataFusionBackend
 from letsql.common.collections import SourceDict
+from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
@@ -220,6 +221,7 @@ class Backend(DataFusionBackend):
         native_backend = self._get_source(expr) is not self
         if native_backend:
 
+            @replace_fix
             def replace_table(node, _, **_kwargs):
                 return self._sources.get_table_or_op(node, node.__recreate__(_kwargs))
 
@@ -302,6 +304,7 @@ class Backend(DataFusionBackend):
     def _transform_deferred_reads(self, expr, **kwargs):
         dt_to_read = {}
 
+        @replace_fix
         def replace_read(node, _, **_kwargs):
             from letsql.expr.relations import Read
 
@@ -333,7 +336,7 @@ class Backend(DataFusionBackend):
             return node
 
         op = expr.op()
-        out = op.replace(fn)
+        out = op.replace(replace_fix(fn))
 
         return out.to_expr()
 
