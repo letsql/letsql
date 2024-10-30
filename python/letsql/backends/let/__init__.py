@@ -229,13 +229,12 @@ class Backend(DataFusionBackend):
     def execute(self, expr: ir.Expr, **kwargs: Any):
         with self._get_backend_and_expr(expr) as resource:
             backend, expr = resource
-            result = backend.execute(expr, **kwargs)
-        return result
+            return backend.execute(expr, **kwargs)
 
     def to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
         with self._get_backend_and_expr(expr) as resource:
             backend, expr = resource
-        return backend.to_pyarrow(expr, **kwargs)
+            return backend.to_pyarrow(expr, **kwargs)
 
     def to_pyarrow_batches(
         self,
@@ -246,7 +245,7 @@ class Backend(DataFusionBackend):
     ) -> pa.ipc.RecordBatchReader:
         with self._get_backend_and_expr(expr) as resource:
             backend, expr = resource
-        return backend.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
+            return backend.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
 
     @contextmanager
     def _get_backend_and_expr(self, expr):

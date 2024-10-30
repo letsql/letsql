@@ -6,17 +6,12 @@ from functools import partial
 from itertools import starmap
 from typing import Mapping, Any
 
-import sqlglot as sg
-import sqlglot.expressions as sge
-
 import ibis.common.exceptions as com
 import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
-from ibis.backends.sql.compilers.base import FALSE, NULL, STAR, AggGen, SQLGlotCompiler
-from ibis.backends.sql.datatypes import DataFusionType
 import sqlglot as sg
 import sqlglot.expressions as sge
-from ibis.backends.sql.compiler import FALSE, NULL, STAR, SQLGlotCompiler
+from ibis.backends.sql.compilers.base import FALSE, NULL, STAR, AggGen, SQLGlotCompiler
 from ibis.backends.sql.datatypes import PostgresType
 from ibis.backends.sql.dialects import DataFusion
 from ibis.backends.sql.rewrites import split_select_distinct_with_order_by
