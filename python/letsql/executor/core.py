@@ -4,7 +4,7 @@ from ibis import BaseBackend
 from ibis.expr import operations as ops
 from ibis.expr import types as ir
 
-from letsql.expr.relations import RemoteTable
+from letsql.expr.relations import RemoteTable, CachedNode, RemoteTableReplacer
 
 
 def recursive_update(obj, replacements):
@@ -200,14 +200,52 @@ def _join_project(op, first, rest, values):
     return op.__recreate__(kwargs)
 
 
+@collect_.register(CachedNode)
+def _cached_node(op, schema, parent, source, storage):
+    first, _ = find_backend(parent)
+    other = storage.source
+
+    if first is not other:
+        # TODO create the remote table if other can register RecordBatchReader
+        # TODO do a per backend analysis of what to do when resolving a RemoteTable
+        table = RemoteTable.from_expr(other, parent.to_expr())
+        return CachedNode(schema=schema, parent=table, source=other, storage=storage)
+    else:
+        kwargs = {
+            "schema": schema,
+            "parent": parent,
+            "source": source,
+            "storage": storage,
+        }
+        return op.__recreate__(kwargs)
+
+
 # TODO keep track of every table created
 # TODO implement recursive collect for into_backend
 # TODO optimize to make the minimum data movement when there are more than 2 available backend
 
 
-def execute(expr: ir.Expr):
-    import letsql as ls
+def _register_and_transform_remote_tables(node):
+    replacer = RemoteTableReplacer()
+    return node.replace(replacer), replacer.created
 
+
+def _register_and_transform_cache_tables(op):
+    """This function will sequentially execute any cache node that is not already cached"""
+
+    def fn(node, _, **kwargs):
+        node = node.__recreate__(kwargs)
+        if isinstance(node, CachedNode):
+            uncached, storage = node.parent, node.storage
+            node = storage.set_default(uncached.to_expr(), uncached)
+        return node
+
+    out = op.replace(fn)
+
+    return out
+
+
+def execute(expr: ir.Expr):
     def evaluator(op, _, **kwargs):
         return collect_(op, **kwargs)
 
@@ -215,6 +253,9 @@ def execute(expr: ir.Expr):
     results = node.map(
         evaluator
     )  # TODO Can we build a new graph from results, if needed?
-    expr = results[node].to_expr()
+    node = results[node]
+    node, _ = _register_and_transform_remote_tables(node)
+    node = _register_and_transform_cache_tables(node)
+    expr = node.to_expr()
 
-    return ls.execute(expr)
+    return expr.execute()

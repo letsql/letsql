@@ -108,7 +108,7 @@ def normalize_postgres_databasetable(dt):
     )
 
 
-def normalize_snowflake_databasetable(dt):
+def normalize_snowflake_database_table(dt):
     from letsql.common.utils.snowflake_utils import get_snowflake_last_modification_time
 
     if dt.source.name != "snowflake":
@@ -124,21 +124,15 @@ def normalize_snowflake_databasetable(dt):
     )
 
 
-def normalize_duckdb_databasetable(dt):
+def normalize_duckdb_database_table(dt):
     if dt.source.name != "duckdb":
         raise ValueError
     name = sg.table(dt.name, quoted=dt.source.compiler.quoted).sql(
         dialect=dt.source.name
     )
 
-    if isinstance(dt, (MarkedRemoteTable, RemoteTable)):
-        return dask.base._normalize_seq_func(
-            (
-                dt.schema.to_pandas(),
-                str(dt.remote_expr),
-                normalize_backend(dt.source),
-            )
-        )
+    if dt.name.startswith("letsql-remote-expr-placeholder"):
+        return dask.base._normalize_seq_func((dt.schema, dt.name))
 
     ((_, plan),) = dt.source.raw_sql(f"EXPLAIN SELECT * FROM {name}").fetchall()
     scan_line = plan.split("\n")[1]
@@ -166,7 +160,7 @@ def normalize_duckdb_file_read(dt):
     )
 
 
-def normalize_letsql_databasetable(dt):
+def normalize_letsql_database_table(dt):
     if dt.source.name != "let":
         raise ValueError
     native_source = dt.source._sources.get_backend(dt)
@@ -238,9 +232,9 @@ def normalize_databasetable(dt):
         "pandas": normalize_pandas_databasetable,
         "datafusion": normalize_datafusion_databasetable,
         "postgres": normalize_postgres_databasetable,
-        "snowflake": normalize_snowflake_databasetable,
-        "let": normalize_letsql_databasetable,
-        "duckdb": normalize_duckdb_databasetable,
+        "snowflake": normalize_snowflake_database_table,
+        "let": normalize_letsql_database_table,
+        "duckdb": normalize_duckdb_database_table,
     }
     f = dct[dt.source.name]
     return f(dt)

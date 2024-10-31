@@ -150,18 +150,21 @@ def _letsql_find_backend(self, *, use_default=True):
 )
 def letsql_cache(self, storage=None):
     # FIXME: push this into LETSQLAccessor
-    try:
-        current_backend = self._find_backend(use_default=True)
-    except IbisError as e:
-        if "Multiple backends found" in e.args[0]:
-            current_backend = _backend_init()
-        else:
-            raise e
-    storage = storage or SourceStorage(source=current_backend)
+    if storage is None:
+        try:
+            current_backend = self._find_backend(use_default=True)
+        except IbisError as e:
+            # FIXME if one of the backends can register RecordBatchReader that should be the preferred one
+            if "Multiple backends found" in e.args[0]:
+                current_backend = _backend_init()
+            else:
+                raise e
+        storage = SourceStorage(source=current_backend)
+
     op = CachedNode(
         schema=self.schema(),
         parent=self.op(),
-        source=current_backend,
+        source=storage.source,
         storage=storage,
     )
     return op.to_expr()
