@@ -1,3 +1,3 @@
-from letsql.executor.core import collect
+from letsql.executor.core import execute
 
-__all__ = ["collect"]
+__all__ = ["execute"]
