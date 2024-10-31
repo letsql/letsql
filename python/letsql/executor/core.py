@@ -1,11 +1,10 @@
 import functools
 
-import ibis
 from ibis import BaseBackend
 from ibis.expr import operations as ops
 from ibis.expr import types as ir
 
-gen_name = functools.partial(ibis.util.gen_name, "remote-expr-placeholder")
+from letsql.expr.relations import RemoteTable
 
 
 def recursive_update(obj, replacements):
@@ -115,9 +114,7 @@ def _set_op(op, left, right, distinct):
     updated = {}
     if source is not candidate:
         expr = right.to_expr()
-        table = source.register(
-            expr.to_pyarrow_batches(), table_name=gen_name()
-        )  # this has to be called recursively, does it?
+        table = RemoteTable.from_expr(source, expr)
         updated[right] = table
 
     if updated:
@@ -193,9 +190,7 @@ def _join_project(op, first, rest, values):
         expr = opi.table.to_expr()
         candidate, _ = find_backend(opi.table)
         if candidate is not source:
-            table = source.register(
-                expr.to_pyarrow_batches(), table_name=gen_name()
-            )  # this has to be called recursively, does it?
+            table = RemoteTable.from_expr(source, expr)
             reference = ops.JoinReference(table, opi.table.identifier)
             updated[opi.table] = reference
 
@@ -210,10 +205,16 @@ def _join_project(op, first, rest, values):
 # TODO optimize to make the minimum data movement when there are more than 2 available backend
 
 
-def collect(expr: ir.Expr):
+def execute(expr: ir.Expr):
+    import letsql as ls
+
     def evaluator(op, _, **kwargs):
         return collect_(op, **kwargs)
 
-    expr = expr.op().map_clear(evaluator).to_expr()
+    node = expr.op()
+    results = node.map(
+        evaluator
+    )  # TODO Can we build a new graph from results, if needed?
+    expr = results[node].to_expr()
 
-    return expr.execute()
+    return ls.execute(expr)
