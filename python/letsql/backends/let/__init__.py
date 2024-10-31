@@ -221,11 +221,10 @@ class Backend(DataFusionBackend):
         native_backend = self._get_source(expr) is not self
         if native_backend:
 
-            @replace_fix
             def replace_table(node, _, **_kwargs):
                 return self._sources.get_table_or_op(node, node.__recreate__(_kwargs))
 
-            expr = expr.op().replace(replace_table).to_expr()
+            expr = expr.op().replace(replace_fix(replace_table)).to_expr()
 
         return expr
 
@@ -304,7 +303,6 @@ class Backend(DataFusionBackend):
     def _transform_deferred_reads(self, expr, **kwargs):
         dt_to_read = {}
 
-        @replace_fix
         def replace_read(node, _, **_kwargs):
             from letsql.expr.relations import Read
 
@@ -318,7 +316,7 @@ class Backend(DataFusionBackend):
                 node = node.__recreate__(_kwargs)
             return node
 
-        expr = expr.op().replace(replace_read).to_expr()
+        expr = expr.op().replace(replace_fix(replace_read)).to_expr()
         return expr, dt_to_read
 
     def _register_and_transform_cache_tables(self, expr):
