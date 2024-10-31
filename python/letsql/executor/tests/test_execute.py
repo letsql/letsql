@@ -1,5 +1,7 @@
 import pandas as pd
 
+import letsql as ls
+from letsql.common.caching import SourceStorage
 from letsql.executor import execute
 
 
@@ -39,3 +41,18 @@ def test_asof_join(ddb_ages, sqlite_names):
 
     assert isinstance(result, pd.DataFrame)
     assert len(result) > 0
+
+
+def test_cross_backend_cache(pg):
+    con = ls.duckdb.connect()
+    expr = (
+        pg.table("batting")
+        .cache(SourceStorage(con))
+        .limit(15)
+        .select("playerID", "yearID")
+    )
+
+    res = execute(expr)
+
+    assert isinstance(res, pd.DataFrame)
+    assert len(res) == 15

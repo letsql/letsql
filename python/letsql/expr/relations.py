@@ -1,13 +1,12 @@
-import functools
+import hashlib
 import itertools
 from typing import Any
 
-import ibis
 import pyarrow as pa
 from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
 from ibis.expr import operations as ops
-from ibis.expr.operations import Relation, Node
+from ibis.expr.operations import Relation, Node, DatabaseTable
 
 
 def replace_cache_table(node, _, **kwargs):
@@ -98,12 +97,11 @@ class RemoteTableReplacer:
                     if v in self.tables:
                         remote: RemoteTableCounter = self.tables[v]
                         name = f"{v.name}_{next(remote.count)}"
-                        kwargs[k] = MarkedRemoteTable(
+                        kwargs[k] = DatabaseTable(
                             name,
                             schema=v.schema,
                             source=v.source,
                             namespace=v.namespace,
-                            remote_expr=v.remote_expr,
                         )
 
                         batches = self.get_batches(remote.remote_expr)
@@ -119,12 +117,11 @@ class RemoteTableReplacer:
 
         node = node.__recreate__(kwargs)
         if isinstance(node, RemoteTable):
-            result = MarkedRemoteTable(
+            result = DatabaseTable(
                 node.name,
                 schema=node.schema,
                 source=node.source,
                 namespace=node.namespace,
-                remote_expr=node.remote_expr,
             )
             self.tables[result] = RemoteTableCounter(node)
             batches = self.get_batches(node.remote_expr)
@@ -135,7 +132,10 @@ class RemoteTableReplacer:
         return node
 
     def get_batches(self, expr):
-        if not expr.op().find((RemoteTable, MarkedRemoteTable)):
+        def finder(op):
+            return isinstance(op, RemoteTable) or op in self.tables
+
+        if not expr.op().find(finder):
             if expr not in self.seen_expr:
                 batches = expr.to_pyarrow_batches()
                 result, keep = SafeTee.tee(batches, 2)
@@ -187,7 +187,9 @@ class CachedNode(ops.Relation):
     values = FrozenDict()
 
 
-gen_name = functools.partial(ibis.util.gen_name, "remote-expr-placeholder")
+def gen_name(string):
+    uid = str(hashlib.md5(string.encode("utf-8")).hexdigest())
+    return f"letsql-remote-expr-placeholder_{uid}"
 
 
 class RemoteTable(ops.DatabaseTable):
@@ -195,7 +197,7 @@ class RemoteTable(ops.DatabaseTable):
 
     @classmethod
     def from_expr(cls, con, expr, name=None):
-        name = name or gen_name()
+        name = name or gen_name(str(expr))
         return cls(
             name=name,
             schema=expr.schema(),
