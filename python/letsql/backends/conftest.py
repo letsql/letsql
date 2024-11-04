@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from letsql.executor.core import split_cache
 from letsql.expr.relations import CachedNode
 
 
@@ -28,5 +29,5 @@ def get_storage_uncached(con, expr):
     def replace_table(node, _, **_kwargs):
         return con._sources.get_table_or_op(node, node.__recreate__(_kwargs))
 
-    uncached = expr.op().replace(replace_table).parent.to_expr()
-    return (op.storage, uncached)
+    uncached = split_cache(expr.op().replace(replace_table).to_expr()).parent.to_expr()
+    return op.storage, uncached

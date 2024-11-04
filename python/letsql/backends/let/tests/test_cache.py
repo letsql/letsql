@@ -29,6 +29,8 @@ from letsql.common.utils.postgres_utils import (
     get_postgres_n_scans,
 )
 from letsql.executor import execute
+from letsql.executor.core import split_cache
+from letsql.expr.relations import into_backend
 
 from letsql.expr.udf import (
     agg,
@@ -397,7 +399,10 @@ def test_postgres_snapshot(pg, con):
         pg_t.group_by("playerID").size().order_by("playerID").cache(storage=storage)
     )
     dt = pg_t.op()
-    (storage, uncached) = (expr_cached.ls.storage, expr_cached.ls.uncached_one)
+    (storage, uncached) = (
+        expr_cached.ls.storage,
+        split_cache(expr_cached).parent.to_expr(),
+    )
 
     # assert initial state
     assert not storage.exists(uncached)
@@ -456,7 +461,10 @@ def test_postgres_parquet_snapshot(pg, tmp_path):
         pg_t.group_by("playerID").size().order_by("playerID").cache(storage=storage)
     )
     dt = pg_t.op()
-    (storage, uncached) = (expr_cached.ls.storage, expr_cached.ls.uncached_one)
+    (storage, uncached) = (
+        expr_cached.ls.storage,
+        split_cache(expr_cached).parent.to_expr(),
+    )
 
     # assert initial state
     assert not storage.exists(uncached)
@@ -468,7 +476,7 @@ def test_postgres_parquet_snapshot(pg, tmp_path):
     n_scans_after = assert_n_scans_changes(dt, n_scans_before)
     # should we test that SourceStorage.get is called?
     assert n_scans_after == 1
-    # assert storage.exists(uncached)
+    assert storage.exists(uncached)
 
     # assert no change after re-execution of cached expr
     executed1 = execute(expr_cached)
@@ -587,15 +595,15 @@ def test_read_csv_compute_and_cache(ls_con, csv_dir, tmp_path):
     assert execute(expr) is not None
 
 
-@pytest.mark.parametrize("other_con", [letsql.connect(), letsql.duckdb.connect()])
+@pytest.mark.parametrize(
+    "other_con", [ibis.datafusion.connect(), ibis.duckdb.connect()]
+)
 def test_multi_engine_cache(pg, ls_con, tmp_path, other_con):
-    other_con = letsql.duckdb.connect()
-
     table_name = "batting"
     pg_t = pg.table(table_name)[lambda t: t.yearID > 2014]
     db_t = other_con.register(pg.table(table_name).to_pyarrow(), f"db-{table_name}")[
         lambda t: t.stint == 1
-    ]
+    ].pipe(into_backend, pg)
 
     expr = pg_t.join(
         db_t,
@@ -607,7 +615,9 @@ def test_multi_engine_cache(pg, ls_con, tmp_path, other_con):
         )
     )
 
-    assert execute(expr) is not None
+    result = execute(expr)
+    assert isinstance(result, pd.DataFrame)
+    assert len(result) > 0
 
 
 def test_repeated_cache(pg, ls_con, tmp_path):
@@ -681,7 +691,6 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     # create a temp table we can mutate
     pd_con = letsql.pandas.connect()
     table = pd_con.create_table(name, alltypes_df)
-    # t = ls_con.register(table, f"let_{table.op().name}")
     cached_expr = (
         table.group_by(group_by)
         .agg({f"count_{col}": table[col].count() for col in table.columns})
@@ -694,7 +703,7 @@ def test_pandas_snapshot(ls_con, alltypes_df):
 
     # test cache creation
     executed0 = execute(cached_expr)
-    # assert storage.exists(uncached)
+    assert storage.exists(uncached)
 
     # test cache use
     executed1 = execute(cached_expr)
@@ -703,14 +712,15 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     # test NO cache invalidation
     pd_con.reconnect()
     table2 = pd_con.create_table(name, pd.concat((alltypes_df, alltypes_df)))
-    # t = ls_con.register(table2, f"let_{table2.op().name}")
+
     cached_expr = (
         table2.group_by(group_by)
         .agg({f"count_{col}": table2[col].count() for col in table2.columns})
         .cache(storage)
     )
     (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
-    # assert storage.exists(uncached)
+
+    assert storage.exists(uncached)
     executed2 = execute(cached_expr.ls.uncached)
     assert not executed0.equals(executed2)
 
@@ -735,7 +745,7 @@ def test_duckdb_snapshot(ls_con, alltypes_df):
 
     # test cache creation
     executed0 = execute(cached_expr)
-    # assert storage.exists(uncached)
+    assert storage.exists(uncached)
 
     # test cache use
     executed1 = execute(cached_expr)
@@ -756,7 +766,7 @@ def test_datafusion_snapshot(ls_con, alltypes_df):
     # create a temp table we can mutate
     df_con = letsql.datafusion.connect()
     table = df_con.create_table(name, alltypes_df)
-    # t = ls_con.register(table, f"let_{table.op().name}")
+
     cached_expr = (
         table.group_by(group_by)
         .agg({f"count_{col}": table[col].count() for col in table.columns})
@@ -769,7 +779,7 @@ def test_datafusion_snapshot(ls_con, alltypes_df):
 
     # test cache creation
     executed0 = execute(cached_expr)
-    # assert storage.exists(uncached)
+    assert storage.exists(uncached)
 
     # test cache use
     executed1 = execute(cached_expr)

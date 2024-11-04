@@ -571,8 +571,8 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
             pair,
             id="-".join(pair),
         )
-        for pair in itertools.combinations_with_replacement(
-            ["pg_batting", "ls_batting"],
+        for pair in itertools.combinations(
+            ["pg_batting", "ls_batting", "ddb_batting"],
             r=2,
         )
     ],

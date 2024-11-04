@@ -27,8 +27,9 @@ from letsql.common.utils.dask_normalize import (
 )
 from letsql.common.utils.dask_normalize_expr import (
     normalize_backend,
+    normalize_remote_table,
 )
-
+from letsql.expr.relations import RemoteTable
 
 abs_path_converter = toolz.compose(
     operator.methodcaller("expanduser"), operator.methodcaller("absolute"), pathlib.Path
@@ -143,13 +144,19 @@ class SnapshotStrategy(CacheStrategy):
 
     @staticmethod
     def normalize_database_table(dt):
-        return dask.base.normalize_token(
-            {
-                argname: getattr(dt, argname)
-                # argnames: name, schema, source, namespace
-                for argname in dt.argnames
-            }
-        )
+        if isinstance(dt, RemoteTable):
+            # one alternative is to explicitly iterate over the fields name, schema, source, namespace
+            # but explicit is better than implicit, additionally the name is not a safe bet for caching
+            # RemoteTable
+            return normalize_remote_table(dt)
+        else:
+            return dask.base.normalize_token(
+                {
+                    argname: getattr(dt, argname)
+                    # argnames: name, schema, source, namespace
+                    for argname in dt.argnames
+                }
+            )
 
 
 @frozen

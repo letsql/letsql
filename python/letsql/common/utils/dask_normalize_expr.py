@@ -55,6 +55,10 @@ def normalize_memory_database_table(dt):
 def normalize_pandas_database_table(dt):
     if dt.source.name != "pandas":
         raise ValueError
+
+    if isinstance(dt, RemoteTable):
+        return normalize_remote_table(dt)
+
     return normalize_memory_database_table(dt)
 
 
@@ -80,14 +84,16 @@ def normalize_datafusion_database_table(dt):
         raise ValueError
 
 
-def normalize_remote_database_table(dt):
-    return dask.base._normalize_seq_func(
-        (
-            dt.name,
-            dt.schema,
-            dt.source,
-            dt.namespace,
-        )
+def normalize_remote_table(dt):
+    if not isinstance(dt, RemoteTable):
+        raise ValueError
+
+    return dask.base.normalize_token(
+        {
+            "schema": dt.schema.to_pandas(),
+            "expr": dt.remote_expr.unbind(),
+            "source": dt.source,
+        }
     )
 
 
@@ -131,13 +137,7 @@ def normalize_duckdb_database_table(dt):
     )
 
     if isinstance(dt, RemoteTable):
-        return dask.base._normalize_seq_func(
-            (
-                dt.schema.to_pandas(),
-                str(dt.remote_expr),
-                dt.source,
-            )
-        )
+        return normalize_remote_table(dt)
 
     ((_, plan),) = dt.source.raw_sql(f"EXPLAIN SELECT * FROM {name}").fetchall()
     scan_line = plan.split("\n")[1]
@@ -170,13 +170,7 @@ def normalize_letsql_database_table(dt):
         raise ValueError
     native_source = dt.source._sources.get_backend(dt)
     if isinstance(dt, RemoteTable):
-        return dask.base._normalize_seq_func(
-            (
-                dt.schema.to_pandas(),
-                str(dt.remote_expr),
-                dt.source,
-            )
-        )
+        return normalize_remote_table(dt)
     if native_source.name == "let":
         return normalize_datafusion_database_table(dt)
     new_dt = make_native_op(dt)

@@ -213,7 +213,7 @@ def _cached_node(op, schema, parent, source, storage):
         name = dask.base.tokenize(
             {
                 "schema": schema,
-                "expr": str(expr),
+                "expr": expr.unbind(),
                 "source": first.name,
                 "sink": other.name,
             }
