@@ -3,13 +3,10 @@ from typing import Mapping, Any
 from ibis.backends.duckdb import Backend as IbisDuckDBBackend
 from ibis.expr import types as ir
 
-from letsql.backends.duckdb.compiler import DuckDBCompiler
 from letsql.expr.relations import RemoteTableReplacer
 
 
 class Backend(IbisDuckDBBackend):
-    compiler = DuckDBCompiler()
-
     def execute(
         self,
         expr: ir.Expr,

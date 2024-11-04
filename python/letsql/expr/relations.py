@@ -217,10 +217,6 @@ class RemoteTable(ops.DatabaseTable):
         )
 
 
-class MarkedRemoteTable(ops.DatabaseTable):
-    remote_expr: Expr = None
-
-
 def into_backend(expr, con, name=None):
     return RemoteTable.from_expr(con=con, expr=expr, name=name).to_expr()
 

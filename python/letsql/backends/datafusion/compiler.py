@@ -576,20 +576,6 @@ class DataFusionCompiler(SQLGlotCompiler):
     def visit_ArrayFlatten(self, op, *, arg):
         return self.if_(arg.is_(NULL), NULL, self.f.flatten(arg))
 
-    def visit_MarkedRemoteTable(
-        self,
-        op,
-        *,
-        name: str,
-        schema,
-        source,
-        namespace: ops.Namespace,
-        remote_expr,
-    ):
-        return sg.table(
-            name, db=namespace.database, catalog=namespace.catalog, quoted=self.quoted
-        )
-
     def to_sqlglot(
         self,
         expr: ir.Expr,
