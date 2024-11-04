@@ -90,13 +90,16 @@ class RemoteTableReplacer:
         self.seen_expr = {}
 
     def __call__(self, node, _, **kwargs):
+        from letsql.backends.postgres import Backend as PGBackend
+
         if isinstance(node, Relation):
             updated = {}
             for k, v in list(kwargs.items()):
                 try:
                     if v in self.tables:
                         remote: RemoteTableCounter = self.tables[v]
-                        name = f"{v.name}_{next(remote.count)}"
+                        prefix, name = v.name.split("_")
+                        name = f"{prefix}_{next(remote.count)}_{name}"
                         kwargs[k] = DatabaseTable(
                             name,
                             schema=v.schema,
@@ -105,7 +108,12 @@ class RemoteTableReplacer:
                         )
 
                         batches = self.get_batches(remote.remote_expr)
-                        remote.source.register(batches, table_name=name)
+                        if isinstance(remote.source, PGBackend):
+                            remote.source.read_record_batches(
+                                batches, table_name=name, temporary=True
+                            )
+                        else:
+                            remote.source.register(batches, table_name=name)
                         updated[v] = kwargs[k]
                         self.created[name] = remote.source
 
@@ -125,7 +133,10 @@ class RemoteTableReplacer:
             )
             self.tables[result] = RemoteTableCounter(node)
             batches = self.get_batches(node.remote_expr)
-            node.source.register(batches, table_name=node.name)
+            if isinstance(node.source, PGBackend):
+                node.source.read_record_batches(batches, table_name=node.name)
+            else:
+                node.source.register(batches, table_name=node.name)
             self.created[node.name] = node.source
             node = result
 

@@ -1,3 +1,4 @@
+import re
 from operator import methodcaller
 
 import ibis
@@ -168,7 +169,7 @@ def test_into_backend_duckdb(pg):
 
     res = ddb.con.sql(query).df()
 
-    assert query.count("ls_batting") == 2
+    assert len(re.findall(r"ls_\d+_batting", query)) == 2
     assert 0 < len(res) <= 15
     assert len(replacer.created) == 3
 
@@ -184,7 +185,7 @@ def test_into_backend_duckdb_expr(pg):
 
     res = ddb.con.sql(query).df()
 
-    assert query.count("ls_batting") == 2
+    assert len(re.findall(r"ls_\d+_batting", query)) == 2
     assert 0 < len(res) <= 15
     assert len(replacer.created) == 3
 

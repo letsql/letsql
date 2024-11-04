@@ -223,6 +223,12 @@ def _cached_node(op, schema, parent, source, storage):
 # TODO keep track of every table created
 # TODO implement recursive collect for into_backend
 # TODO optimize to make the minimum data movement when there are more than 2 available backend
+# TODO using an identifier won't work the solution is to use a _register_remote_tables before caching and
+# _register_and_transform_remote_tables after caching
+# like the following
+# _register_and_transform_cache_tables (with _register_remote_tables)
+# _register_and_transform_remote_tables
+# create dispatch based for registering batches
 
 
 def _register_and_transform_remote_tables(node):

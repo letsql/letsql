@@ -41,10 +41,18 @@ def remove_unexpected_tables(dirty):
 
 
 @pytest.fixture(scope="session")
-def pg():
+def dirty():
     conn = ls.postgres.connect_env()
     yield conn
     remove_unexpected_tables(conn)
+
+
+@pytest.fixture(scope="function")
+def pg(dirty):
+    remove_unexpected_tables(dirty)
+    yield dirty
+    # cleanup
+    remove_unexpected_tables(dirty)
 
 
 @pytest.fixture(scope="session")
@@ -88,3 +96,28 @@ def ddb_ages():
     )
 
     return ddb_con.create_table("ddb_users", ddb_data)
+
+
+@pytest.fixture(scope="session")
+def alltypes(dirty):
+    return dirty.table("functional_alltypes")
+
+
+@pytest.fixture(scope="session")
+def batting(dirty):
+    return dirty.table("batting")
+
+
+@pytest.fixture(scope="session")
+def awards_players(dirty):
+    return dirty.table("awards_players")
+
+
+@pytest.fixture(scope="session")
+def alltypes_df(alltypes):
+    return alltypes.execute()
+
+
+@pytest.fixture(scope="session")
+def batting_df(batting):
+    return batting.execute()
