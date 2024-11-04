@@ -1,5 +1,6 @@
 import functools
 
+import dask.base
 from ibis import BaseBackend
 from ibis.expr import operations as ops
 from ibis.expr import types as ir
@@ -208,7 +209,16 @@ def _cached_node(op, schema, parent, source, storage):
     if first is not other:
         # TODO create the remote table if other can register RecordBatchReader
         # TODO do a per backend analysis of what to do when resolving a RemoteTable
-        table = RemoteTable.from_expr(other, parent.to_expr())
+        expr = parent.to_expr()
+        name = dask.base.tokenize(
+            {
+                "schema": schema,
+                "expr": str(expr),
+                "source": first.name,
+                "sink": other.name,
+            }
+        )  # create a unique name based on the RemoteTable, otherwise it changes on each execute
+        table = RemoteTable.from_expr(other, expr, name=name)
         return CachedNode(schema=schema, parent=table, source=other, storage=storage)
     else:
         kwargs = {
@@ -267,7 +277,7 @@ def _register_and_transform_cache_tables(op):
     return out
 
 
-def execute(expr: ir.Expr):
+def split_cache(expr):
     def evaluator(op, _, **kwargs):
         return collect_(op, **kwargs)
 
@@ -276,40 +286,26 @@ def execute(expr: ir.Expr):
         evaluator
     )  # TODO Can we build a new graph from results, if needed?
     node = results[node]
+    return node
+
+
+def _preprocess(expr):
+    node = split_cache(expr)
     node = _register_and_transform_cache_tables(node)
     node, _ = _register_and_transform_remote_tables(node)
-    expr = node.to_expr()
+    return node
 
+
+def execute(expr: ir.Expr):
+    expr = _preprocess(expr).to_expr()
     return expr.execute()
 
 
 def to_pyarrow_batches(expr: ir.Expr):
-    def evaluator(op, _, **kwargs):
-        return collect_(op, **kwargs)
-
-    node = expr.op()
-    results = node.map(
-        evaluator
-    )  # TODO Can we build a new graph from results, if needed?
-    node = results[node]
-    node = _register_and_transform_cache_tables(node)
-    node, _ = _register_and_transform_remote_tables(node)
-    expr = node.to_expr()
-
+    expr = _preprocess(expr).to_expr()
     return expr.to_pyarrow_batches()
 
 
 def to_pyarrow(expr: ir.Expr):
-    def evaluator(op, _, **kwargs):
-        return collect_(op, **kwargs)
-
-    node = expr.op()
-    results = node.map(
-        evaluator
-    )  # TODO Can we build a new graph from results, if needed?
-    node = results[node]
-    node = _register_and_transform_cache_tables(node)
-    node, _ = _register_and_transform_remote_tables(node)
-    expr = node.to_expr()
-
+    expr = _preprocess(expr).to_expr()
     return expr.to_pyarrow()

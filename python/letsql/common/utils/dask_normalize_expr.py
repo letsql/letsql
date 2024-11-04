@@ -33,7 +33,7 @@ def unbound_expr_to_default_sql(expr):
     return str(default_sql)
 
 
-def normalize_memory_databasetable(dt):
+def normalize_memory_database_table(dt):
     import letsql
 
     if dt.source.name not in ("pandas", "let", "datafusion", "duckdb"):
@@ -52,13 +52,13 @@ def normalize_memory_databasetable(dt):
     )
 
 
-def normalize_pandas_databasetable(dt):
+def normalize_pandas_database_table(dt):
     if dt.source.name != "pandas":
         raise ValueError
-    return normalize_memory_databasetable(dt)
+    return normalize_memory_database_table(dt)
 
 
-def normalize_datafusion_databasetable(dt):
+def normalize_datafusion_database_table(dt):
     if dt.source.name not in ("datafusion", "let"):
         raise ValueError
     table = dt.source.con.table(dt.name)
@@ -73,14 +73,14 @@ def normalize_datafusion_databasetable(dt):
             )
         )
     elif ep_str.startswith("MemoryExec:"):
-        return normalize_memory_databasetable(dt)
+        return normalize_memory_database_table(dt)
     elif ep_str.startswith("CustomExec"):
         return dask.base._normalize_seq_func((dt.schema.to_pandas(), dt.name))
     else:
         raise ValueError
 
 
-def normalize_remote_databasetable(dt):
+def normalize_remote_database_table(dt):
     return dask.base._normalize_seq_func(
         (
             dt.name,
@@ -91,7 +91,7 @@ def normalize_remote_databasetable(dt):
     )
 
 
-def normalize_postgres_databasetable(dt):
+def normalize_postgres_database_table(dt):
     from letsql.common.utils.postgres_utils import get_postgres_n_reltuples
 
     if dt.source.name != "postgres":
@@ -135,7 +135,7 @@ def normalize_duckdb_database_table(dt):
             (
                 dt.schema.to_pandas(),
                 str(dt.remote_expr),
-                normalize_backend(dt.source),
+                dt.source,
             )
         )
 
@@ -144,7 +144,7 @@ def normalize_duckdb_database_table(dt):
     execution_plan_name = r"\s*│\s*(\w+)\s*│\s*"
     match re.match(execution_plan_name, scan_line).group(1):
         case "ARROW_SCAN":
-            return normalize_memory_databasetable(dt)
+            return normalize_memory_database_table(dt)
         case "READ_PARQUET" | "READ_CSV" | "SEQ_SCAN":
             return normalize_duckdb_file_read(dt)
         case _:
@@ -174,11 +174,11 @@ def normalize_letsql_database_table(dt):
             (
                 dt.schema.to_pandas(),
                 str(dt.remote_expr),
-                normalize_backend(dt.source),
+                dt.source,
             )
         )
     if native_source.name == "let":
-        return normalize_datafusion_databasetable(dt)
+        return normalize_datafusion_database_table(dt)
     new_dt = make_native_op(dt)
     return dask.base.normalize_token(new_dt)
 
@@ -232,11 +232,11 @@ def normalize_read(read):
 
 
 @dask.base.normalize_token.register(ir.DatabaseTable)
-def normalize_databasetable(dt):
+def normalize_database_table(dt):
     dct = {
-        "pandas": normalize_pandas_databasetable,
-        "datafusion": normalize_datafusion_databasetable,
-        "postgres": normalize_postgres_databasetable,
+        "pandas": normalize_pandas_database_table,
+        "datafusion": normalize_datafusion_database_table,
+        "postgres": normalize_postgres_database_table,
         "snowflake": normalize_snowflake_database_table,
         "let": normalize_letsql_database_table,
         "duckdb": normalize_duckdb_database_table,
@@ -259,7 +259,7 @@ def normalize_backend(con):
         con_details = id(con.con)
     else:
         raise ValueError
-    return (name, con_details)
+    return name, con_details
 
 
 @dask.base.normalize_token.register(ir.Schema)

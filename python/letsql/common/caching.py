@@ -128,7 +128,7 @@ class SnapshotStrategy(CacheStrategy):
         typs = map(type, expr.ls.backends)
         with patch_normalize_token(*typs, f=self.normalize_backend):
             with patch_normalize_token(
-                ops.DatabaseTable, f=self.normalize_databasetable
+                ops.DatabaseTable, f=self.normalize_database_table
             ):
                 tokenized = dask.base.tokenize(expr)
                 return "-".join(("snapshot", tokenized))
@@ -137,12 +137,12 @@ class SnapshotStrategy(CacheStrategy):
     def normalize_backend(con):
         name = con.name
         if name in ("pandas", "duckdb", "datafusion"):
-            return (name, None)
+            return name, None
         else:
             return normalize_backend(con)
 
     @staticmethod
-    def normalize_databasetable(dt):
+    def normalize_database_table(dt):
         return dask.base.normalize_token(
             {
                 argname: getattr(dt, argname)
