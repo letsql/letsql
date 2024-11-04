@@ -224,11 +224,11 @@ def _cached_node(op, schema, parent, source, storage):
 # TODO implement recursive collect for into_backend
 # TODO optimize to make the minimum data movement when there are more than 2 available backend
 # TODO using an identifier won't work the solution is to use a _register_remote_tables before caching and
-# _register_and_transform_remote_tables after caching
-# like the following
-# _register_and_transform_cache_tables (with _register_remote_tables)
-# _register_and_transform_remote_tables
-# create dispatch based for registering batches
+# TODO _register_and_transform_remote_tables after caching
+# TODO like the following
+# TODO _register_and_transform_cache_tables (with _register_remote_tables)
+# TODO _register_and_transform_remote_tables
+# TODO create dispatch based for registering batches
 
 
 def _register_and_transform_remote_tables(node):
@@ -239,14 +239,30 @@ def _register_and_transform_remote_tables(node):
 def _register_and_transform_cache_tables(op):
     """This function will sequentially execute any cache node that is not already cached"""
 
+    created = {}
+
     def fn(node, _, **kwargs):
         node = node.__recreate__(kwargs)
         if isinstance(node, CachedNode):
             uncached, storage = node.parent, node.storage
-            node = storage.set_default(uncached.to_expr(), uncached)
+
+            replacer = RemoteTableReplacer()
+            uncached_value = uncached.replace(replacer)
+            created.update(replacer.created)
+
+            node = storage.set_default(uncached.to_expr(), uncached_value)
         return node
 
     out = op.replace(fn)
+
+    for table, con in created.items():
+        try:
+            con.drop_table(table)
+        except Exception:
+            try:
+                con.drop_view(table)
+            except Exception:
+                pass
 
     return out
 
@@ -260,8 +276,40 @@ def execute(expr: ir.Expr):
         evaluator
     )  # TODO Can we build a new graph from results, if needed?
     node = results[node]
-    node, _ = _register_and_transform_remote_tables(node)
     node = _register_and_transform_cache_tables(node)
+    node, _ = _register_and_transform_remote_tables(node)
     expr = node.to_expr()
 
     return expr.execute()
+
+
+def to_pyarrow_batches(expr: ir.Expr):
+    def evaluator(op, _, **kwargs):
+        return collect_(op, **kwargs)
+
+    node = expr.op()
+    results = node.map(
+        evaluator
+    )  # TODO Can we build a new graph from results, if needed?
+    node = results[node]
+    node = _register_and_transform_cache_tables(node)
+    node, _ = _register_and_transform_remote_tables(node)
+    expr = node.to_expr()
+
+    return expr.to_pyarrow_batches()
+
+
+def to_pyarrow(expr: ir.Expr):
+    def evaluator(op, _, **kwargs):
+        return collect_(op, **kwargs)
+
+    node = expr.op()
+    results = node.map(
+        evaluator
+    )  # TODO Can we build a new graph from results, if needed?
+    node = results[node]
+    node = _register_and_transform_cache_tables(node)
+    node, _ = _register_and_transform_remote_tables(node)
+    expr = node.to_expr()
+
+    return expr.to_pyarrow()

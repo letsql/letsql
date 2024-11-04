@@ -1,14 +1,15 @@
 import re
-from operator import methodcaller
 
 import ibis
 import pandas as pd
-import pytest
 import pyarrow as pa
+import pytest
 from ibis import _
 
 import letsql as ls
 from letsql.common.caching import SourceStorage, ParquetCacheStorage
+from letsql.executor import execute
+from letsql.executor.core import to_pyarrow, to_pyarrow_batches
 from letsql.expr.relations import into_backend, RemoteTableReplacer
 
 expected_tables = (
@@ -96,16 +97,16 @@ def test_multiple_record_batches(pg):
         .cache(SourceStorage(source=con))
     )
 
-    res = expr.execute()
+    res = execute(expr)
     assert isinstance(res, pd.DataFrame)
     assert 0 < len(res) <= 15
 
 
-@pytest.mark.parametrize("method", ["to_pyarrow", "to_pyarrow_batches", "execute"])
+@pytest.mark.parametrize("method", [to_pyarrow, to_pyarrow_batches, execute])
 def test_into_backend_simple(pg, method):
     con = ls.connect()
     expr = into_backend(pg.table("batting"), con, "ls_batting")
-    res = methodcaller(method)(expr)
+    res = method(expr)
 
     if isinstance(res, pa.RecordBatchReader):
         res = next(res)
@@ -113,7 +114,7 @@ def test_into_backend_simple(pg, method):
     assert len(res) > 0
 
 
-@pytest.mark.parametrize("method", ["to_pyarrow", "to_pyarrow_batches", "execute"])
+@pytest.mark.parametrize("method", [to_pyarrow, to_pyarrow_batches, execute])
 def test_into_backend_complex(pg, method):
     con = ls.connect()
 
@@ -127,7 +128,7 @@ def test_into_backend_complex(pg, method):
     )
 
     assert ls.to_sql(expr).count("ls_batting") == 2
-    res = methodcaller(method)(expr)
+    res = method(expr)
 
     if isinstance(res, pa.RecordBatchReader):
         res = next(res)
@@ -150,7 +151,7 @@ def test_into_backend_cache(pg, tmp_path):
         .cache(ParquetCacheStorage(source=ddb_con, path=tmp_path))
     )
 
-    res = ls.execute(expr)
+    res = execute(expr)
     assert 0 < len(res) <= 15
 
 
@@ -169,7 +170,7 @@ def test_into_backend_duckdb(pg):
 
     res = ddb.con.sql(query).df()
 
-    assert len(re.findall(r"ls_\d+_batting", query)) == 2
+    assert len(re.findall(r"\d+_ls_batting", query)) == 2
     assert 0 < len(res) <= 15
     assert len(replacer.created) == 3
 
@@ -185,7 +186,7 @@ def test_into_backend_duckdb_expr(pg):
 
     res = ddb.con.sql(query).df()
 
-    assert len(re.findall(r"ls_\d+_batting", query)) == 2
+    assert len(re.findall(r"\d+_ls_batting", query)) == 2
     assert 0 < len(res) <= 15
     assert len(replacer.created) == 3
 
@@ -218,7 +219,7 @@ def test_multiple_into_backend_duckdb_letsql(trino_table):
 
     replacer = RemoteTableReplacer()
     expr = expr.op().replace(replacer).to_expr()
-    df = ls.execute(expr)
+    df = execute(expr)
 
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
@@ -233,6 +234,6 @@ def test_into_backend_duckdb_trino_cached(trino_table, tmp_path):
         .pipe(make_merged)
         .cache(ParquetCacheStorage(path=tmp_path))
     )
-    df = ls.execute(expr)
+    df = execute(expr)
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0

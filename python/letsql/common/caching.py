@@ -189,7 +189,7 @@ class ParquetStorage(CacheStorage):
         self.source.drop_table(key)
 
 
-# named with underscore prefix until we swap out SourceStorage
+# named with underscore prefix until we swap-out SourceStorage
 @frozen
 class _SourceStorage(CacheStorage):
     _source = field(

@@ -1,7 +1,8 @@
-import hashlib
+import functools
 import itertools
 from typing import Any
 
+import ibis
 import pyarrow as pa
 from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
@@ -98,8 +99,7 @@ class RemoteTableReplacer:
                 try:
                     if v in self.tables:
                         remote: RemoteTableCounter = self.tables[v]
-                        prefix, name = v.name.split("_")
-                        name = f"{prefix}_{next(remote.count)}_{name}"
+                        name = f"{next(remote.count)}_{v.name}"
                         kwargs[k] = DatabaseTable(
                             name,
                             schema=v.schema,
@@ -198,9 +198,7 @@ class CachedNode(ops.Relation):
     values = FrozenDict()
 
 
-def gen_name(string):
-    uid = str(hashlib.md5(string.encode("utf-8")).hexdigest())
-    return f"letsql-remote-expr-placeholder_{uid}"
+gen_name = functools.partial(ibis.util.gen_name, "remote-expr-placeholder")
 
 
 class RemoteTable(ops.DatabaseTable):
@@ -208,7 +206,7 @@ class RemoteTable(ops.DatabaseTable):
 
     @classmethod
     def from_expr(cls, con, expr, name=None):
-        name = name or gen_name(str(expr))
+        name = name or gen_name()
         return cls(
             name=name,
             schema=expr.schema(),

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pandas as pd
 
@@ -6,10 +8,10 @@ import pytest
 
 import letsql as ls
 from letsql.backends.let.tests.test_execute import check_eq
-from letsql.common.caching import SourceStorage
+from letsql.common.caching import SourceStorage, ParquetCacheStorage
 from letsql.executor import execute
 from letsql.tests.util import assert_frame_equal
-from letsql.expr.relations import into_backend
+from letsql.expr.relations import into_backend, RemoteTableReplacer
 
 
 def test_join(ddb_ages, sqlite_names):
@@ -218,3 +220,42 @@ def test_no_registration_same_table_name(batting):
     )
 
     assert execute(expr) is not None
+
+
+def test_into_backend_cache(pg, tmp_path):
+    con = ls.connect()
+    ddb_con = ibis.duckdb.connect()
+
+    t = into_backend(pg.table("batting"), con, "ls_batting")
+
+    expr = (
+        t.join(t, "playerID")
+        .limit(15)
+        .cache(SourceStorage(source=con))
+        .pipe(into_backend, ddb_con)
+        .select(player_id="playerID", year_id="yearID_right")
+        .cache(ParquetCacheStorage(source=ddb_con, path=tmp_path))
+    )
+
+    res = execute(expr)
+    assert 0 < len(res) <= 15
+
+
+def test_into_backend_duckdb(pg):
+    ddb = ibis.duckdb.connect()
+    t = into_backend(pg.table("batting"), ddb, "ls_batting")
+    expr = (
+        t.join(t, "playerID")
+        .limit(15)
+        .select(player_id="playerID", year_id="yearID_right")
+    )
+
+    replacer = RemoteTableReplacer()
+    expr = expr.op().replace(replacer).to_expr()
+    query = ibis.to_sql(expr, dialect="duckdb")
+
+    res = ddb.con.sql(query).df()
+
+    assert len(re.findall(r"\d+_ls_batting", query)) == 2
+    assert 0 < len(res) <= 15
+    assert len(replacer.created) == 3

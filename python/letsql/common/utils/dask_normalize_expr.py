@@ -17,7 +17,6 @@ from letsql.common.utils.defer_utils import (
 )
 from letsql.expr.relations import (
     make_native_op,
-    MarkedRemoteTable,
     RemoteTable,
 )
 
@@ -131,8 +130,14 @@ def normalize_duckdb_database_table(dt):
         dialect=dt.source.name
     )
 
-    if dt.name.startswith("letsql-remote-expr-placeholder"):
-        return dask.base._normalize_seq_func((dt.schema, dt.name))
+    if isinstance(dt, RemoteTable):
+        return dask.base._normalize_seq_func(
+            (
+                dt.schema.to_pandas(),
+                str(dt.remote_expr),
+                normalize_backend(dt.source),
+            )
+        )
 
     ((_, plan),) = dt.source.raw_sql(f"EXPLAIN SELECT * FROM {name}").fetchall()
     scan_line = plan.split("\n")[1]
@@ -164,7 +169,7 @@ def normalize_letsql_database_table(dt):
     if dt.source.name != "let":
         raise ValueError
     native_source = dt.source._sources.get_backend(dt)
-    if isinstance(dt, (MarkedRemoteTable, RemoteTable)):
+    if isinstance(dt, RemoteTable):
         return dask.base._normalize_seq_func(
             (
                 dt.schema.to_pandas(),

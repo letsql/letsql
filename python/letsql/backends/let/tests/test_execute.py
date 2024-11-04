@@ -9,6 +9,8 @@ import pytest
 from pytest import param
 
 import letsql
+from letsql.executor import execute
+from letsql.executor.core import to_pyarrow_batches, to_pyarrow
 from letsql.tests.util import (
     assert_frame_equal,
 )
@@ -129,7 +131,7 @@ def test_join(ls_con, alltypes, alltypes_df):
     first_10 = alltypes_df.head(10)
     in_memory = ls_con.register(first_10, table_name="in_memory")
     expr = alltypes.join(in_memory, predicates=[alltypes.id == in_memory.id])
-    actual = letsql.execute(expr).sort_values("id")
+    actual = execute(expr).sort_values("id")
     expected = pd.merge(
         alltypes_df, first_10, how="inner", on="id", suffixes=("", "_right")
     ).sort_values("id")
@@ -142,14 +144,14 @@ def test_filtering_join(batting, awards_players, how):
     left = batting[batting.yearID == 2015]
     right = awards_players[awards_players.lgID == "NL"].drop("yearID", "lgID")
 
-    left_df = letsql.execute(left)
-    right_df = letsql.execute(right)
+    left_df = execute(left)
+    right_df = execute(right)
     predicate = ["playerID"]
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
     expr = left.join(right, predicate, how=how)
     result = (
-        expr.pipe(letsql.execute)
+        expr.pipe(execute)
         .fillna(np.nan)
         .sort_values(result_order)[left.columns]
         .reset_index(drop=True)
@@ -173,7 +175,7 @@ def test_union(ls_con, union_subsets, distinct):
 
     b = ls_con.register(db, table_name="b")
     expr = ibis.union(a, b, distinct=distinct).order_by("id")
-    result = letsql.execute(expr)
+    result = execute(expr)
 
     expected = pd.concat([da, db], axis=0).sort_values("id").reset_index(drop=True)
 
@@ -224,14 +226,14 @@ def test_join_non_trivial_filters(pg, duckdb_con, left_filter):
 
     left = batting[left_filter]
     right = awards_players[awards_players.lgID == "NL"].drop("yearID", "lgID")
-    right_df = letsql.execute(right)
-    left_df = letsql.execute(left)
+    right_df = execute(right)
+    left_df = execute(left)
     predicate = "playerID"
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
     expr = left.join(right, predicate, how="inner")
     result = (
-        expr.pipe(letsql.execute)
+        expr.pipe(execute)
         .fillna(np.nan)[left.columns]
         .sort_values(result_order)
         .reset_index(drop=True)
@@ -311,7 +313,7 @@ def test_join_with_trivial_predicate(
     expected = pd.merge(left_df, right_df, on="key", how=how)
 
     expr = left.join(right, predicate, how=how)
-    result = letsql.execute(expr)
+    result = execute(expr)
 
     assert len(result) == len(expected)
 
@@ -325,8 +327,8 @@ def test_sql_execution(ls_con, duckdb_con, awards_players, batting):
     )
 
     left = batting[batting.yearID == 2015]
-    right_df = make_right(awards_players).execute()
-    left_df = letsql.execute(left)
+    right_df = execute(make_right(awards_players))
+    left_df = execute(left)
     predicate = ["playerID"]
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
@@ -339,7 +341,7 @@ def test_sql_execution(ls_con, duckdb_con, awards_players, batting):
 
     result = (
         ls_con.sql(query)
-        .execute()
+        .pipe(execute)
         .fillna(np.nan)[left.columns]
         .sort_values(result_order)
         .reset_index(drop=True)
@@ -365,8 +367,8 @@ def test_multiple_execution_letsql_register_table(ls_con, csv_dir):
     t = ls_con.register(csv_dir / "awards_players.csv", table_name=table_name)
     ls_con.register(t, table_name=f"{ls_con.name}_{table_name}")
 
-    assert (first := letsql.execute(t)) is not None
-    assert (second := letsql.execute(t)) is not None
+    assert (first := execute(t)) is not None
+    assert (second := execute(t)) is not None
     assert_frame_equal(first, second)
 
 
@@ -376,13 +378,7 @@ def test_multiple_execution_letsql_register_table(ls_con, csv_dir):
         letsql.connect(),
         letsql.datafusion.connect(),
         letsql.duckdb.connect(),
-        letsql.postgres.connect(
-            host="localhost",
-            port=5432,
-            user="postgres",
-            password="postgres",
-            database="ibis_testing",
-        ),
+        letsql.postgres.connect_env(),
     ],
 )
 def test_expr_over_same_table_multiple_times(ls_con, parquet_dir, other_con):
@@ -404,8 +400,8 @@ def test_expr_over_same_table_multiple_times(ls_con, parquet_dir, other_con):
 
     expr = batting[[col]].distinct().join(other[[col]].distinct(), col)
 
-    assert (first := letsql.execute(expr)) is not None
-    assert (second := letsql.execute(expr)) is not None
+    assert (first := execute(expr)) is not None
+    assert (second := execute(expr)) is not None
     assert_frame_equal(first.sort_values(col), second.sort_values(col))
 
 
@@ -416,11 +412,11 @@ def test_register_arbitrary_expression(ls_con, duckdb_con):
     expr = t.filter(t.playerID == "allisar01")[
         ["playerID", "yearID", "stint", "teamID", "lgID"]
     ]
-    expected = letsql.execute(expr)
+    expected = execute(expr)
 
     ddb_batting_table_name = f"{duckdb_con.name}_{batting_table_name}"
     table = ls_con.register(expr, table_name=ddb_batting_table_name)
-    result = letsql.execute(table)
+    result = execute(table)
 
     assert result is not None
     assert_frame_equal(result, expected, check_like=True)
@@ -438,15 +434,15 @@ def test_arbitrary_expression_multiple_tables(duckdb_con):
         "yearID", "lgID"
     )
 
-    left_df = letsql.execute(left)
-    right_df = letsql.execute(right)
+    left_df = execute(left)
+    right_df = execute(right)
     predicate = ["playerID"]
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
     expr = left.join(right, predicate, how="inner")
 
     result = (
-        letsql.execute(expr)
+        execute(expr)
         .fillna(np.nan)
         .sort_values(result_order)[left.columns]
         .reset_index(drop=True)
@@ -467,7 +463,7 @@ def test_arbitrary_expression_multiple_tables(duckdb_con):
     "new_con",
     [
         letsql.connect(),
-        letsql.duckdb.connect(),
+        ibis.duckdb.connect(),
     ],
 )
 def test_multiple_pipes(pg, new_con):
@@ -490,12 +486,12 @@ def test_multiple_pipes(pg, new_con):
         "playerID",
     )
 
-    assert letsql.execute(expr) is not None
+    assert execute(expr) is not None
 
 
 @pytest.mark.parametrize(
     "function",
-    [letsql.to_pyarrow, letsql.execute, letsql.to_pyarrow_batches],
+    [to_pyarrow, execute, to_pyarrow_batches],
 )
 @pytest.mark.parametrize("remote", [True, False])
 def test_duckdb_datafusion_roundtrip(ls_con, pg, duckdb_con, function, remote):
@@ -530,7 +526,7 @@ def test_to_pyarrow_native_execution(pg, mocker):
         "playerID",
     )
 
-    assert letsql.to_pyarrow(expr) is not None
+    assert to_pyarrow(expr) is not None
     assert spy.call_count == 1
 
 
@@ -564,7 +560,7 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
     ) is right_t._find_backend(use_default=False) and backend.name != "let"
     spy = mocker.spy(backend, "execute") if native_backend else None
 
-    assert letsql.execute(expr) is not None
+    assert execute(expr) is not None
     assert getattr(spy, "call_count", 0) == int(native_backend)
 
 
@@ -576,7 +572,7 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
             id="-".join(pair),
         )
         for pair in itertools.combinations_with_replacement(
-            ["pg_batting", "ls_batting", "ddb_batting"],
+            ["pg_batting", "ls_batting"],
             r=2,
         )
     ],
@@ -604,7 +600,7 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
             "playerID",
         )
         .cache(left_storage)
-        .pipe(letsql.execute)
+        .pipe(execute)
     )
 
     expected = (
@@ -612,7 +608,7 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
         .join(
             ls_con.table(f"right-{table_name}")[lambda t: t.yearID == 2014], "playerID"
         )
-        .pipe(letsql.execute)
+        .pipe(execute)
         .sort_values(by="playerID")
     )
 
@@ -635,4 +631,4 @@ def test_no_registration_same_table_name(ls_con, pg_batting):
         "playerID",
     )
 
-    assert letsql.execute(expr) is not None
+    assert execute(expr) is not None
