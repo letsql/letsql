@@ -319,6 +319,10 @@ def normalize_expr(expr):
     if mem_dts := op.find(ir.InMemoryTable):
         # these should have been replaced by the time we get to them
         raise ValueError(f"{mem_dts}")
+
+    if isinstance(op, RemoteTable):
+        return normalize_remote_table(op)
+
     reads = op.find(Read)
     dts = op.find(ir.DatabaseTable)
     udfs = op.find((AggUDF, ScalarUDF))

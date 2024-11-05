@@ -99,7 +99,7 @@ class RemoteTableReplacer:
                 try:
                     if v in self.tables:
                         remote: RemoteTableCounter = self.tables[v]
-                        name = f"{next(remote.count)}_{v.name}"
+                        name = f"pre_{next(remote.count)}_{v.name}"
                         kwargs[k] = DatabaseTable(
                             name,
                             schema=v.schema,
@@ -109,9 +109,7 @@ class RemoteTableReplacer:
 
                         batches = self.get_batches(remote.remote_expr)
                         if isinstance(remote.source, PGBackend):
-                            remote.source.read_record_batches(
-                                batches, table_name=name, temporary=True
-                            )
+                            remote.source.read_record_batches(batches, table_name=name)
                         else:
                             remote.source.register(batches, table_name=name)
                         updated[v] = kwargs[k]
