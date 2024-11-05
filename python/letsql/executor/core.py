@@ -33,7 +33,7 @@ def recursive_update(obj, replacements):
 def find_backend(op: ops.Node) -> tuple[BaseBackend, bool]:
     backends = set()
     has_unbound = False
-    node_types = (ops.UnboundTable, ops.DatabaseTable, ops.SQLQueryResult)
+    node_types = (ops.UnboundTable, ops.DatabaseTable, ops.SQLQueryResult, CachedNode)
     for table in op.find(node_types):
         if isinstance(table, ops.UnboundTable):
             has_unbound = True
@@ -106,7 +106,7 @@ def _sort(op, parent, keys):
     return op.__recreate__({"parent": parent, "keys": keys})
 
 
-@collect_.register(ops.Set)
+# @collect_.register(ops.Set) disable temporarily
 def _set_op(op, left, right, distinct):
     kwargs = {"left": left, "right": right, "distinct": distinct}
     source, _ = find_backend(left)
@@ -181,7 +181,7 @@ def _sort_key(op, expr, **kwargs):
     return op.__recreate__({"expr": expr, **kwargs})
 
 
-@collect_.register(ops.JoinChain)
+# @collect_.register(ops.JoinChain) disable temporarily
 def _join_project(op, first, rest, values):
     kwargs = {"first": first, "rest": rest, "values": values}
     source, _ = find_backend(first)
@@ -217,7 +217,8 @@ def _cached_node(op, schema, parent, source, storage):
                 "source": first.name,
                 "sink": other.name,
             }
-        )  # create a unique name based on the RemoteTable, otherwise it changes on each execute
+        )  # create a unique name based on the RemoteTable, otherwise it changes on each execute and caching is not possible
+        # because the SQL changes, changing the output of the key
         table = RemoteTable.from_expr(other, expr, name=name)
         return CachedNode(schema=schema, parent=table, source=other, storage=storage)
     else:
@@ -233,12 +234,6 @@ def _cached_node(op, schema, parent, source, storage):
 # TODO keep track of every table created
 # TODO implement recursive collect for into_backend
 # TODO optimize to make the minimum data movement when there are more than 2 available backend
-# TODO using an identifier won't work the solution is to use a _register_remote_tables before caching and
-# TODO _register_and_transform_remote_tables after caching
-# TODO like the following
-# TODO _register_and_transform_cache_tables (with _register_remote_tables)
-# TODO _register_and_transform_remote_tables
-# TODO create dispatch based for registering batches
 
 
 def _register_and_transform_remote_tables(node):

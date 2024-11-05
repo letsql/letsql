@@ -9,13 +9,13 @@ import pytest
 from pytest import param
 
 import letsql
+from letsql.common.caching import SourceStorage
 from letsql.executor import execute
 from letsql.executor.core import to_pyarrow_batches, to_pyarrow
+from letsql.expr.relations import into_backend
 from letsql.tests.util import (
     assert_frame_equal,
 )
-from letsql.common.caching import SourceStorage
-
 
 KEY_PREFIX = letsql.config.options.cache.key_prefix
 
@@ -129,7 +129,9 @@ def ddb_batting(duckdb_con):
 
 def test_join(ls_con, alltypes, alltypes_df):
     first_10 = alltypes_df.head(10)
-    in_memory = ls_con.register(first_10, table_name="in_memory")
+    in_memory = into_backend(
+        ls_con.register(first_10, table_name="in_memory"), alltypes.op().source
+    )
     expr = alltypes.join(in_memory, predicates=[alltypes.id == in_memory.id])
     actual = execute(expr).sort_values("id")
     expected = pd.merge(
@@ -231,7 +233,7 @@ def test_join_non_trivial_filters(pg, duckdb_con, left_filter):
     predicate = "playerID"
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
-    expr = left.join(right, predicate, how="inner")
+    expr = left.join(into_backend(right, pg), predicate, how="inner")
     result = (
         expr.pipe(execute)
         .fillna(np.nan)[left.columns]
@@ -295,7 +297,7 @@ def test_join_non_trivial_filters(pg, duckdb_con, left_filter):
     ],
 )
 def test_join_with_trivial_predicate(
-    duckdb_con, awards_players, predicate, how, pandas_value
+    duckdb_con, pg, awards_players, predicate, how, pandas_value
 ):
     ddb_players = duckdb_con.table("ddb_players")
 
@@ -312,7 +314,7 @@ def test_join_with_trivial_predicate(
 
     expected = pd.merge(left_df, right_df, on="key", how=how)
 
-    expr = left.join(right, predicate, how=how)
+    expr = left.join(into_backend(right, pg), predicate, how=how)
     result = execute(expr)
 
     assert len(result) == len(expected)
@@ -462,7 +464,7 @@ def test_arbitrary_expression_multiple_tables(duckdb_con):
 @pytest.mark.parametrize(
     "new_con",
     [
-        letsql.connect(),
+        ibis.datafusion.connect(),
         ibis.duckdb.connect(),
     ],
 )
@@ -482,7 +484,7 @@ def test_multiple_pipes(pg, new_con):
     ]
 
     expr = pg_t.join(
-        db_t,
+        into_backend(db_t, pg),
         "playerID",
     )
 
@@ -506,7 +508,7 @@ def test_duckdb_datafusion_roundtrip(ls_con, pg, duckdb_con, function, remote):
     ]
 
     expr = pg_t.join(
-        db_t,
+        into_backend(db_t, pg if remote else ls_con),
         "playerID",
     )
 
@@ -546,19 +548,23 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
     left_t = (left if not isinstance(left, PosixPath) else ls_con.read_parquet(left))[
         lambda t: t.yearID == 2015
     ]
+    left_backend = left_t._find_backend(use_default=False)
+
     right_t = (
         right if not isinstance(right, PosixPath) else ls_con.read_parquet(right)
     )[lambda t: t.yearID == 2014]
+    right_backend = right_t._find_backend(use_default=False)
 
+    # FIXME there seems to be an issue when doing into_backend from duckdb into duckdb
     expr = left_t.join(
-        right_t,
+        into_backend(right_t, left_backend)
+        if right_backend is not left_backend
+        else right_t,
         "playerID",
     )
 
-    native_backend = (
-        backend := left_t._find_backend(use_default=False)
-    ) is right_t._find_backend(use_default=False) and backend.name != "let"
-    spy = mocker.spy(backend, "execute") if native_backend else None
+    native_backend = left_backend is right_backend and left_backend.name != "let"
+    spy = mocker.spy(left_backend, "execute") if native_backend else None
 
     assert execute(expr) is not None
     assert getattr(spy, "call_count", 0) == int(native_backend)
@@ -582,6 +588,7 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
 
     table_name = "batting"
     left, right = map(request.getfixturevalue, tables)
+    source = right.op().source
 
     left_storage = SourceStorage(source=left.op().source)
     right_storage = SourceStorage(source=right.op().source)
@@ -596,7 +603,7 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
 
     actual = (
         left_t.join(
-            right_t,
+            into_backend(right_t, source),
             "playerID",
         )
         .cache(left_storage)
