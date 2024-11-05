@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 import letsql as ls
+from letsql.executor import execute
 
 
 def test_read_csv(con):
@@ -11,7 +12,7 @@ def test_read_csv(con):
     assert table_name not in con.tables
     t = con.read_csv(path, table_name)
     assert table_name in con.tables
-    assert ls.execute(t).equals(pd.read_csv(path))
+    assert execute(t).equals(pd.read_csv(path))
 
 
 def test_read_csv_raises(con):
@@ -33,7 +34,7 @@ def test_read_csv_temporary(con):
     assert table_name not in con.tables
     t = con.read_csv(path, temporary=True)
     assert t.op().name in con.tables
-    assert ls.execute(t).equals(pd.read_csv(path))
+    assert execute(t).equals(pd.read_csv(path))
 
 
 def test_read_csv_named_temporary(con):
@@ -44,7 +45,7 @@ def test_read_csv_named_temporary(con):
     t = con.read_csv(path, table_name, temporary=True)
     assert table_name == t.op().name
     assert table_name in con.tables
-    assert ls.execute(t).equals(pd.read_csv(path))
+    assert execute(t).equals(pd.read_csv(path))
 
 
 def test_read_parquet(con):
@@ -54,7 +55,7 @@ def test_read_parquet(con):
     assert table_name not in con.tables
     t = con.read_parquet(path, table_name)
     assert table_name in con.tables
-    assert ls.execute(t).equals(pd.read_parquet(path))
+    assert execute(t).equals(pd.read_parquet(path))
 
 
 def test_read_parquet_raises(con):
@@ -76,7 +77,7 @@ def test_read_parquet_temporary(con):
     assert table_name not in con.tables
     t = con.read_parquet(path, temporary=True)
     assert t.op().name in con.tables
-    assert ls.execute(t).equals(pd.read_parquet(path))
+    assert execute(t).equals(pd.read_parquet(path))
 
 
 def test_read_parquet_named_temporary(con):
@@ -87,4 +88,4 @@ def test_read_parquet_named_temporary(con):
     t = con.read_parquet(path, table_name, temporary=True)
     assert table_name == t.op().name
     assert table_name in con.tables
-    assert ls.execute(t).equals(pd.read_parquet(path))
+    assert execute(t).equals(pd.read_parquet(path))

@@ -25,6 +25,8 @@ from letsql.common.utils.defer_utils import (
 from letsql.common.utils.inspect_utils import (
     get_partial_arguments,
 )
+from letsql.executor import execute
+from letsql.executor.core import split_cache
 
 
 @frozen
@@ -142,7 +144,7 @@ def test_deferred_read(con, pins_resource, request):
     pins_resource = request.getfixturevalue(pins_resource)
     assert pins_resource.table_name not in con.tables
     t = pins_resource.deferred_reader(con, pins_resource.path, pins_resource.table_name)
-    assert ls.execute(t).equals(pins_resource.df)
+    assert execute(t).equals(pins_resource.df)
     assert pins_resource.table_name in con.tables
     # is this a test of mode for postgres?
     if con.name != "pandas":
@@ -151,7 +153,7 @@ def test_deferred_read(con, pins_resource, request):
             ProgrammingError,
             match=f'relation "{pins_resource.table_name}" already exists',
         ):
-            assert ls.execute(t).equals(pins_resource.df)
+            assert execute(t).equals(pins_resource.df)
     con.drop_table(pins_resource.table_name, force=True)
     assert pins_resource.table_name not in tuple(con.tables)
 
@@ -167,7 +169,7 @@ def test_deferred_read_temporary(con, pins_resource, request):
     pins_resource = request.getfixturevalue(pins_resource)
     t = pins_resource.deferred_reader(con, pins_resource.path, None, temporary=True)
     table_name = t.op().name
-    assert ls.execute(t).equals(pins_resource.df)
+    assert execute(t).equals(pins_resource.df)
     assert table_name in con.tables
     con.drop_table(table_name)
     assert table_name not in con.tables
@@ -191,49 +193,50 @@ def test_cached_deferred_read(con, pins_resource, filter_, request, tmp_path):
     df = pins_resource.df[filter_].reset_index(drop=True)
     t = pins_resource.deferred_reader(con, pins_resource.path, pins_resource.table_name)
     expr = t[filter_].cache(storage=storage)
+    uncached_expr = split_cache(expr).parent.to_expr()
 
     # no work is done yet
     assert pins_resource.table_name not in con.tables
     assert not storage.exists(expr)
 
     # something exists in both con and storage
-    assert ls.execute(expr).equals(df)
+    assert execute(expr).equals(df)
     assert pins_resource.table_name in con.tables
-    assert storage.exists(expr)
+    assert storage.exists(uncached_expr)
 
     # we read from cache even if the table disappears
     con.drop_table(t.op().name, force=True)
-    assert ls.execute(expr).equals(df)
+    assert execute(expr).equals(df)
     assert pins_resource.table_name not in con.tables
 
     # we repopulate the cache
-    storage.drop(expr)
-    assert ls.execute(expr).equals(df)
+    storage.drop(uncached_expr)
+    assert execute(expr).equals(df)
     assert pins_resource.table_name in con.tables
-    assert storage.exists(expr)
+    assert storage.exists(uncached_expr)
 
     if con.name == "postgres":
         # we are mode="create" by default, which means losing cache creates collision
         mode = get_partial_arguments(pins_resource.get_underlying_method(con))["mode"]
         assert mode == "create"
-        storage.drop(expr)
+        storage.drop(uncached_expr)
         with pytest.raises(
             ProgrammingError,
             match=f'relation "{pins_resource.table_name}" already exists',
         ):
-            ls.execute(expr)
+            execute(expr)
 
         # with mode="replace" we can clobber
         t = pins_resource.deferred_reader(
             con, pins_resource.path, pins_resource.table_name, mode="replace"
         )
         expr = t[filter_].cache(storage=storage)
-        assert ls.execute(expr).equals(df)
-        assert storage.exists(expr)
+        assert execute(expr).equals(df)
+        assert storage.exists(uncached_expr)
         assert pins_resource.table_name in con.tables
         # this fails above, but works here because of mode="replace"
-        storage.drop(expr)
-        assert ls.execute(expr).equals(df)
+        storage.drop(uncached_expr)
+        assert execute(expr).equals(df)
 
 
 @pytest.mark.parametrize(
@@ -251,19 +254,21 @@ def test_cached_csv_mutate(con, iris_csv, tmp_path):
     kwargs = {"mode": "replace"} if con.name == "postgres" else {}
     t = iris_csv.deferred_reader(con, target_path, iris_csv.table_name, **kwargs)
     expr = t.cache(storage=storage)
+    uncached_expr = split_cache(expr).parent.to_expr()
 
     # nothing exists yet
     assert iris_csv.table_name not in con.tables
     assert not storage.exists(expr)
 
     # initial cache population
-    assert ls.execute(expr).equals(df)
+    assert execute(expr).equals(df)
     assert iris_csv.table_name in con.tables
-    assert storage.exists(expr)
+    assert storage.exists(uncached_expr)
 
     # mutate
     mutate_csv(target_path)
     df = iris_csv.immediate_reader(target_path)
-    assert not storage.exists(expr)
-    assert ls.execute(expr).equals(df)
-    assert storage.exists(expr)
+    assert not storage.exists(uncached_expr)
+    assert execute(expr).equals(df)
+    uncached_expr = split_cache(expr).parent.to_expr()
+    assert storage.exists(uncached_expr)

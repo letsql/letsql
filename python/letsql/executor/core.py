@@ -5,7 +5,7 @@ from ibis import BaseBackend
 from ibis.expr import operations as ops
 from ibis.expr import types as ir
 
-from letsql.expr.relations import RemoteTable, CachedNode, RemoteTableReplacer
+from letsql.expr.relations import RemoteTable, CachedNode, RemoteTableReplacer, Read
 
 
 def recursive_update(obj, replacements):
@@ -33,7 +33,13 @@ def recursive_update(obj, replacements):
 def find_backend(op: ops.Node) -> tuple[BaseBackend, bool]:
     backends = set()
     has_unbound = False
-    node_types = (ops.UnboundTable, ops.DatabaseTable, ops.SQLQueryResult, CachedNode)
+    node_types = (
+        ops.UnboundTable,
+        ops.DatabaseTable,
+        ops.SQLQueryResult,
+        CachedNode,
+        Read,
+    )
     for table in op.find(node_types):
         if isinstance(table, ops.UnboundTable):
             has_unbound = True
@@ -251,25 +257,49 @@ def _register_and_transform_cache_tables(op):
         if isinstance(node, CachedNode):
             uncached, storage = node.parent, node.storage
 
-            replacer = RemoteTableReplacer()
-            uncached_value = uncached.replace(replacer)
-            created.update(replacer.created)
-
-            node = storage.set_default(uncached.to_expr(), uncached_value)
+            key = storage.get_key(uncached.to_expr())
+            if not storage.key_exists(key):
+                replacer = RemoteTableReplacer()
+                uncached_value = uncached.replace(replacer)
+                created.update(replacer.created)
+                node = storage.storage._put(key, uncached_value)
+            else:
+                node = storage.storage._get(key)
+            # node = storage.set_default(uncached.to_expr(), uncached_value)
         return node
 
     out = op.replace(fn)
 
     for table, con in created.items():
         try:
-            con.drop_table(table)
+            con.drop_table(table, force=True)
         except Exception:
             try:
-                con.drop_view(table)
+                con.drop_view(table, force=True)
             except Exception:
                 pass
 
     return out
+
+
+def _transform_deferred_reads(op):
+    dt_to_read = {}
+
+    def replace_read(node, _, **_kwargs):
+        from letsql.expr.relations import Read
+
+        if isinstance(node, Read):
+            if node.source.name == "pandas":
+                # FIXME: pandas read is not lazy, leave it to the pandas executor to do
+                node = dt_to_read[node] = node.make_dt()
+            else:
+                node = dt_to_read[node] = node.make_dt()
+        else:
+            node = node.__recreate__(_kwargs)
+        return node
+
+    expr = op.replace(replace_read)
+    return expr, dt_to_read
 
 
 def split_cache(expr):
@@ -288,6 +318,7 @@ def _preprocess(expr):
     node = split_cache(expr)
     node = _register_and_transform_cache_tables(node)
     node, _ = _register_and_transform_remote_tables(node)
+    node, _ = _transform_deferred_reads(node)
     return node
 
 
