@@ -1,11 +1,15 @@
 import functools
+import itertools
 from typing import Any
 
 import dask
 from ibis.expr import operations as ops
+from ibis.expr.operations import DatabaseTable
 
-from letsql.executor.utils import find_backend
+from letsql.executor.utils import find_backend, SafeTee
 from letsql.expr.relations import RemoteTable, CachedNode, Read
+
+import pyarrow as pa
 
 
 def _recursive_lookup(obj: Any, dct: dict) -> Any:
@@ -64,22 +68,50 @@ def _recursive_lookup(obj: Any, dct: dict) -> Any:
         return obj
 
 
+def _get_batches(schema, batches):
+    return pa.RecordBatchReader.from_batches(schema.to_pyarrow(), batches)
+
+
+class RemoteTableTransformer:
+    def __init__(self):
+        self.seen = {}  # the keys are the rt and the values are a tuple of batches and counter
+
+    def __call__(self, node: RemoteTable, **kwargs) -> Any:
+        from letsql.backends.postgres import Backend as PGBackend
+
+        node = node.__recreate__(kwargs)
+
+        if node in self.seen:
+            batches, counter, schema = self.seen[node]
+        else:
+            schema = node.remote_expr.as_table().schema()
+            batches = node.remote_expr.to_pyarrow_batches()
+            counter = itertools.count()
+
+        batches, keep = SafeTee.tee(batches, 2)
+        batches = _get_batches(schema, batches)
+        name = f"clone_{next(counter)}_{node.name}"
+        result = DatabaseTable(
+            name,
+            schema=node.schema,
+            source=node.source,
+            namespace=node.namespace,
+        )
+        if isinstance(node.source, PGBackend):
+            node.source.read_record_batches(batches, table_name=name)
+        else:
+            node.source.register(batches, table_name=name)
+
+        self.seen[node] = keep, counter, schema
+        return result
+
+
 @functools.singledispatch
 def transform(op, **kwargs):
     return op.__recreate__(kwargs)
 
 
-@transform.register(RemoteTable)
-def transform_remote_table(op, name, schema, source, namespace, remote_expr):
-    kwargs = {
-        "name": name,
-        "schema": schema,
-        "source": source,
-        "namespace": namespace,
-        "remote_expr": remote_expr,
-    }
-    node = op.__recreate__(kwargs)
-    return node
+transform.register(RemoteTable, RemoteTableTransformer())
 
 
 @transform.register(CachedNode)
