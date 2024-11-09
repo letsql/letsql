@@ -23,7 +23,7 @@ arrow = ">=52.2.0, <54"
 gbdt = { git = "https://github.com/letsql/gbdt-rs.git", rev = "8262de1d20ab6dc7c7e6778b243578d190fb6a62" }
 parking_lot = { version = "0.12" }
 arrow-ord = ">=52.2.0, <54"
-datafusion-functions-aggregate = { version = ">=40.0.0,<43" }
+datafusion-functions-aggregate = { version = ">=40.0.0, <44" }
 aws-config = "0.55"
 aws-credential-types = "0.55"
 object_store = { version = "0.11.0", features = ["aws", "gcp", "http"] }
