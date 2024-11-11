@@ -3,6 +3,7 @@ import ibis
 import letsql as ls
 from letsql.common.caching import SourceStorage, ParquetCacheStorage
 from letsql.executor.segment import segment
+from letsql.executor.transform import make_segment
 from letsql.expr.relations import into_backend
 
 
@@ -21,7 +22,7 @@ def _format(graph: list) -> list[str]:
 
 
 def test_segment(pg):
-    con = ls.connect()
+    con = ibis.duckdb.connect()
     t = into_backend(pg.table("batting"), con, "ls_batting")
 
     expr = (
@@ -139,3 +140,25 @@ def test_segment_into_backend_multiple_cache(pg, tmp_path):
         [],
     ]
     assert actual == expected
+
+
+def test_rt_graph_multiple_cache(pg, tmp_path):
+    con = ls.connect()
+    ddb_con = ibis.duckdb.connect()
+
+    t = into_backend(pg.table("batting"), con, "ls_batting")
+
+    expr = (
+        t.join(t, "playerID")  # rt
+        .order_by("playerID", "yearID_right")
+        .limit(15)
+        .pipe(into_backend, ddb_con)  # rt
+        .select(player_id="playerID", year_id="yearID_right")
+    )
+
+    dag = make_segment(expr.op())
+    print()
+    for key, values in dag.items():
+        print(key)
+        for val in values:
+            print(" " * 5, val.name, val)

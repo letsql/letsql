@@ -1,68 +1,40 @@
 import functools
 import itertools
+from collections import deque, defaultdict
 from typing import Any
 
 import dask
+import ibis
+import pyarrow as pa
+import sqlglot.expressions as sge
 from ibis.expr import operations as ops
-from ibis.expr.operations import DatabaseTable
+from ibis.expr.operations import DatabaseTable, SQLQueryResult
 
 from letsql.executor.utils import find_backend, SafeTee
 from letsql.expr.relations import RemoteTable, CachedNode, Read
 
-import pyarrow as pa
 
-
-def _recursive_lookup(obj: Any, dct: dict) -> Any:
-    """Recursively replace objects in a nested structure with values from a dict.
-
-    Since we treat common collection types inherently traversable, so we need to
-    traverse them implicitly and replace the values given a result mapping.
-
-    Parameters
-    ----------
-    obj
-        Object to replace.
-    dct
-        Mapping of objects to replace with their values.
-
-    Returns
-    -------
-    Object with replaced values.
-
-    Examples
-    --------
-    >>> from ibis.common.collections import frozendict
-    >>> from ibis.common.grounds import Concrete
-    >>> from ibis.common.graph import Node
-    >>>
-    >>> class MyNode(Concrete, Node):
-    ...     number: int
-    ...     string: str
-    ...     children: tuple[Node, ...]
-    >>> a = MyNode(4, "a", ())
-    >>>
-    >>> b = MyNode(3, "b", ())
-    >>> c = MyNode(2, "c", (a, b))
-    >>> d = MyNode(1, "d", (c,))
-    >>>
-    >>> dct = {a: "A", b: "B"}
-    >>> _recursive_lookup(a, dct)
-    'A'
-    >>> _recursive_lookup((a, b), dct)
-    ('A', 'B')
-    >>> _recursive_lookup({1: a, 2: b}, dct)
-    {1: 'A', 2: 'B'}
-    >>> _recursive_lookup((a, frozendict({1: c})), dct)
-    ('A', {1: MyNode(number=2, ...)})
-
-    """
+def recursive_update(obj, replacements):
     if isinstance(obj, ops.Node):
-        return dct.get(obj, obj)
+        if isinstance(obj, RemoteTable):
+            return transform(
+                obj,
+            )
+        elif obj in replacements:
+            return replacements[obj]
+        else:
+            return obj.__recreate__(
+                {
+                    name: recursive_update(arg, replacements)
+                    for name, arg in zip(obj.argnames, obj.args)
+                }
+            )
     elif isinstance(obj, (tuple, list)):
-        return tuple(_recursive_lookup(o, dct) for o in obj)
+        return tuple(recursive_update(o, replacements) for o in obj)
     elif isinstance(obj, dict):
         return {
-            _recursive_lookup(k, dct): _recursive_lookup(v, dct) for k, v in obj.items()
+            recursive_update(k, replacements): recursive_update(v, replacements)
+            for k, v in obj.items()
         }
     else:
         return obj
@@ -142,18 +114,44 @@ def transform_read(op, **kwargs):
     return op.make_dt()
 
 
+def sg_replace(sg_expr, replacements):
+    for name, tables in replacements.items():
+        target = sge.Identifier(this=name, quoted=True)
+        for e in (e for e in sg_expr.find_all(sge.Identifier) if e == target):
+            new = sge.Identifier(
+                this=tables.pop().name,
+                quoted=True,
+            )
+            e.replace(new)
+
+
 def transform_frame(frame, results=None):
-    if results is None:
-        results = {}
+    def replacer(node, _, **kwargs):
+        # we replace the op with unbound so we can invoke _to_sqlglot
+        if isinstance(node, RemoteTable):
+            return ibis.table(node.schema, node.name).op()
+        else:
+            return node.__recreate__(kwargs)
 
-    for node in frame:
-        kwargs = {
-            k: _recursive_lookup(v, results)
-            for k, v in zip(node.__argnames__, node.__args__)
-        }
-        results[node] = transform(node, **kwargs)
+    nodes = deque(frame[:])
+    tables = defaultdict(list)
+    while nodes:
+        if isinstance(nodes[0], RemoteTable):
+            node = nodes.popleft()
+            table = transform(node, **dict(zip(node.argnames, node.args)))
+            tables[node.name].append(table)
+        else:
+            break
 
-    return results[frame[-1]]
+    if nodes:
+        node = nodes[-1]
+        expr = node.to_expr()
+        backend = expr._find_backend()
+        sg_expr = backend.compiler.to_sqlglot(node.replace(replacer).to_expr())
+        sg_replace(sg_expr, tables)
+        return SQLQueryResult(query=sg_expr.sql(), schema=node.schema, source=backend)
+    else:
+        return node
 
 
 def get_val(cache: CachedNode | None) -> ops.Node | None:
@@ -185,3 +183,48 @@ def transform_plan(plan):
         node = transform_frame(frame, replacements)
 
     return node
+
+
+def make_segment(node: ops.Node) -> dict[ops.Node, list[ops.Node]]:
+    dag = {}
+    children = list(node.find(RemoteTable))
+
+    dag[node] = children
+    for child in children:
+        nested = child.remote_expr.op()
+        if nested.find(RemoteTable):
+            dag.update(make_segment(nested))
+
+    return dag
+
+
+def transform_make_segment(node: ops.Node):
+    segments = make_segment(node)
+    for key, tables in segments.items():
+        sg_expr, backend = get_sql(key)
+
+        replacements = defaultdict(list)
+        for table in tables:
+            kwargs = dict(zip(table.argnames, table.args))
+            replacements[table.name].append(transform(table, **kwargs))
+
+        sg_replace(sg_expr, segments)
+
+        SQLQueryResult(query=sg_expr.sql(), schema=node.schema, source=backend)
+
+
+# def to_pyarrow_batches(expr):
+
+
+def get_sql(node):
+    def replacer(node, _, **kwargs):
+        # we replace the op with unbound so we can invoke _to_sqlglot
+        if isinstance(node, RemoteTable):
+            return ibis.table(node.schema, node.name).op()
+        else:
+            return node.__recreate__(kwargs)
+
+    backend = node.to_expr()._find_backend()
+    node = node.replace(replacer)
+    sg_expr = backend.compiler.to_sqlglot(node.replace(replacer).to_expr())
+    return sg_expr, backend
