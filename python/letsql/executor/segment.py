@@ -2,6 +2,7 @@ from collections import deque
 from itertools import chain
 
 import dask
+import ibis
 from ibis.expr import operations as ops
 
 from letsql.executor.utils import find_backend
@@ -63,6 +64,7 @@ def nest(lst):
 
 
 def segment(node: ops.Node):
+    node = replace_cross_source_cached_nodes(node)
     graph = make_graph(node)
 
     dependents = set(chain.from_iterable(graph.values()))
@@ -79,16 +81,22 @@ def segment(node: ops.Node):
             for child in graph[no]:
                 stack.appendleft(child)
                 if isinstance(child, (RemoteTable, CachedNode)) or (
-                    (no in result) and isinstance(no, CachedNode)
+                    (no in result) and isinstance(no, (RemoteTable, CachedNode))
                 ):
                     result.appendleft(child)
 
     return nest(list(result))
 
 
-def make_graph(node: ops.Node):
-    node = replace_cross_source_cached_nodes(node)
+def make_rt_graph(node: ops.Node):
+    ibis.to_sql(node.to_expr())
 
+    dag = {}
+
+    return dag
+
+
+def make_graph(node: ops.Node):
     dag = {}
 
     if isinstance(node, RemoteTable):
@@ -117,6 +125,9 @@ def make_graph(node: ops.Node):
             remote_expr_op = table.remote_expr.op()
             dag[table] = [remote_expr_op]
             dag.update(make_graph(remote_expr_op))
+
+    if len(dag) == 0:
+        dag[node] = []
 
     return dag
 
