@@ -1,5 +1,5 @@
 import letsql as ls
-from letsql.backends.datafusion import Backend
+from letsql.backends.let.datafusion import Backend
 
 
 def test_version():
