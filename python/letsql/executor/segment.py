@@ -1,7 +1,10 @@
 from collections import defaultdict, Counter
 from itertools import chain
 from operator import methodcaller
+from pathlib import Path
+from typing import Any
 
+import dask
 import ibis
 import sqlglot.expressions as sge
 from ibis.expr import operations as ops
@@ -9,7 +12,7 @@ from ibis.expr import types as ir
 from ibis.expr.operations import SQLQueryResult
 
 from letsql.executor.utils import find_backend, SafeTee
-from letsql.expr.relations import RemoteTable, CachedNode
+from letsql.expr.relations import RemoteTable, CachedNode, Read
 import pyarrow as pa
 
 
@@ -30,6 +33,36 @@ def _get_root(graph: dict[ops.Node, list[ops.Node]]) -> ops.Node:
     candidates = set(graph.keys()) - set(chain.from_iterable(graph.values()))
     assert len(candidates) == 1
     return candidates.pop()
+
+
+def transform_cached_node(op, _, **kwargs):
+    op = op.__recreate__(kwargs)
+
+    if isinstance(op, CachedNode):
+        uncached, storage = op.parent, op.storage
+
+        first, _ = find_backend(uncached.op())
+        other = storage.source
+
+        if first is not other:
+            name = dask.base.tokenize(
+                {
+                    "schema": op.schema,
+                    "expr": uncached.unbind(),
+                    "source": first.name,
+                    "sink": other.name,
+                }
+            )
+
+            parent = RemoteTable.from_expr(other, uncached, name=name).to_expr()
+            op = CachedNode(
+                schema=op.schema,
+                parent=parent,
+                source=storage.source,
+                storage=storage,
+            )
+
+    return op
 
 
 class Segment:
@@ -64,7 +97,8 @@ class Segment:
 
     @classmethod
     def from_expr(cls, expr: ir.Expr):
-        return cls(expr.op())
+        op = expr.op().replace(transform_cached_node)
+        return cls(op)
 
     def find_topmost_not_empy_cache(self):
         pass
@@ -103,14 +137,17 @@ class Segment:
         return "\n".join(lines)
 
     @property
-    def schema(self):
-        return self.node.schema
-
-    @property
     def backend(self):
         if self._backend is None:
             self._backend, _ = find_backend(self.node)
         return self._backend
+
+    @property
+    def schema(self):
+        if hasattr(self.node, "schema"):
+            return self.node.schema
+        else:
+            return self.node.to_expr().as_table().schema()
 
     @property
     def query(self):
@@ -124,7 +161,12 @@ class Segment:
             else:
                 return node.__recreate__(kwargs)
 
-        return self.backend.compiler.to_sqlglot(self.node.replace(replacer).to_expr())
+        if hasattr(self.backend, "compiler"):
+            return self.backend.compiler.to_sqlglot(
+                self.node.replace(replacer).to_expr()
+            )
+        else:
+            return tuple()
 
     def __repr__(self):
         return self.to_s()
@@ -200,8 +242,11 @@ class Segment:
         return method(self.backend)
 
     def transform(self) -> ops.Node:
+        if not self.node.find((RemoteTable, CachedNode, Read)):
+            return self.node
+
         replacements = {}
-        if not self.is_cached():
+        if not self.cache_exists() or self.dependencies:
             replacements = self.register_remote_tables()
 
         def fn(node, _, **kwargs):
@@ -213,21 +258,27 @@ class Segment:
                 node, RemoteTable
             ):  # only care about one-level deep RemoteTable since a segment only contains those types
                 return ibis.table(node.schema, node.name).op()
+            if isinstance(node, Read):
+                return node.make_dt()
             return node
 
         op = self.node.replace(fn)
-        query = self.backend.compiler.to_sqlglot(op.to_expr())
-        query = self._replace_sqlglot(query, replacements)
 
-        return SQLQueryResult(query.sql(), self.node.schema, self.backend)
+        if hasattr(self.backend, "_register_udfs"):
+            self.backend._register_udfs(op.to_expr())
+
+        if hasattr(self.backend, "compiler"):
+            query = self.backend.compiler.to_sqlglot(op.to_expr())
+            query = self._replace_sqlglot(query, replacements)
+            return SQLQueryResult(query.sql(), self.schema, self.backend)
+        else:
+            return op
 
     def _get_batches(self, batches):
-        schema = self.node.schema
+        schema = self.schema
         return pa.RecordBatchReader.from_batches(schema.to_pyarrow(), batches)
 
     def _to_pyarrow_batches(self):
-        if not self.is_cached():
-            self.register_remote_tables()
         expr = self.transform().to_expr()
 
         if self.keep is None:
@@ -243,4 +294,23 @@ class Segment:
 def execute(expr: ir.Expr):
     segment = Segment.from_expr(expr)
     expr = segment.transform().to_expr()
+
     return expr.execute()
+
+
+def to_pyarrow(expr: ir.Expr):
+    segment = Segment.from_expr(expr)
+    expr = segment.transform().to_expr()
+    return expr.to_pyarrow()
+
+
+def to_pyarrow_batches(expr: ir.Expr, **kwargs):
+    segment = Segment.from_expr(expr)
+    expr = segment.transform().to_expr()
+    return expr.to_pyarrow_batches(**kwargs)
+
+
+def to_parquet(expr: ir.Expr, path: str | Path, **kwargs: Any):
+    segment = Segment.from_expr(expr)
+    expr = segment.transform().to_expr()
+    return expr.to_parquet(path, **kwargs)
