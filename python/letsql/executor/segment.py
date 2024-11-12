@@ -43,8 +43,7 @@ class Segment:
         children = []
         for child in self.remote_tables:
             nested = child.remote_expr.op()
-            if nested.find(RemoteTable):
-                children.append(Segment(nested, name=nested.name))
+            children.append(Segment(nested, name=child.name))
         self.name = name
         self.dependencies = children
         self._is_leaf = None
@@ -59,7 +58,7 @@ class Segment:
 
         if self.__id is None:
             rid = uuid.uuid4().hex
-            self.__id = random.sample(rid, k=len(rid))[:5]
+            self.__id = "".join(random.sample(rid, k=len(rid))[:5])
 
         return self.__id
 
@@ -145,7 +144,7 @@ class Segment:
                     yield ex(no)
                     yield from _exists(no.parent.op())
 
-        if self.is_cached:
+        if self.is_cached():
             # must iterate from the bottom up else we execute downstream cached tables
             return all(val for val in _exists(self.node) if val is not None)
         else:
@@ -163,9 +162,9 @@ class Segment:
 
         return Counter(names())
 
-    def _replace_sqlglot(self, query, replacements):
+    def _replace_sqlglot(self, query, replacements: dict):
         # FIXME What happens if you have duplicated table names
-        for old, news in replacements:
+        for old, news in replacements.items():
             target = sge.Identifier(this=old, quoted=True)
             for e in (e for e in query.find_all(sge.Identifier) if e == target):
                 new = sge.Identifier(
@@ -198,11 +197,11 @@ class Segment:
         )
         method = methodcaller(method_name, batches, table_name=name)
 
-        return method
+        return method(self.backend)
 
     def transform(self) -> ops.Node:
         replacements = {}
-        if not self.is_cached:
+        if not self.is_cached():
             replacements = self.register_remote_tables()
 
         def fn(node, _, **kwargs):
@@ -223,11 +222,11 @@ class Segment:
         return SQLQueryResult(query.sql(), self.node.schema, self.backend)
 
     def _get_batches(self, batches):
-        schema = self.node.schema()
+        schema = self.node.schema
         return pa.RecordBatchReader.from_batches(schema.to_pyarrow(), batches)
 
     def _to_pyarrow_batches(self):
-        if not self.is_cached:
+        if not self.is_cached():
             self.register_remote_tables()
         expr = self.transform().to_expr()
 
