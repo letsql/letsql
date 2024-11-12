@@ -185,37 +185,6 @@ def transform_plan(plan):
     return node
 
 
-def make_segment(node: ops.Node) -> dict[ops.Node, list[ops.Node]]:
-    dag = {}
-    children = list(node.find(RemoteTable))
-
-    dag[node] = children
-    for child in children:
-        nested = child.remote_expr.op()
-        if nested.find(RemoteTable):
-            dag.update(make_segment(nested))
-
-    return dag
-
-
-def transform_make_segment(node: ops.Node):
-    segments = make_segment(node)
-    for key, tables in segments.items():
-        sg_expr, backend = get_sql(key)
-
-        replacements = defaultdict(list)
-        for table in tables:
-            kwargs = dict(zip(table.argnames, table.args))
-            replacements[table.name].append(transform(table, **kwargs))
-
-        sg_replace(sg_expr, segments)
-
-        SQLQueryResult(query=sg_expr.sql(), schema=node.schema, source=backend)
-
-
-# def to_pyarrow_batches(expr):
-
-
 def get_sql(node):
     def replacer(node, _, **kwargs):
         # we replace the op with unbound so we can invoke _to_sqlglot
