@@ -1,13 +1,14 @@
 import ibis
-import ibis.expr.datatypes as dt
 import numpy as np
 import pyarrow as pa
 import pytest
+from ibis import _
 
 import letsql
 from letsql.expr import udf
+import ibis.expr.datatypes as dt
 
-from ibis import _
+from letsql.internal import WindowEvaluator
 
 
 @pytest.fixture
@@ -25,36 +26,67 @@ def df():
     return batch.to_pandas()
 
 
-@udf.window.pyarrow(evaluation="all")
-def smooth_default(values: dt.float64) -> dt.float64:
-    results = []
-    curr_value = None
-    for value in values:
-        if curr_value is None:
-            curr_value = value.as_py()
-        else:
-            curr_value = value.as_py() * 0.9 + curr_value * 0.1
-        results.append(curr_value)
-    return pa.array(results)
+class ExponentialSmoothDefault(WindowEvaluator):
+    def __init__(self, alpha: float) -> None:
+        self.alpha = alpha
+
+    def evaluate_all(self, values: list[pa.Array], num_rows: int) -> pa.Array:
+        results = []
+        curr_value = 0.0
+        values = values[0]
+        for idx in range(num_rows):
+            if idx == 0:
+                curr_value = values[idx].as_py()
+            else:
+                curr_value = values[idx].as_py() * self.alpha + curr_value * (
+                    1.0 - self.alpha
+                )
+            results.append(curr_value)
+
+        return pa.array(results)
 
 
-def get_range(idx):
-    if idx == 0:
-        return 0, 0
-    return idx - 1, idx
+class ExponentialSmoothBounded(WindowEvaluator):
+    def __init__(self, alpha: float) -> None:
+        self.alpha = alpha
+
+    def supports_bounded_execution(self) -> bool:
+        return True
+
+    def get_range(self, idx: int, num_rows: int) -> tuple[int, int]:
+        # Override the default range of current row since uses_window_frame is False
+        # So for the purpose of this test we just smooth from the previous row to
+        # current.
+        if idx == 0:
+            return 0, 0
+        return idx - 1, idx
+
+    def evaluate(
+        self, values: list[pa.Array], eval_range: tuple[int, int]
+    ) -> pa.Scalar:
+        (start, stop) = eval_range
+        curr_value = 0.0
+        values = values[0]
+        for idx in range(start, stop + 1):
+            if idx == start:
+                curr_value = values[idx].as_py()
+            else:
+                curr_value = values[idx].as_py() * self.alpha + curr_value * (
+                    1.0 - self.alpha
+                )
+        return pa.scalar(curr_value).cast(pa.float64())
 
 
-@udf.window.pyarrow(evaluation="one", range=get_range)
-def smooth_bounded(values: dt.float64) -> dt.float64:
-    curr_value = None
-    for value in values:
-        value = value.as_py()
-        if curr_value is None:
-            curr_value = value
-        else:
-            curr_value = value * 0.9 + curr_value * 0.1
-
-    return pa.scalar(curr_value).cast(pa.float64())
+smooth_default = udf.window.pyarrow(
+    ExponentialSmoothDefault(0.9),
+    signature=((dt.float64,), dt.float64),
+    name="smooth_default",
+)
+smooth_bounded = udf.window.pyarrow(
+    ExponentialSmoothBounded(0.9),
+    signature=((dt.float64,), dt.float64),
+    name="smooth_bounded",
+)
 
 
 @pytest.mark.parametrize(

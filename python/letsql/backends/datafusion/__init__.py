@@ -37,7 +37,6 @@ import letsql
 import letsql.internal as df
 from letsql.backends.datafusion.compiler import compiler
 from letsql.backends.datafusion.provider import IbisTableProvider
-from letsql.backends.datafusion.udwfs import get_window_evaluator
 from letsql.common.utils.aws_utils import (
     make_s3_connection,
 )
@@ -129,7 +128,7 @@ def _fields_to_parameters(fields):
 
 
 def _compile_pyarrow_udwf(udaf_node):
-    func = udaf_node.__func__
+    evaluator = udaf_node.__evaluator__
     name = type(udaf_node).__name__
     return_type = PyArrowType.from_ibis(udaf_node.dtype)
     parameters = (
@@ -138,7 +137,6 @@ def _compile_pyarrow_udwf(udaf_node):
         if name != "where"
     )
     names, input_types = map(list, zip(*parameters))  # noqa
-    evaluator = get_window_evaluator(udaf_node.__config__, func)
 
     return df.udwf(
         evaluator,
@@ -248,7 +246,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
 
         for udaf_node in expr.op().find(ops.AggUDF):
             if udaf_node.__input_type__ == InputType.PYARROW:
-                if "evaluate" in udaf_node.__config__:
+                if hasattr(udaf_node, "__evaluator__"):
                     udwf = _compile_pyarrow_udwf(udaf_node)
                     self.con.register_udwf(udwf)
                 else:

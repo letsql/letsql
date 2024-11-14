@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import functools
+import typing
 from typing import TYPE_CHECKING, Any
 
+import ibis.common.exceptions as exc
 import ibis.expr.rules as rlz
 from ibis.common.annotations import Argument
 from ibis.common.collections import FrozenDict
 from ibis.expr.operations import Namespace
 from ibis.expr.operations.udf import _UDF, AggUDF, _wrap, InputType, _make_udf_name
+import ibis.expr.datatypes as dt
+import ibis.expr.operations as ops
 
 if TYPE_CHECKING:
     import ibis.expr.types as ir
@@ -102,6 +106,53 @@ class window(_UDF):
     _base = AggUDF
 
     @classmethod
+    def _make_node(
+        cls,
+        fn: typing.Callable,
+        input_type: InputType,
+        name: str | None = None,
+        database: str | None = None,
+        catalog: str | None = None,
+        signature: tuple[tuple, Any] | None = None,
+        **kwargs,
+    ):
+        """Construct a scalar user-defined function that is built-in to the backend."""
+        if "schema" in kwargs:
+            raise exc.UnsupportedArgumentError(
+                """schema` is not a valid argument.
+                You can use the `catalog` and `database` keywords to specify a UDF location."""
+            )
+
+        if signature is None:
+            raise ValueError()
+        else:
+            arg_types, return_annotation = signature
+            arg_names = [f"arg_{i}" for i, _ in enumerate(arg_types)]
+
+            fields = {
+                arg_name: Argument(pattern=rlz.ValueOf(typ), typehint=typ)
+                for arg_name, typ in zip(arg_names, arg_types)
+            }
+
+        if name is None:
+            raise ValueError()
+
+        fields.update(
+            {
+                "dtype": dt.dtype(return_annotation),
+                "__input_type__": input_type,
+                "__func__": property(fget=lambda _, fn=fn: fn),
+                "__config__": FrozenDict(kwargs),
+                "__udf_namespace__": ops.Namespace(database=database, catalog=catalog),
+                "__module__": fn.__module__,
+                "__func_name__": name,
+                "__evaluator__": fn(),
+            }
+        )
+
+        return type(_make_udf_name(name), (cls._base,), fields)
+
+    @classmethod
     def pyarrow(
         cls,
         fn=None,
@@ -109,13 +160,15 @@ class window(_UDF):
         signature=None,
         **kwargs,
     ):
-        if "evaluate" not in kwargs:
-            kwargs["evaluate"] = "all"
+        def generator():
+            return fn
+
+        generator.__name__ = name
 
         result = _wrap(
             cls._make_wrapper,
             InputType.PYARROW,
-            fn,
+            generator,
             name=name,
             signature=signature,
             **kwargs,
