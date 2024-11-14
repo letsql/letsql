@@ -124,7 +124,7 @@ class window(_UDF):
             )
 
         if signature is None:
-            raise ValueError()
+            raise ValueError("The signature must be provided.")
         else:
             arg_types, return_annotation = signature
             arg_names = [f"arg_{i}" for i, _ in enumerate(arg_types)]
@@ -135,7 +135,7 @@ class window(_UDF):
             }
 
         if name is None:
-            raise ValueError()
+            raise ValueError("The name must be provided.")
 
         fields.update(
             {
