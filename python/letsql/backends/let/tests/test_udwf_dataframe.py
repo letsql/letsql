@@ -163,11 +163,6 @@ class ExponentialSmoothFrame(WindowEvaluator):
         return pa.scalar(curr_value).cast(pa.float64())
 
 
-smooth_default = udf.window.pyarrow(
-    ExponentialSmoothDefault(0.9),
-    signature=((dt.float64,), dt.float64),
-    name="smooth_default",
-)
 smooth_bounded = udf.window.pyarrow(
     ExponentialSmoothBounded(0.9),
     signature=((dt.float64,), dt.float64),
@@ -189,6 +184,12 @@ smooth_frame = udf.window.pyarrow(
     ExponentialSmoothFrame(0.9),
     signature=((dt.float64,), dt.float64),
     name="smooth_frame",
+)
+
+smooth_default = udf.window.pyarrow(
+    ExponentialSmoothDefault(0.9),
+    signature=((dt.float64,), dt.float64),
+    name="smooth_default",
 )
 
 
