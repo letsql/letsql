@@ -25,7 +25,7 @@ def df():
     return batch.to_pandas()
 
 
-@udf.window.pyarrow
+@udf.window.pyarrow(evaluation="all")
 def smooth_default(values: dt.float64) -> dt.float64:
     results = []
     curr_value = None
@@ -36,6 +36,25 @@ def smooth_default(values: dt.float64) -> dt.float64:
             curr_value = value.as_py() * 0.9 + curr_value * 0.1
         results.append(curr_value)
     return pa.array(results)
+
+
+def get_range(idx):
+    if idx == 0:
+        return 0, 0
+    return idx - 1, idx
+
+
+@udf.window.pyarrow(evaluation="one", range=get_range)
+def smooth_bounded(values: dt.float64) -> dt.float64:
+    curr_value = None
+    for value in values:
+        value = value.as_py()
+        if curr_value is None:
+            curr_value = value
+        else:
+            curr_value = value * 0.9 + curr_value * 0.1
+
+    return pa.scalar(curr_value).cast(pa.float64())
 
 
 @pytest.mark.parametrize(
@@ -53,6 +72,27 @@ def test_smooth_default(df, window, expected):
     expr = t.select(
         t.a,
         udwf=smooth_default(t.a).over(window),
+    ).order_by(t.a)
+
+    result = expr.execute()
+    actual = result["udwf"].to_list()
+
+    np.testing.assert_allclose(actual, expected, rtol=1e-3)
+
+
+@pytest.mark.parametrize(
+    "window,expected",
+    [
+        (ibis.window(), [0, 0.9, 1.9, 2.9, 3.9, 4.9, 5.9]),
+    ],
+)
+def test_smooth_bounded(df, window, expected):
+    con = letsql.connect()
+    t = con.register(df, table_name="t")
+
+    expr = t.select(
+        t.a,
+        udwf=smooth_bounded(t.a).over(window),
     ).order_by(t.a)
 
     result = expr.execute()

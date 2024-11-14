@@ -37,6 +37,7 @@ import letsql
 import letsql.internal as df
 from letsql.backends.datafusion.compiler import compiler
 from letsql.backends.datafusion.provider import IbisTableProvider
+from letsql.backends.datafusion.udwfs import get_window_evaluator
 from letsql.common.utils.aws_utils import (
     make_s3_connection,
 )
@@ -137,14 +138,15 @@ def _compile_pyarrow_udwf(udaf_node):
         if name != "where"
     )
     names, input_types = map(list, zip(*parameters))  # noqa
+    evaluator = get_window_evaluator(udaf_node.__config__, func)
 
-    class MyWindowEvaluator(df.WindowEvaluator):
-        def evaluate_all(self, values: list[pa.Array], num_rows: int) -> pa.Array:
-            values = values[0].slice(0, num_rows)
-            return func(values)
+    # class MyWindowEvaluator(df.WindowEvaluator):
+    #     def evaluate_all(self, values: list[pa.Array], num_rows: int) -> pa.Array:
+    #         values = values[0].slice(0, num_rows)
+    #         return func(values)
 
     return df.udwf(
-        MyWindowEvaluator(),
+        evaluator,
         input_types,
         return_type,
         "immutable",
