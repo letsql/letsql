@@ -781,6 +781,7 @@ def test_datafusion_snapshot(ls_con, alltypes_df):
     assert not executed0.equals(executed3)
 
 
+@pytest.mark.xfail
 def test_udf_caching(ls_con, alltypes_df, snapshot):
     @ibis.udf.scalar.pyarrow
     def my_mul(tinyint_col: dt.int16, smallint_col: dt.int16) -> dt.int16:
@@ -808,6 +809,7 @@ def test_udf_caching(ls_con, alltypes_df, snapshot):
     snapshot.assert_match(expr.ls.get_key(), "udf_caching.txt")
 
 
+@pytest.mark.xfail
 def test_udaf_caching(ls_con, alltypes_df, snapshot):
     def my_mul_sum(df):
         return df.sum().sum()

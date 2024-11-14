@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import functools
-import typing
 from typing import TYPE_CHECKING, Any
 
-import ibis.common.exceptions as exc
 import ibis.expr.rules as rlz
+import toolz
 from ibis.common.annotations import Argument
 from ibis.common.collections import FrozenDict
 from ibis.expr.operations import Namespace
 from ibis.expr.operations.udf import _UDF, AggUDF, _wrap, InputType, _make_udf_name
 import ibis.expr.datatypes as dt
-import ibis.expr.operations as ops
 
 if TYPE_CHECKING:
     import ibis.expr.types as ir
@@ -106,72 +104,52 @@ class window(_UDF):
     _base = AggUDF
 
     @classmethod
-    def _make_node(
-        cls,
-        fn: typing.Callable,
-        input_type: InputType,
-        name: str | None = None,
-        database: str | None = None,
-        catalog: str | None = None,
-        signature: tuple[tuple, Any] | None = None,
-        **kwargs,
-    ):
-        """Construct a scalar user-defined function that is built-in to the backend."""
-        if "schema" in kwargs:
-            raise exc.UnsupportedArgumentError(
-                """schema` is not a valid argument.
-                You can use the `catalog` and `database` keywords to specify a UDF location."""
-            )
-
-        if signature is None:
-            raise ValueError("The signature must be provided.")
-        else:
-            arg_types, return_annotation = signature
-            arg_names = [f"arg_{i}" for i, _ in enumerate(arg_types)]
-
-            fields = {
-                arg_name: Argument(pattern=rlz.ValueOf(typ), typehint=typ)
-                for arg_name, typ in zip(arg_names, arg_types)
-            }
-
-        if name is None:
-            raise ValueError("The name must be provided.")
-
-        fields.update(
-            {
-                "dtype": dt.dtype(return_annotation),
-                "__input_type__": input_type,
-                "__func__": property(fget=lambda _, fn=fn: fn),
-                "__config__": FrozenDict(kwargs),
-                "__udf_namespace__": ops.Namespace(database=database, catalog=catalog),
-                "__module__": fn.__module__,
-                "__func_name__": name,
-                "__evaluator__": fn(),
-            }
-        )
-
-        return type(_make_udf_name(name), (cls._base,), fields)
-
-    @classmethod
     def pyarrow(
         cls,
         fn=None,
         name=None,
-        signature=None,
+        input_types: dt.DataType | list[dt.DataType] = None,
+        return_type: dt.DataType = None,
+        namespace=Namespace(database=None, catalog=None),
         **kwargs,
     ):
-        def generator():
-            return fn
+        if name is None:
+            raise ValueError("The name must be provided.")
 
-        generator.__name__ = name
+        if input_types is None:
+            raise ValueError("The input_types must be provided.")
 
-        result = _wrap(
-            cls._make_wrapper,
-            InputType.PYARROW,
-            generator,
-            name=name,
-            signature=signature,
-            **kwargs,
+        if return_type is None:
+            raise ValueError("The return_type must be provided.")
+
+        if isinstance(input_types, dt.DataType):
+            input_types = [input_types]
+
+        fields = {
+            f"arg_{i}": Argument(pattern=rlz.ValueOf(typ), typehint=typ)
+            for i, typ in enumerate(input_types)
+        }
+
+        meta = {
+            "dtype": return_type,
+            "__input_type__": InputType.PYARROW,
+            "__func__": property(fget=toolz.functoolz.return_none),
+            "__func_name__": name,
+            "__config__": FrozenDict(kwargs),
+            "__udf_namespace__": namespace,
+            "__module__": fn.__module__,
+            "__evaluator__": fn,
+        }
+        node = type(
+            name,
+            (cls._base,),
+            {
+                **fields,
+                **meta,
+            },
         )
 
-        return result
+        def construct(*args: Any, **kwargs: Any) -> ir.Value:
+            return node(*args, **kwargs).to_expr()
+
+        return construct
