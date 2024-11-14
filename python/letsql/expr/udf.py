@@ -2,6 +2,7 @@ import functools
 
 import ibis.expr.rules as rlz
 import ibis.expr.types as ir
+import toolz
 from ibis.common.annotations import Argument
 from ibis.common.collections import FrozenDict
 from ibis.expr.operations import Namespace
@@ -91,3 +92,48 @@ class agg(_UDF):
 
         construct.on_expr = on_expr
         return construct
+
+
+def pyarrow_udwf(
+    schema,
+    return_type,
+    name,
+    namespace=Namespace(database=None, catalog=None),
+    base=AggUDF,
+    **config_kwargs,
+):
+    fields = {
+        arg_name: Argument(pattern=rlz.ValueOf(typ), typehint=typ)
+        for (arg_name, typ) in schema.items()
+    }
+    meta = {
+        "dtype": return_type,
+        "__input_type__": InputType.PYARROW,
+        "__func__": property(fget=toolz.functoolz.return_none),
+        "__config__": FrozenDict(
+            input_types=tuple(el.type for el in schema.to_pyarrow()),
+            return_type=return_type.to_pyarrow(),
+            name=name,
+            **config_kwargs,
+        ),
+        "__udf_namespace__": namespace,
+        "__module__": __name__,
+        "__func_name__": name,
+    }
+    node = type(
+        name,
+        (base,),
+        {
+            **fields,
+            **meta,
+        },
+    )
+
+    def construct(*args: Any, **kwargs: Any) -> ir.Value:
+        return node(*args, **kwargs).to_expr()
+
+    def on_expr(e, **kwargs):
+        return construct(*(e[c] for c in schema), **kwargs)
+
+    construct.on_expr = on_expr
+    return construct
