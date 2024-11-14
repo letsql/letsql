@@ -1,13 +1,8 @@
 from __future__ import annotations
 
 import functools
-import inspect
-import typing
 from typing import TYPE_CHECKING, Any
 
-import ibis.common.exceptions as exc
-import ibis.expr.datatypes as dt
-import ibis.expr.operations as ops
 import ibis.expr.rules as rlz
 from ibis.common.annotations import Argument
 from ibis.common.collections import FrozenDict
@@ -15,8 +10,6 @@ from ibis.expr.operations import Namespace
 from ibis.expr.operations.udf import _UDF, AggUDF, _wrap, InputType, _make_udf_name
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     import ibis.expr.types as ir
 
 
@@ -109,55 +102,6 @@ class window(_UDF):
     _base = AggUDF
 
     @classmethod
-    def _make_node(
-        cls,
-        fn: Callable,
-        input_type: InputType,
-        name: str | None = None,
-        database: str | None = None,
-        catalog: str | None = None,
-        signature: tuple[tuple, Any] | None = None,
-        **kwargs,
-    ):
-        if signature is None:
-            annotations = typing.get_type_hints(fn)
-            if (return_annotation := annotations.pop("return", None)) is None:
-                raise exc.MissingReturnAnnotationError(fn)
-            fields = {
-                arg_name: Argument(
-                    pattern=rlz.ValueOf(annotations.get(arg_name)),
-                    default=param.default,
-                    typehint=annotations.get(arg_name, Any),
-                )
-                for arg_name, param in inspect.signature(fn).parameters.items()
-            }
-
-        else:
-            arg_types, return_annotation = signature
-            arg_names = list(inspect.signature(fn).parameters)
-            fields = {
-                arg_name: Argument(pattern=rlz.ValueOf(typ), typehint=typ)
-                for arg_name, typ in zip(arg_names, arg_types)
-            }
-
-        func_name = name if name is not None else fn.__name__
-
-        fields.update(
-            {
-                "dtype": dt.dtype(return_annotation),
-                "__input_type__": input_type,
-                "__func__": property(fget=lambda _, fn=fn: fn),
-                "__config__": FrozenDict(kwargs),
-                "__udf_namespace__": ops.Namespace(database=database, catalog=catalog),
-                "__module__": fn.__module__,
-                "__func_name__": func_name,
-                "__evaluation_method__": "evaluate_all",
-            }
-        )
-
-        return type(_make_udf_name(fn.__name__), (cls._base,), fields)
-
-    @classmethod
     def pyarrow(
         cls,
         fn=None,
@@ -165,6 +109,9 @@ class window(_UDF):
         signature=None,
         **kwargs,
     ):
+        if "evaluate" not in kwargs:
+            kwargs["evaluate"] = "all"
+
         result = _wrap(
             cls._make_wrapper,
             InputType.PYARROW,
@@ -173,4 +120,5 @@ class window(_UDF):
             signature=signature,
             **kwargs,
         )
+
         return result

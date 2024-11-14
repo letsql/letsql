@@ -140,11 +140,6 @@ def _compile_pyarrow_udwf(udaf_node):
     names, input_types = map(list, zip(*parameters))  # noqa
     evaluator = get_window_evaluator(udaf_node.__config__, func)
 
-    # class MyWindowEvaluator(df.WindowEvaluator):
-    #     def evaluate_all(self, values: list[pa.Array], num_rows: int) -> pa.Array:
-    #         values = values[0].slice(0, num_rows)
-    #         return func(values)
-
     return df.udwf(
         evaluator,
         input_types,
@@ -252,13 +247,13 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
             self.con.register_udf(udf)
 
         for udaf_node in expr.op().find(ops.AggUDF):
-            if hasattr(udaf_node, "__evaluation_method__"):
-                udwf = _compile_pyarrow_udwf(udaf_node)
-                self.con.register_udwf(udwf)
-
-            elif udaf_node.__input_type__ == InputType.PYARROW:
-                udaf = _compile_pyarrow_udaf(udaf_node)
-                self.con.register_udaf(udaf)
+            if udaf_node.__input_type__ == InputType.PYARROW:
+                if "evaluate" in udaf_node.__config__:
+                    udwf = _compile_pyarrow_udwf(udaf_node)
+                    self.con.register_udwf(udwf)
+                else:
+                    udaf = _compile_pyarrow_udaf(udaf_node)
+                    self.con.register_udaf(udaf)
 
     def _compile_pyarrow_udf(self, udf_node):
         return df.udf(
