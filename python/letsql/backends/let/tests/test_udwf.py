@@ -38,8 +38,8 @@ class ExponentialSmoothBounded(WindowEvaluator):
         # So for the purpose of this test we just smooth from the previous row to
         # current.
         if idx == 0:
-            return (0, 0)
-        return (idx - 1, idx)
+            return 0, 0
+        return idx - 1, idx
 
     def evaluate(
         self, values: list[pa.Array], eval_range: tuple[int, int]
@@ -143,10 +143,6 @@ class SmoothTwoColumn(WindowEvaluator):
         return pa.array(results)
 
 
-class NotSubclassOfWindowEvaluator:
-    pass
-
-
 @pytest.fixture
 def df():
     # create a RecordBatch and a new DataFrame from it
@@ -225,12 +221,16 @@ def test_smooth_default(df):
 
     query = """
     SELECT
-      smooth_default("t0"."a") OVER ()
+      "t0"."a", smooth_default("t0"."a") OVER () as "udwf"
     FROM "t" AS "t0"
+    ORDER BY "t0"."a"
     """
-    actual = con.sql(query).execute()
+    result = con.sql(query).execute()
+    actual = result["udwf"].to_list()
 
-    assert actual is not None
+    np.testing.assert_allclose(
+        actual, [0, 0.9, 1.89, 2.889, 3.889, 4.889, 5.889], rtol=1e-3
+    )
 
 
 def test_smooth_default_partitioned(df):
@@ -240,12 +240,14 @@ def test_smooth_default_partitioned(df):
 
     query = """
     SELECT
-      smooth_default("t0"."a") OVER (PARTITION BY "t0"."c")
+      "t0"."a", smooth_default("t0"."a") OVER (PARTITION BY "t0"."c") as "udwf"
     FROM "t" AS "t0"
+    ORDER BY "t0"."a"
     """
-    actual = con.sql(query).execute()
+    result = con.sql(query).execute()
+    actual = result["udwf"].to_list()
 
-    assert actual is not None
+    np.testing.assert_allclose(actual, [0, 0.9, 1.89, 2.889, 4.0, 4.9, 5.89], rtol=1e-3)
 
 
 def test_smooth_default_ordered(df):
@@ -255,12 +257,16 @@ def test_smooth_default_ordered(df):
 
     query = """
         SELECT
-           smooth_default("t0"."a") OVER (ORDER BY "t0"."b")
+            "t0"."a", smooth_default("t0"."a") OVER (ORDER BY "t0"."b") as "udwf"
         FROM "t" AS "t0"
+        ORDER BY "t0"."a"
         """
-    actual = con.sql(query).execute()
+    result = con.sql(query).execute()
+    actual = result["udwf"].to_list()
 
-    assert actual is not None
+    np.testing.assert_allclose(
+        actual, [0.551, 1.13, 2.3, 2.755, 3.876, 5.0, 5.513], rtol=1e-3
+    )
 
 
 def test_smooth_bounded(df):

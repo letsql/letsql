@@ -127,6 +127,31 @@ def _fields_to_parameters(fields):
     return parameters
 
 
+def _compile_pyarrow_udwf(udaf_node):
+    func = udaf_node.__func__
+    name = type(udaf_node).__name__
+    return_type = PyArrowType.from_ibis(udaf_node.dtype)
+    parameters = (
+        (name, PyArrowType.from_ibis(param.annotation.pattern.dtype))
+        for name, param in udaf_node.__signature__.parameters.items()
+        if name != "where"
+    )
+    names, input_types = map(list, zip(*parameters))  # noqa
+
+    class MyWindowEvaluator(df.WindowEvaluator):
+        def evaluate_all(self, values: list[pa.Array], num_rows: int) -> pa.Array:
+            values = values[0].slice(0, num_rows)
+            return func(values)
+
+    return df.udwf(
+        MyWindowEvaluator(),
+        input_types,
+        return_type,
+        "immutable",
+        name,
+    )
+
+
 class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, NoUrl):
     name = "datafusion"
     supports_in_memory_tables = True
@@ -225,7 +250,11 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
             self.con.register_udf(udf)
 
         for udaf_node in expr.op().find(ops.AggUDF):
-            if udaf_node.__input_type__ == InputType.PYARROW:
+            if hasattr(udaf_node, "__evaluation_method__"):
+                udwf = _compile_pyarrow_udwf(udaf_node)
+                self.con.register_udwf(udwf)
+
+            elif udaf_node.__input_type__ == InputType.PYARROW:
                 udaf = _compile_pyarrow_udaf(udaf_node)
                 self.con.register_udaf(udaf)
 
