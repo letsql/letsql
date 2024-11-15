@@ -148,7 +148,7 @@ def smooth_two_col(self, values: list[pa.Array], num_rows: int) -> pa.Array:
     values_a = values[0]
     values_b = values[1]
     for idx in range(num_rows):
-        if not values_b[idx].is_valid:
+        if values_b[idx].as_py() > 7:
             if idx == 0:
                 results.append(values_a[1].cast(pa.float64()))
             elif idx == num_rows - 1:
@@ -216,7 +216,7 @@ def test_smooth_two_column(df):
     result = expr.execute()
     actual = result["udwf"].to_list()
 
-    assert actual is not None
+    np.testing.assert_allclose(actual, [0.0, 1.0, 2.0, 2.2, 3.2, 5.0, 6.0], rtol=1e-3)
 
 
 def test_smooth_rank(df):
