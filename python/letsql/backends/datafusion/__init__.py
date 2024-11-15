@@ -46,6 +46,7 @@ from letsql.internal import (
     SessionContext,
     Table,
     DataFrame,
+    WindowEvaluator,
 )
 
 if TYPE_CHECKING:
@@ -128,7 +129,7 @@ def _fields_to_parameters(fields):
 
 
 def _compile_pyarrow_udwf(udaf_node):
-    evaluator = udaf_node.__evaluator__
+    evaluator = udaf_node.__func__
     name = type(udaf_node).__name__
     return_type = PyArrowType.from_ibis(udaf_node.dtype)
     parameters = (
@@ -246,7 +247,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
 
         for udaf_node in expr.op().find(ops.AggUDF):
             if udaf_node.__input_type__ == InputType.PYARROW:
-                if hasattr(udaf_node, "__evaluator__"):
+                if isinstance(udaf_node.__func__, WindowEvaluator):
                     udwf = _compile_pyarrow_udwf(udaf_node)
                     self.con.register_udwf(udwf)
                 else:

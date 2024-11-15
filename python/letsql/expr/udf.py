@@ -4,7 +4,6 @@ import functools
 from typing import TYPE_CHECKING, Any
 
 import ibis.expr.rules as rlz
-import toolz
 from ibis.common.annotations import Argument
 from ibis.common.collections import FrozenDict
 from ibis.expr.operations import Namespace
@@ -130,15 +129,17 @@ class window(_UDF):
             for i, typ in enumerate(input_types)
         }
 
+        def getter(_self):
+            return fn
+
         meta = {
             "dtype": return_type,
             "__input_type__": InputType.PYARROW,
-            "__func__": property(fget=toolz.functoolz.return_none),
+            "__func__": property(fget=getter),
             "__func_name__": name,
             "__config__": FrozenDict(kwargs),
             "__udf_namespace__": namespace,
             "__module__": fn.__module__,
-            "__evaluator__": fn,
         }
         node = type(
             name,
