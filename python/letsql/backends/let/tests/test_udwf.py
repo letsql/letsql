@@ -1,6 +1,5 @@
 import numpy as np
 import pyarrow as pa
-import pytest
 
 import letsql
 from letsql.internal import WindowEvaluator, udwf
@@ -141,25 +140,6 @@ class SmoothTwoColumn(WindowEvaluator):
                 results.append(values_a[idx].cast(pa.float64()))
 
         return pa.array(results)
-
-
-class NotSubclassOfWindowEvaluator:
-    pass
-
-
-@pytest.fixture
-def df():
-    # create a RecordBatch and a new DataFrame from it
-    batch = pa.RecordBatch.from_arrays(
-        [
-            pa.array([0, 1, 2, 3, 4, 5, 6]),
-            pa.array([7, 4, 3, 8, 9, 1, 6]),
-            pa.array(["A", "A", "A", "A", "B", "B", "B"]),
-        ],
-        names=["a", "b", "c"],
-    )
-
-    return batch.to_pandas()
 
 
 smooth_default = udwf(
