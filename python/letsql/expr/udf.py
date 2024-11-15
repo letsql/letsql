@@ -127,7 +127,7 @@ def pyarrow_udwf(
         arg_name: Argument(pattern=rlz.ValueOf(typ), typehint=typ)
         for (arg_name, typ) in schema.items()
     }
-    which_evaluate = arbitrate_evaluate(**config_kwargs)
+    # which_evaluate = arbitrate_evaluate(**config_kwargs)
     name = name or fn.__name__
     meta = {
         "dtype": return_type,
@@ -139,7 +139,15 @@ def pyarrow_udwf(
             name=name,
             **config_kwargs,
             # assert which_evaluate in ("evaluate", "evaluate_all", "evaluate_all_with_rank")
-            **{which_evaluate: fn},
+            # **{which_evaluate: fn},
+            **{
+                which_evaluate: fn
+                for which_evaluate in (
+                    "evaluate",
+                    "evaluate_all",
+                    "evaluate_all_with_rank",
+                )
+            },
         ),
         "__udf_namespace__": namespace,
         "__module__": __name__,
