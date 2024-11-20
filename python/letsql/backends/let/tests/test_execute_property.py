@@ -38,10 +38,21 @@ limit_strategy = st.sampled_from(
 
 
 @st.composite
-def limit_tables(draw, ts=tables_strategy, li=limit_strategy):
+def limit_tables(draw, ts=tables_strategy):
     table = draw(ts)
-    limit = draw(li)
-    return limit(table)
+    length = table.count().execute()
+    n = draw(st.integers(min_value=0, max_value=length))
+    offset = draw(st.integers(min_value=0, max_value=length - n))
+
+    return table.limit(n=n, offset=offset)
+
+
+@st.composite
+def project_tables(draw, ts=tables_strategy):
+    table = draw(ts)
+    schema = list(table.schema())
+    projections = st.sets(st.sampled_from(schema), min_size=1, max_size=len(schema))
+    return table.select(*draw(projections))
 
 
 @settings(deadline=5000)
@@ -50,7 +61,13 @@ def test_tables(table):
     assert ls.execute(table) is not None
 
 
-@settings(deadline=5000)
+@settings(deadline=5000, max_examples=50)
 @given(expr=limit_tables())
 def test_limit(expr):
+    assert ls.execute(expr) is not None
+
+
+@settings(deadline=5000, max_examples=50)
+@given(expr=project_tables())
+def test_project(expr):
     assert ls.execute(expr) is not None
