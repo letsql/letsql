@@ -66,13 +66,21 @@ class LETSQLAccessor:
 
     @property
     def backends(self):
-        _backends, _ = self.expr._find_backends()
-        _backends = set(_backends)
-        for node in self.cached_nodes:
-            candidates, _ = node.parent._find_backends()
-            _backends.update(candidates)
+        def _find_backends(expr):
+            _backends, _ = expr._find_backends()
+            _backends = set(_backends)
 
-        return tuple(_backends)
+            for node in expr.op().find_topmost(CachedNode):
+                _backends.update(_find_backends(node.parent))
+
+            for node in expr.op().find_topmost(RemoteTable):
+                _backends.update(_find_backends(node.remote_expr))
+
+            return _backends
+
+        backends = _find_backends(self.expr)
+
+        return tuple(backends)
 
     @property
     def is_multiengine(self):

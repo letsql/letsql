@@ -11,6 +11,7 @@ from ibis.expr import operations as ops
 from ibis.expr import types as ir
 from ibis.expr.operations import SQLQueryResult
 
+from letsql.common.utils.graph_utils import replace_fix
 from letsql.executor.utils import find_backend, SafeTee
 from letsql.expr.relations import RemoteTable, CachedNode, Read
 import pyarrow as pa
@@ -97,7 +98,7 @@ class Segment:
 
     @classmethod
     def from_expr(cls, expr: ir.Expr):
-        op = expr.op().replace(transform_cached_node)
+        op = expr.op().replace(replace_fix(transform_cached_node))
         return cls(op)
 
     def find_topmost_not_empy_cache(self):
@@ -153,7 +154,7 @@ class Segment:
     def query(self):
         def replacer(node, _, **kwargs):
             if isinstance(node, CachedNode):
-                return kwargs["parent"].op().replace(replacer)
+                return kwargs["parent"].op().replace(replace_fix(replacer))
             if isinstance(
                 node, RemoteTable
             ):  # only care about one-level deep RemoteTable since a segment only contains those types
@@ -163,7 +164,7 @@ class Segment:
 
         if hasattr(self.backend, "compiler"):
             return self.backend.compiler.to_sqlglot(
-                self.node.replace(replacer).to_expr()
+                self.node.replace(replace_fix(replacer)).to_expr()
             )
         else:
             return tuple()
@@ -262,7 +263,7 @@ class Segment:
                 return node.make_dt()
             return node
 
-        op = self.node.replace(fn)
+        op = self.node.replace(replace_fix(fn))
 
         if hasattr(self.backend, "_register_udfs"):
             self.backend._register_udfs(op.to_expr())

@@ -14,7 +14,7 @@ from letsql.common.utils.graph_utils import replace_fix, get_args
 
 def replace_cache_table(node, _, **kwargs):
     if isinstance(node, CachedNode):
-        return kwargs["parent"].op().replace(replace_cache_table)
+        return kwargs["parent"].op().replace(replace_fix(replace_cache_table))
     elif isinstance(node, RemoteTable):
         return kwargs["remote_expr"].op()
     else:
@@ -65,6 +65,8 @@ class RemoteTableReplacer:
         self.seen_expr = {}
 
     def __call__(self, *args, **kwargs):
+        from letsql.backends.postgres import Backend as PGBackend
+
         node, _, kwargs = get_args(*args, **kwargs)
         if isinstance(node, Relation):
             updated = {}

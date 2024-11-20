@@ -137,7 +137,7 @@ class SnapshotStrategy(CacheStrategy):
     @staticmethod
     def normalize_backend(con):
         name = con.name
-        if name in ("pandas", "duckdb", "datafusion"):
+        if name in ("pandas", "duckdb", "datafusion", "let"):
             return (name, None)
         else:
             return normalize_backend(con)
