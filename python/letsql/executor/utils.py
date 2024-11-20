@@ -41,7 +41,7 @@ def uncached(node):
         name = dask.base.tokenize(
             {
                 "schema": node.schema,
-                "expr": parent.unbind(),
+                "expr": parent,
                 "source": first.name,
                 "sink": other.name,
             }

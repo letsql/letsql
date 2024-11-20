@@ -16,7 +16,7 @@ def replace_cache_table(node, _, **kwargs):
     if isinstance(node, CachedNode):
         return kwargs["parent"].op().replace(replace_fix(replace_cache_table))
     elif isinstance(node, RemoteTable):
-        return kwargs["remote_expr"].op()
+        return kwargs["remote_expr"].op().replace(replace_fix(replace_cache_table))
     else:
         return node.__recreate__(kwargs)
 
