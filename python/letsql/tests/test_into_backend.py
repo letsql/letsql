@@ -134,6 +134,7 @@ def test_into_backend_complex(pg, method):
     assert 0 < len(res) <= 15
 
 
+@pytest.mark.benchmark
 def test_into_backend_cache(pg, tmp_path):
     con = ls.connect()
     ddb_con = ls.duckdb.connect()
