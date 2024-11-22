@@ -40,9 +40,11 @@ jobs:
       - name: start services
         run: docker compose up --build --wait
 
-      - name: poetry pytest
-        run: poetry run pytest --import-mode=importlib --codspeed
-        working-directory: ${{ github.workspace }}
+      - uses: CodSpeedHQ/action@v3
+        with:
+          run: poetry run pytest --import-mode=importlib --codspeed
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          working-directory: ${{ github.workspace }}
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
