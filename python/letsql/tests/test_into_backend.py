@@ -224,6 +224,7 @@ def test_multiple_into_backend_duckdb_letsql(trino_table):
     assert len(replacer.created) == 5
 
 
+@pytest.mark.benchmark
 def test_into_backend_duckdb_trino_cached(trino_table, tmp_path):
     db_con = ls.duckdb.connect()
     expr = (
