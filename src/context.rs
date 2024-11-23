@@ -7,6 +7,7 @@ use crate::catalog::{PyCatalog, PyTable};
 use crate::dataframe::PyDataFrame;
 use crate::dataset::Dataset;
 use crate::errors::DataFusionError;
+use crate::expr::sort_expr::PySortExpr;
 use crate::functions::greatest::GreatestFunc;
 use crate::functions::least::LeastFunc;
 use crate::ibis_table::IbisTable;
@@ -209,7 +210,8 @@ impl PySessionContext {
                         file_extension=".parquet",
                         skip_metadata=true,
                         schema=None,
-                        storage_options=None
+                        storage_options=None,
+                        file_sort_order=None,
     ))]
     fn register_parquet(
         &mut self,
@@ -221,6 +223,7 @@ impl PySessionContext {
         skip_metadata: bool,
         schema: Option<PyArrowType<Schema>>,
         storage_options: Option<HashMap<String, String>>,
+        file_sort_order: Option<Vec<Vec<PySortExpr>>>,
         py: Python,
     ) -> PyResult<()> {
         let mut options = ParquetReadOptions::default()
@@ -229,6 +232,12 @@ impl PySessionContext {
             .skip_metadata(skip_metadata);
         options.file_extension = file_extension;
         options.schema = schema.as_ref().map(|x| &x.0);
+        options.file_sort_order = file_sort_order
+            .unwrap_or_default()
+            .into_iter()
+            .map(|e| e.into_iter().map(|f| f.into()).collect())
+            .collect();
+
         let storage_options = storage_options.unwrap_or_default();
 
         let result = async {
