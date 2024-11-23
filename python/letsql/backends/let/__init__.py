@@ -8,7 +8,7 @@ from typing import Any, Mapping
 import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
-from letsql.internal import WindowUDF
+import toolz
 from ibis import BaseBackend
 from ibis.expr import types as ir, schema as sch
 from sqlglot import exp, parse_one
@@ -17,11 +17,13 @@ import letsql.backends.let.hotfix  # noqa: F401
 from letsql.backends.let.datafusion import Backend as DataFusionBackend
 from letsql.common.collections import SourceDict
 from letsql.common.utils.graph_utils import replace_fix
+from letsql.common.utils.parquet_utils import get_df_sort_order
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
     RemoteTableReplacer,
 )
+from letsql.internal import WindowUDF
 
 
 def _get_datafusion_table(con, table_name, database="public"):
@@ -90,6 +92,13 @@ class Backend(DataFusionBackend):
     def read_parquet(
         self, path: str | Path, table_name: str | None = None, **kwargs: Any
     ) -> ir.Table:
+        if "file_sort_order" not in kwargs:
+            try:
+                kwargs = toolz.merge(
+                    kwargs, {"file_sort_order": get_df_sort_order(path)}
+                )
+            except Exception:
+                pass
         registered_table = super().read_parquet(path, table_name=table_name, **kwargs)
         self._sources[registered_table.op()] = registered_table.op()
         return registered_table
