@@ -1,5 +1,8 @@
+import pathlib
+
 import pytest
 import pyarrow as pa
+import pyarrow.parquet as pq
 
 import letsql as ls
 
@@ -120,3 +123,39 @@ def df():
     )
 
     return batch.to_pandas()
+
+
+@pytest.fixture(scope="function")
+def parquet_metadata():
+    return {b"mykey": b"myvalue"}
+
+
+@pytest.fixture(scope="function")
+def parquet_path_without_metadata(tmpdir):
+    parquet_path_without_metadata = pathlib.Path(tmpdir).joinpath(
+        "without-metadata.parquet"
+    )
+    metadata = {b"mykey": b"myvalue"}
+    table = pa.Table.from_pydict({"a": [1], "b": ["two"]}).replace_schema_metadata(
+        metadata
+    )
+    with pq.ParquetWriter(parquet_path_without_metadata, table.schema) as writer:
+        writer.write_table(table)
+    return parquet_path_without_metadata
+
+
+@pytest.fixture(scope="function")
+def parquet_path_with_metadata(tmpdir):
+    parquet_path_with_metadata = pathlib.Path(tmpdir).joinpath("with-metadata.parquet")
+    metadata = {b"mykey": b"myvalue"}
+    table = pa.Table.from_pydict({"a": [1], "b": ["two"]}).replace_schema_metadata(
+        metadata
+    )
+    # order of sorts matters!!!
+    sort_order = [(el.name, "ascending") for el in table.schema][::-1]
+    sorting_columns = pq.SortingColumn.from_ordering(table.schema, sort_order)
+    with pq.ParquetWriter(
+        parquet_path_with_metadata, table.schema, sorting_columns=sorting_columns
+    ) as writer:
+        writer.write_table(table)
+    return parquet_path_with_metadata
