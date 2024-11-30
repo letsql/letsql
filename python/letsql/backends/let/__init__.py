@@ -323,7 +323,7 @@ class Backend(DataFusionBackend):
             node = node.__recreate__(kwargs)
             if isinstance(node, CachedNode):
                 uncached, storage = node.parent, node.storage
-                node = storage.set_default(uncached.to_expr(), uncached)
+                node = storage.set_default(uncached, uncached.op())
                 table = node.to_expr()
                 if node.source is self:
                     table = _get_datafusion_table(self.con, node.name)

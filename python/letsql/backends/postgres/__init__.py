@@ -48,8 +48,8 @@ class Backend(IbisPostgresBackend):
             node = node.__recreate__(kwargs)
             if isinstance(node, CachedNode):
                 uncached, storage = node.parent, node.storage
-                uncached_to_expr = uncached.to_expr()
-                node = storage.set_default(uncached_to_expr, uncached)
+                uncached_to_expr = uncached
+                node = storage.set_default(uncached_to_expr, uncached.op())
             return node
 
         op = expr.op()
