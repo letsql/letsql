@@ -47,6 +47,6 @@ class Backend(IbisSnowflakeBackend):
         self, expr: ir.Expr, *, limit: str | None = None, params=None, **_: Any
     ):
         op = expr.op()
-        out = op.map_clear(replace_fix(replace_cache_table))
+        out = op.map_clear(replace_cache_table)
 
         return super()._to_sqlglot(out.to_expr(), limit=limit, params=params)
