@@ -240,6 +240,18 @@ wheels = [
 ]
 
 [[package]]
+name = "beniget"
+version = "0.4.2.post1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "gast" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2e/27/5bb01af8f2860d431b98d0721b96ff2cea979106cae3f2d093ec74f6400c/beniget-0.4.2.post1.tar.gz", hash = "sha256:a0258537e65e7e14ec33a86802f865a667f949bb6c73646d55e42f7c45a052ae", size = 32274 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/e4/6e8731d4d10dd09942a6f5015b2148ae612bf13e49629f33f9fade3c8253/beniget-0.4.2.post1-py3-none-any.whl", hash = "sha256:e1b336e7b5f2ae201e6cc21f533486669f1b9eccba018dcff5969cd52f1c20ba", size = 17242 },
+]
+
+[[package]]
 name = "black"
 version = "24.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -884,6 +896,15 @@ wheels = [
 ]
 
 [[package]]
+name = "gast"
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/14/c566f5ca00c115db7725263408ff952b8ae6d6a4e792ef9c84e77d9af7a1/gast-0.6.0.tar.gz", hash = "sha256:88fc5300d32c7ac6ca7b515310862f71e6fdf2c029bbec7c66c0f5dd47b6b1fb", size = 27708 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/61/8001b38461d751cd1a0c3a6ae84346796a5758123f3ed97a1b121dfbf4f3/gast-0.6.0-py3-none-any.whl", hash = "sha256:52b182313f7330389f72b069ba00f174cfe2a06411099547288839c6cbafbd54", size = 21173 },
+]
+
+[[package]]
 name = "gcsfs"
 version = "2024.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1341,6 +1362,7 @@ dependencies = [
     { name = "pyarrow", marker = "python_full_version < '4.0'" },
     { name = "pyarrow-hotfix", marker = "python_full_version < '4.0'" },
     { name = "pytest-mock", marker = "python_full_version < '4.0'" },
+    { name = "pythran", marker = "sys_platform == 'darwin'" },
     { name = "sqlalchemy", marker = "python_full_version < '4.0'" },
     { name = "structlog", marker = "python_full_version < '4.0'" },
 ]
@@ -1410,6 +1432,7 @@ requires-dist = [
     { name = "pyarrow", marker = "python_full_version >= '3.10' and python_full_version < '4.0'", specifier = ">=13.0.0,<19" },
     { name = "pyarrow-hotfix", marker = "python_full_version >= '3.10' and python_full_version < '4.0'", specifier = ">=0.4,<1" },
     { name = "pytest-mock", marker = "python_full_version >= '3.10' and python_full_version < '4.0'", specifier = ">=3.14.0,<4" },
+    { name = "pythran", marker = "sys_platform == 'darwin'", specifier = ">=0.17.0" },
     { name = "snowflake-connector-python", marker = "python_full_version >= '3.10' and python_full_version < '4.0' and extra == 'snowflake'", specifier = ">=3.10.1,<4" },
     { name = "sqlalchemy", marker = "python_full_version >= '3.10' and python_full_version < '4.0'", specifier = ">=2.0.29,<3" },
     { name = "structlog", marker = "python_full_version >= '3.10' and python_full_version < '4.0'", specifier = ">=24.2.0,<25" },
@@ -1964,6 +1987,15 @@ wheels = [
 ]
 
 [[package]]
+name = "ply"
+version = "3.11"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e5/69/882ee5c9d017149285cab114ebeab373308ef0f874fcdac9beb90e0ac4da/ply-3.11.tar.gz", hash = "sha256:00c7c1aaa88358b9c765b6d3000c6eec0ba42abca5351b095321aef446081da3", size = 159130 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/58/35da89ee790598a0700ea49b2a66594140f44dec458c07e8e3d4979137fc/ply-3.11-py2.py3-none-any.whl", hash = "sha256:096f9b8350b65ebd2fd1346b12452efe5b9607f7482813ffca50c22722a807ce", size = 49567 },
+]
+
+[[package]]
 name = "pre-commit"
 version = "4.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2457,6 +2489,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892 },
+]
+
+[[package]]
+name = "pythran"
+version = "0.17.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "beniget" },
+    { name = "gast" },
+    { name = "numpy" },
+    { name = "ply" },
+    { name = "setuptools" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/34/2d/4ac363a2eecd68c372b058d1b95a5f262c70776e107619cdcb5a4b68e1a3/pythran-0.17.0.tar.gz", hash = "sha256:3b77d6d970a6cf5b448facc7d4f6229c3e73909ac27ea2480c843afdadbad0fb", size = 2394494 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/65/0a/557cef9d89cd21d7a4850c31701b7cfa78f6cc8b09249df678d174b6e6ca/pythran-0.17.0-py3-none-any.whl", hash = "sha256:be569cc2817b625ccd2c8f74fa3c93806f245c65fadc282c26a9f546ebd34cfa", size = 4337519 },
 ]
 
 [[package]]
