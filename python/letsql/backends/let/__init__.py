@@ -265,7 +265,7 @@ class Backend(DataFusionBackend):
         return rbr_wrapper(reader, clean_up)
 
     @contextmanager
-    def _get_backend_and_expr(self, expr):
+    def _get_backend_and_expr(self, expr, clean_up=True):
         expr = self._transform_to_native_backend(expr)
         expr, created = register_and_transform_remote_tables(expr)
         expr = self._register_and_transform_cache_tables(expr)
@@ -274,11 +274,12 @@ class Backend(DataFusionBackend):
         if isinstance(backend, self.__class__):
             backend = super(self.__class__, backend)
         yield backend, expr.unbind()
-        # for table, con in created.items():
-        #     try:
-        #         con.drop_table(table)
-        #     except Exception:
-        #         con.drop_view(table)
+        if clean_up:
+            for table, con in created.items():
+                try:
+                    con.drop_table(table)
+                except Exception:
+                    con.drop_view(table)
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.
