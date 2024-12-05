@@ -3,6 +3,7 @@ import os
 import pytest
 
 from letsql.expr.relations import CachedNode
+from letsql.common.utils.caching_utils import uncached as udx
 
 
 snowflake_credentials_varnames = (
@@ -30,5 +31,5 @@ def get_storage_uncached(con, expr):
     def replace_table(node, _, **_kwargs):
         return con._sources.get_table_or_op(node, node.__recreate__(_kwargs))
 
-    uncached = expr.op().replace(replace_fix(replace_table)).parent.to_expr()
+    uncached = udx(expr.op().replace(replace_fix(replace_table)))
     return (op.storage, uncached)

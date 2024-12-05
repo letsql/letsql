@@ -15,6 +15,8 @@ from ibis.common.exceptions import (
 from letsql.common.caching import (
     SourceStorage,
 )
+from letsql.common.utils.caching_utils import transform_cached_node
+from letsql.common.utils.graph_utils import replace_fix
 from letsql.common.utils.hotfix_utils import (
     hotfix,
     none_tokenized,
@@ -26,6 +28,7 @@ from letsql.expr.relations import (
     CachedNode,
     Read,
     replace_cache_table,
+    RemoteTable,
 )
 
 
@@ -40,7 +43,20 @@ class LETSQLAccessor:
 
     @property
     def cached_nodes(self):
-        return self.op.find(CachedNode)
+        def _find(node):
+            cached = node.find((CachedNode, RemoteTable))
+            if not cached:
+                yield None
+            else:
+                for no in cached:
+                    if isinstance(no, RemoteTable):
+                        yield from _find(no.remote_expr.op())
+                    else:
+                        yield from _find(no.parent.op())
+                        yield no
+
+        op = self.expr.op().replace(replace_fix(transform_cached_node))
+        return tuple(filter(None, _find(op)))
 
     @property
     def storage(self):
@@ -55,8 +71,21 @@ class LETSQLAccessor:
 
     @property
     def backends(self):
-        (_backends, _) = self.expr._find_backends()
-        return tuple(set(_backends))
+        def _find_backends(expr):
+            _backends, _ = expr._find_backends()
+            _backends = set(_backends)
+
+            for node in expr.op().find_topmost(CachedNode):
+                _backends.update(_find_backends(node.parent))
+
+            for node in expr.op().find_topmost(RemoteTable):
+                _backends.update(_find_backends(node.remote_expr))
+
+            return _backends
+
+        backends = _find_backends(self.expr)
+
+        return tuple(backends)
 
     @property
     def is_multiengine(self):
@@ -65,7 +94,16 @@ class LETSQLAccessor:
 
     @property
     def dts(self):
-        return self.op.find(self.node_types)
+        nodes = set(self.op.find(self.node_types))
+        for node in self.cached_nodes:
+            candidates = node.parent.op().find(self.node_types)
+            nodes.update(
+                candidate
+                for candidate in candidates
+                if not isinstance(candidate, RemoteTable)
+            )
+
+        return tuple(nodes)
 
     @property
     def is_cached(self):
@@ -73,19 +111,29 @@ class LETSQLAccessor:
 
     @property
     def has_cached(self):
-        return bool(tuple(self.op.find_topmost(CachedNode)))
+        def _has_cached(node):
+            if tuple(node.find_topmost(CachedNode)):
+                return True
+            elif tables := node.find_topmost(RemoteTable):
+                return any(_has_cached(table.remote_expr.op()) for table in tables)
+            else:
+                return False
+
+        return _has_cached(self.op)
 
     @property
     def uncached(self):
         if self.has_cached:
-            return self.op.map_clear(replace_cache_table).to_expr()
+            op = self.expr.op().replace(replace_fix(transform_cached_node))
+            return op.map_clear(replace_cache_table).to_expr()
         else:
             return self.expr
 
     @property
     def uncached_one(self):
         if self.is_cached:
-            return self.op.parent.to_expr()
+            op = self.expr.op().replace(replace_fix(transform_cached_node))
+            return op.parent
         else:
             return self.expr
 
@@ -111,9 +159,7 @@ class LETSQLAccessor:
             # must iterate from the bottom up else we execute downstream cached tables
             return all(
                 cn.storage.exists(
-                    cn.storage.source._register_and_transform_cache_tables(
-                        cn.parent.to_expr()
-                    )
+                    cn.storage.source._register_and_transform_cache_tables(cn.parent)
                 )
                 for cn in self.cached_nodes[::-1]
             )
@@ -160,7 +206,7 @@ def letsql_cache(self, storage=None):
     storage = storage or SourceStorage(source=current_backend)
     op = CachedNode(
         schema=self.schema(),
-        parent=self.op(),
+        parent=self,
         source=current_backend,
         storage=storage,
     )

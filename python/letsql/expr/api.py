@@ -35,6 +35,8 @@ from ibis.expr.types import (
     struct,
 )
 
+from letsql.common.utils.caching_utils import transform_cached_node
+from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import (
     RemoteTable,
 )
@@ -1605,15 +1607,20 @@ def _check_collisions(expr: ir.Expr):
         raise ValueError(f"name collision detected: {bad_names}")
 
 
-def execute(expr: ir.Expr, **kwargs: Any):
-    import letsql as ls
+def _pre_register(expr):
+    import letsql
 
     _check_collisions(expr)
-    con = ls.connect()
+    expr = expr.op().replace(replace_fix(transform_cached_node)).to_expr()
+    con = letsql.connect()
     for t in expr.op().find(ops.DatabaseTable):
         if t not in con._sources.sources and not isinstance(t, RemoteTable):
             con.register(t.to_expr(), t.name)
+    return expr, con
 
+
+def execute(expr: ir.Expr, **kwargs: Any):
+    expr, con = _pre_register(expr)
     return con.execute(expr, **kwargs)
 
 
@@ -1623,35 +1630,16 @@ def to_pyarrow_batches(
     chunk_size: int = 1_000_000,
     **kwargs: Any,
 ):
-    import letsql as ls
+    expr, con = _pre_register(expr)
 
-    _check_collisions(expr)
-    con = ls.connect()
-    for t in expr.op().find(ops.DatabaseTable):
-        if t not in con._sources.sources and not isinstance(t, RemoteTable):
-            con.register(t.to_expr(), t.name)
     return con.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
 
 
 def to_pyarrow(expr: ir.Expr, **kwargs: Any):
-    import letsql as ls
-
-    _check_collisions(expr)
-    con = ls.connect()
-    for t in expr.op().find(ops.DatabaseTable):
-        if t not in con._sources.sources and not isinstance(t, RemoteTable):
-            con.register(t.to_expr(), t.name)
-
+    expr, con = _pre_register(expr)
     return con.to_pyarrow(expr, **kwargs)
 
 
 def to_parquet(expr: ir.Expr, path: str | Path, **kwargs: Any):
-    import letsql as ls
-
-    _check_collisions(expr)
-    con = ls.connect()
-    for t in expr.op().find(ops.DatabaseTable):
-        if t not in con._sources.sources and not isinstance(t, RemoteTable):
-            con.register(t.to_expr(), t.name)
-
+    expr, con = _pre_register(expr)
     return con.to_parquet(expr, path, **kwargs)
