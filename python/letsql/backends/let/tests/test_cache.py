@@ -695,8 +695,6 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     executed0 = letsql.execute(cached_expr)
     assert storage.exists(uncached)
 
-    print("-----")
-
     # test cache use
     executed1 = letsql.execute(cached_expr)
     assert executed0.equals(executed1)

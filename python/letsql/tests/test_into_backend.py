@@ -125,6 +125,7 @@ def test_into_backend_complex(pg, method):
         .cache(SourceStorage(source=con))
     )
 
+    assert ls.to_sql(expr).count("batting") == 2
     res = method(expr)
 
     if isinstance(res, pa.RecordBatchReader):
