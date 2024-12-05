@@ -256,11 +256,11 @@ class Backend(DataFusionBackend):
         if isinstance(backend, self.__class__):
             backend = super(self.__class__, backend)
         yield backend, expr.unbind()
-        for table, con in created.items():
-            try:
-                con.drop_table(table)
-            except Exception:
-                con.drop_view(table)
+        # for table, con in created.items():
+        #     try:
+        #         con.drop_table(table)
+        #     except Exception:
+        #         con.drop_view(table)
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.
@@ -323,7 +323,7 @@ class Backend(DataFusionBackend):
             node = node.__recreate__(kwargs)
             if isinstance(node, CachedNode):
                 uncached, storage = node.parent, node.storage
-                node = storage.set_default(uncached.to_expr(), uncached)
+                node = storage.set_default(uncached, uncached.op())
                 table = node.to_expr()
                 if node.source is self:
                     table = _get_datafusion_table(self.con, node.name)
@@ -350,7 +350,7 @@ class Backend(DataFusionBackend):
     @staticmethod
     def _register_and_transform_remote_tables(expr):
         replacer = RemoteTableReplacer()
-        return expr.op().replace(replacer).to_expr(), replacer.created
+        return expr.op().replace(replace_fix(replacer)).to_expr(), replacer.created
 
     def register_udwf(self, func: WindowUDF):
         self.con.register_udwf(func)

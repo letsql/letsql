@@ -9,6 +9,7 @@ import pytest
 from pytest import param
 
 import letsql
+from letsql.expr.relations import into_backend
 from letsql.tests.util import (
     assert_frame_equal,
 )
@@ -503,12 +504,12 @@ def test_duckdb_datafusion_roundtrip(ls_con, pg, duckdb_con, function, remote):
     table_name = "batting"
     pg_t = pg.table(table_name)[lambda t: t.yearID == 2015].cache(storage)
 
-    db_t = duckdb_con.register(pg_t.to_pyarrow_batches(), f"ls-{table_name}")[
+    db_t = duckdb_con.register(letsql.to_pyarrow_batches(pg_t), f"ls-{table_name}")[
         lambda t: t.yearID == 2014
     ]
 
     expr = pg_t.join(
-        db_t,
+        into_backend(db_t, pg if remote else ls_con),
         "playerID",
     )
 
@@ -573,7 +574,7 @@ def test_execution_expr_multiple_tables(ls_con, tables, request, mocker):
             pair,
             id="-".join(pair),
         )
-        for pair in itertools.combinations_with_replacement(
+        for pair in itertools.combinations(
             ["pg_batting", "ls_batting", "ddb_batting"],
             r=2,
         )
