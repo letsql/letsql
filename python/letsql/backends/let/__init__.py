@@ -242,12 +242,12 @@ class Backend(DataFusionBackend):
         chunk_size: int = 1_000_000,
         **kwargs: Any,
     ) -> pa.ipc.RecordBatchReader:
-        with self._get_backend_and_expr(expr) as resource:
+        with self._get_backend_and_expr(expr, clean_up=False) as resource:
             backend, expr = resource
             return backend.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
 
     @contextmanager
-    def _get_backend_and_expr(self, expr):
+    def _get_backend_and_expr(self, expr, clean_up=True):
         expr = self._transform_to_native_backend(expr)
         expr, created = self._register_and_transform_remote_tables(expr)
         expr = self._register_and_transform_cache_tables(expr)
@@ -256,11 +256,12 @@ class Backend(DataFusionBackend):
         if isinstance(backend, self.__class__):
             backend = super(self.__class__, backend)
         yield backend, expr.unbind()
-        # for table, con in created.items():
-        #     try:
-        #         con.drop_table(table)
-        #     except Exception:
-        #         con.drop_view(table)
+        if clean_up:
+            for table, con in created.items():
+                try:
+                    con.drop_table(table)
+                except Exception:
+                    con.drop_view(table)
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.
