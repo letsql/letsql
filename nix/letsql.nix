@@ -88,6 +88,17 @@ let
           );
         in mkEditableScopeOverride final project "$REPO_ROOT/python";
       };
+      letsqlCrateWheelSrcOverride = old: {
+        src = crateWheelSrc;
+        format = "wheel";
+        nativeBuildInputs =
+          (builtins.filter
+            # all the hooks have the same name and we fail if we have the previous one
+            (drv: drv.name != "pyproject-hook")
+            (old.nativeBuildInputs or [ ])
+          )
+          ++ [ pythonSet.pyprojectWheelHook ];
+      };
 
       darwinPyprojectOverrides = final: prev: {
         scipy = prev.scipy.overrideAttrs (compose [
@@ -141,17 +152,7 @@ let
         ]);
       };
       pyprojectOverrides = final: prev: {
-        letsql = prev.letsql.overrideAttrs (old: {
-          src = crateWheelSrc;
-          format = "wheel";
-          nativeBuildInputs =
-            (builtins.filter
-              # all the hooks have the same name and we fail if we have the previous one
-              (drv: drv.name != "pyproject-hook")
-              (old.nativeBuildInputs or [ ])
-            )
-            ++ [ pythonSet.pyprojectWheelHook ];
-        });
+        letsql = prev.letsql.overrideAttrs letsqlCrateWheelSrcOverride;
         cityhash = prev.cityhash.overrideAttrs (
           addResolved final (if python.pythonAtLeast "3.12" then [ "setuptools" ] else [ ])
         );
@@ -256,6 +257,7 @@ let
         toolsPackages
         shell
         editableShell
+        letsqlCrateWheelSrcOverride
         ;
     };
 in
