@@ -41,7 +41,7 @@ let
             );
         });
       mkEditableScopeOverride =
-        final: root:
+        final: project: root:
         final.callPackage (
           {
             python,
@@ -80,12 +80,13 @@ let
       crateWheelSrc = mkCrateWheelSrc { inherit python; };
       workspace = uv2nix.lib.workspace.loadWorkspace { workspaceRoot = src; };
       overlay = workspace.mkPyprojectOverlay { sourcePreference = "wheel"; };
-      project = injectProjectVersion "0.1.10" (
-        pyproject-nix.lib.project.loadUVPyproject { projectRoot = src; }
-      );
       letsqlEditableOverride = final: _prev: {
         # necessary because uv2nix wants to read project for itself and we can't inject version there
-        letsql = mkEditableScopeOverride final "$REPO_ROOT/python";
+        letsql = let
+          project = injectProjectVersion "0.1.10" (
+            pyproject-nix.lib.project.loadUVPyproject { projectRoot = src; }
+          );
+        in mkEditableScopeOverride final project "$REPO_ROOT/python";
       };
 
       darwinPyprojectOverrides = final: prev: {
