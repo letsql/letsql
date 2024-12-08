@@ -8,6 +8,8 @@ from typing import Any, Mapping
 import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
+
+from letsql.common.utils.defer_utils import rbr_wrapper
 from letsql.internal import WindowUDF
 from ibis import BaseBackend
 from ibis.expr import types as ir, schema as sch
@@ -242,12 +244,28 @@ class Backend(DataFusionBackend):
         chunk_size: int = 1_000_000,
         **kwargs: Any,
     ) -> pa.ipc.RecordBatchReader:
-        with self._get_backend_and_expr(expr) as resource:
-            backend, expr = resource
-            return backend.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
+        expr = self._transform_to_native_backend(expr)
+        expr, created = self._register_and_transform_remote_tables(expr)
+        expr = self._register_and_transform_cache_tables(expr)
+        expr, dt_to_read = self._transform_deferred_reads(expr)
+        backend = self._get_source(expr)
+        if isinstance(backend, self.__class__):
+            backend = super(self.__class__, backend)
+        reader = backend.to_pyarrow_batches(
+            expr.unbind(), chunk_size=chunk_size, **kwargs
+        )
+
+        def clean_up():
+            for table, con in created.items():
+                try:
+                    con.drop_table(table)
+                except Exception:
+                    con.drop_view(table)
+
+        return rbr_wrapper(reader, clean_up)
 
     @contextmanager
-    def _get_backend_and_expr(self, expr):
+    def _get_backend_and_expr(self, expr, clean_up=True):
         expr = self._transform_to_native_backend(expr)
         expr, created = self._register_and_transform_remote_tables(expr)
         expr = self._register_and_transform_cache_tables(expr)
@@ -256,11 +274,12 @@ class Backend(DataFusionBackend):
         if isinstance(backend, self.__class__):
             backend = super(self.__class__, backend)
         yield backend, expr.unbind()
-        for table, con in created.items():
-            try:
-                con.drop_table(table)
-            except Exception:
-                con.drop_view(table)
+        if clean_up:
+            for table, con in created.items():
+                try:
+                    con.drop_table(table)
+                except Exception:
+                    con.drop_view(table)
 
     def do_connect(self, config: Mapping[str, str | Path] | None = None) -> None:
         """Creates a connection.
@@ -323,7 +342,7 @@ class Backend(DataFusionBackend):
             node = node.__recreate__(kwargs)
             if isinstance(node, CachedNode):
                 uncached, storage = node.parent, node.storage
-                node = storage.set_default(uncached.to_expr(), uncached)
+                node = storage.set_default(uncached, uncached.op())
                 table = node.to_expr()
                 if node.source is self:
                     table = _get_datafusion_table(self.con, node.name)
@@ -350,7 +369,7 @@ class Backend(DataFusionBackend):
     @staticmethod
     def _register_and_transform_remote_tables(expr):
         replacer = RemoteTableReplacer()
-        return expr.op().replace(replacer).to_expr(), replacer.created
+        return expr.op().replace(replace_fix(replacer)).to_expr(), replacer.created
 
     def register_udwf(self, func: WindowUDF):
         self.con.register_udwf(func)

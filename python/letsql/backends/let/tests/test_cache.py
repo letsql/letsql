@@ -201,7 +201,7 @@ def test_cache_recreate(alltypes):
 
     for con, expr in zip(cons, exprs):
         # FIXME: execute one, simply check the other returns true for `expr.ls.exists()`
-        expr.cache(storage=SourceStorage(source=con)).execute()
+        letsql.execute(expr.cache(storage=SourceStorage(source=con)))
 
     (con_cached_tables0, con_cached_tables1) = (
         set(

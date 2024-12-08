@@ -9,14 +9,14 @@ from ibis.common.collections import FrozenDict
 from ibis.expr import operations as ops
 from ibis.expr.operations import Relation, Node
 
-from letsql.common.utils.graph_utils import replace_fix, get_args
+from letsql.common.utils.graph_utils import replace_fix
 
 
 def replace_cache_table(node, _, **kwargs):
     if isinstance(node, CachedNode):
-        return kwargs["parent"]
+        return kwargs["parent"].op().replace(replace_fix(replace_cache_table))
     elif isinstance(node, RemoteTable):
-        return kwargs["remote_expr"].op()
+        return kwargs["remote_expr"].op().replace(replace_fix(replace_cache_table))
     else:
         return node.__recreate__(kwargs)
 
@@ -92,8 +92,9 @@ class RemoteTableReplacer:
         self.created = {}
         self.seen_expr = {}
 
-    def __call__(self, *args, **kwargs):
-        node, _, kwargs = get_args(*args, **kwargs)
+    def __call__(self, node, _, **kwargs):
+        from letsql.backends.postgres import Backend as PGBackend
+
         if isinstance(node, Relation):
             updated = {}
             for k, v in list(kwargs.items()):
@@ -110,7 +111,10 @@ class RemoteTableReplacer:
                         )
 
                         batches = self.get_batches(remote.remote_expr)
-                        remote.source.register(batches, table_name=name)
+                        if isinstance(remote.source, PGBackend):
+                            remote.source.read_record_batches(batches, table_name=name)
+                        else:
+                            remote.source.register(batches, table_name=name)
                         updated[v] = kwargs[k]
                         self.created[name] = remote.source
 
@@ -131,23 +135,33 @@ class RemoteTableReplacer:
             )
             self.tables[result] = RemoteTableCounter(node)
             batches = self.get_batches(node.remote_expr)
-            node.source.register(batches, table_name=node.name)
+            if isinstance(node.source, PGBackend):
+                node.source.read_record_batches(batches, table_name=node.name)
+            else:
+                node.source.register(batches, table_name=node.name)
             self.created[node.name] = node.source
             node = result
 
         return node
 
     def get_batches(self, expr):
-        if not expr.op().find((RemoteTable, MarkedRemoteTable)):
+        import letsql as ls
+
+        def finder(op):
+            return isinstance(op, (RemoteTable, MarkedRemoteTable)) or op in self.tables
+
+        if not expr.op().find(finder):
             if expr not in self.seen_expr:
-                batches = expr.to_pyarrow_batches()
+                batches = ls.to_pyarrow_batches(expr)
                 result, keep = SafeTee.tee(batches, 2)
                 self.seen_expr[expr] = keep
             else:
                 result, keep = SafeTee.tee(self.seen_expr[expr], 2)
                 self.seen_expr[expr] = keep
         elif expr not in self.seen_expr:
-            batches = expr.op().replace(self).to_expr().to_pyarrow_batches()
+            batches = ls.to_pyarrow_batches(
+                expr.op().replace(replace_fix(self)).to_expr()
+            )
             result, keep = SafeTee.tee(batches, 2)
             self.seen_expr[expr] = keep
         else:
