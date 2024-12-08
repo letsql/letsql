@@ -237,3 +237,15 @@ def test_into_backend_duckdb_trino_cached(trino_table, tmp_path):
     df = ls.execute(expr)
     assert isinstance(df, pd.DataFrame)
     assert len(df) > 0
+
+
+def test_into_backend_to_pyarrow_batches(trino_table):
+    db_con = ls.duckdb.connect()
+    df = (
+        trino_table.head(10_000)
+        .pipe(into_backend, db_con)
+        .pipe(make_merged)
+        .pipe(ls.to_pyarrow_batches)
+        .read_pandas()
+    )
+    assert not df.empty
