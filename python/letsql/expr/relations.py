@@ -9,7 +9,7 @@ from ibis.common.collections import FrozenDict
 from ibis.expr import operations as ops
 from ibis.expr.operations import Relation, Node
 
-from letsql.common.utils.graph_utils import replace_fix, get_args
+from letsql.common.utils.graph_utils import replace_fix
 
 
 def replace_cache_table(node, _, **kwargs):
@@ -83,79 +83,6 @@ def recursive_update(obj, replacements):
         }
     else:
         return obj
-
-
-class RemoteTableReplacer:
-    def __init__(self):
-        self.tables = {}
-        self.count = itertools.count()
-        self.created = {}
-        self.seen_expr = {}
-
-    def __call__(self, *args, **kwargs):
-        node, _, kwargs = get_args(*args, **kwargs)
-        if isinstance(node, Relation):
-            updated = {}
-            for k, v in list(kwargs.items()):
-                try:
-                    if v in self.tables:
-                        remote: RemoteTableCounter = self.tables[v]
-                        name = f"{v.name}_{next(remote.count)}"
-                        kwargs[k] = MarkedRemoteTable(
-                            name,
-                            schema=v.schema,
-                            source=v.source,
-                            namespace=v.namespace,
-                            remote_expr=v.remote_expr,
-                        )
-
-                        batches = self.get_batches(remote.remote_expr)
-                        remote.source.register(batches, table_name=name)
-                        updated[v] = kwargs[k]
-                        self.created[name] = remote.source
-
-                except TypeError:  # v may not be hashable
-                    continue
-
-            if len(updated) > 0:
-                kwargs = {k: recursive_update(v, updated) for k, v in kwargs.items()}
-
-        node = node.__recreate__(kwargs)
-        if isinstance(node, RemoteTable):
-            result = MarkedRemoteTable(
-                node.name,
-                schema=node.schema,
-                source=node.source,
-                namespace=node.namespace,
-                remote_expr=node.remote_expr,
-            )
-            self.tables[result] = RemoteTableCounter(node)
-            batches = self.get_batches(node.remote_expr)
-            node.source.register(batches, table_name=node.name)
-            self.created[node.name] = node.source
-            node = result
-
-        return node
-
-    def get_batches(self, expr):
-        if not expr.op().find((RemoteTable, MarkedRemoteTable)):
-            if expr not in self.seen_expr:
-                batches = expr.to_pyarrow_batches()
-                result, keep = SafeTee.tee(batches, 2)
-                self.seen_expr[expr] = keep
-            else:
-                result, keep = SafeTee.tee(self.seen_expr[expr], 2)
-                self.seen_expr[expr] = keep
-        elif expr not in self.seen_expr:
-            batches = expr.op().replace(self).to_expr().to_pyarrow_batches()
-            result, keep = SafeTee.tee(batches, 2)
-            self.seen_expr[expr] = keep
-        else:
-            result, keep = SafeTee.tee(self.seen_expr[expr], 2)
-            self.seen_expr[expr] = keep
-
-        schema = expr.as_table().schema()
-        return pa.RecordBatchReader.from_batches(schema.to_pyarrow(), result)
 
 
 def replace_source_factory(source: Any):
@@ -236,3 +163,68 @@ class Read(ops.Relation):
             name=name,
             schema=self.schema,
         )
+
+
+def register_and_transform_remote_tables(expr):
+    import letsql as ls
+
+    tables = {}
+    created = {}
+    seen_expr = {}
+
+    def get_batches(ex):
+        if ex not in seen_expr:
+            batches = ls.to_pyarrow_batches(ex)
+        else:
+            batches = seen_expr[ex]
+
+        schema = ex.as_table().schema().to_pyarrow()
+        result, keep = SafeTee.tee(batches, 2)
+        return pa.RecordBatchReader.from_batches(schema, result)
+
+    def replacer(node, _, **kwargs):
+        if isinstance(node, Relation):
+            updated = {}
+            for k, v in list(kwargs.items()):
+                try:
+                    if v in tables:
+                        remote: RemoteTableCounter = tables[v]
+                        name = f"{v.name}_{next(remote.count)}"
+                        kwargs[k] = MarkedRemoteTable(
+                            name,
+                            schema=v.schema,
+                            source=v.source,
+                            namespace=v.namespace,
+                            remote_expr=v.remote_expr,
+                        )
+
+                        batches = get_batches(remote.remote_expr)
+                        remote.source.register(batches, table_name=name)
+                        updated[v] = kwargs[k]
+                        created[name] = remote.source
+
+                except TypeError:  # v may not be hashable
+                    continue
+
+            if len(updated) > 0:
+                kwargs = {k: recursive_update(v, updated) for k, v in kwargs.items()}
+
+        node = node.__recreate__(kwargs)
+        if isinstance(node, RemoteTable):
+            result = MarkedRemoteTable(
+                node.name,
+                schema=node.schema,
+                source=node.source,
+                namespace=node.namespace,
+                remote_expr=node.remote_expr,
+            )
+            tables[result] = RemoteTableCounter(node)
+            batches = get_batches(node.remote_expr)
+            node.source.register(batches, table_name=node.name)
+            created[node.name] = node.source
+            node = result
+
+        return node
+
+    expr = expr.op().replace(replace_fix(replacer)).to_expr()
+    return expr, created

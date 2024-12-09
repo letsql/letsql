@@ -8,9 +8,6 @@ from typing import Any, Mapping
 import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
-
-from letsql.common.utils.defer_utils import rbr_wrapper
-from letsql.internal import WindowUDF
 from ibis import BaseBackend
 from ibis.expr import types as ir, schema as sch
 from sqlglot import exp, parse_one
@@ -18,12 +15,14 @@ from sqlglot import exp, parse_one
 import letsql.backends.let.hotfix  # noqa: F401
 from letsql.backends.let.datafusion import Backend as DataFusionBackend
 from letsql.common.collections import SourceDict
+from letsql.common.utils.defer_utils import rbr_wrapper
 from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
-    RemoteTableReplacer,
+    register_and_transform_remote_tables,
 )
+from letsql.internal import WindowUDF
 
 
 def _get_datafusion_table(con, table_name, database="public"):
@@ -245,7 +244,7 @@ class Backend(DataFusionBackend):
         **kwargs: Any,
     ) -> pa.ipc.RecordBatchReader:
         expr = self._transform_to_native_backend(expr)
-        expr, created = self._register_and_transform_remote_tables(expr)
+        expr, created = register_and_transform_remote_tables(expr)
         expr = self._register_and_transform_cache_tables(expr)
         expr, dt_to_read = self._transform_deferred_reads(expr)
         backend = self._get_source(expr)
@@ -267,7 +266,7 @@ class Backend(DataFusionBackend):
     @contextmanager
     def _get_backend_and_expr(self, expr):
         expr = self._transform_to_native_backend(expr)
-        expr, created = self._register_and_transform_remote_tables(expr)
+        expr, created = register_and_transform_remote_tables(expr)
         expr = self._register_and_transform_cache_tables(expr)
         expr, dt_to_read = self._transform_deferred_reads(expr)
         backend = self._get_source(expr)
@@ -364,11 +363,6 @@ class Backend(DataFusionBackend):
     def _extract_catalog(self, query):
         tables = parse_one(query).find_all(exp.Table)
         return {table.name: self.table(table.name) for table in tables}
-
-    @staticmethod
-    def _register_and_transform_remote_tables(expr):
-        replacer = RemoteTableReplacer()
-        return expr.op().replace(replacer).to_expr(), replacer.created
 
     def register_udwf(self, func: WindowUDF):
         self.con.register_udwf(func)
