@@ -1,11 +1,12 @@
 import functools
-import itertools
+from collections import defaultdict
 from typing import Any
 
 import ibis
 import pyarrow as pa
 from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
+from ibis.common.graph import Graph
 from ibis.expr import operations as ops
 from ibis.expr.operations import Relation, Node
 
@@ -154,32 +155,39 @@ class Read(ops.Relation):
 def register_and_transform_remote_tables(expr):
     import letsql as ls
 
-    tables = {}
     created = {}
-    seen_expr = {}
 
-    def get_batches(ex):
-        if ex not in seen_expr:
-            if not ex.op().find((RemoteTable, MarkedRemoteTable, CachedNode, Read)):
-                batches = ex.to_pyarrow_batches()  # execute in native backend
-            else:
-                batches = ls.to_pyarrow_batches(ex)
+    op = expr.op()
+    graph, _ = Graph.from_bfs(op).toposort()
+    counts = defaultdict(int)
+    for node in graph:
+        if isinstance(node, RemoteTable):
+            counts[node] += 1
+
+        if isinstance(node, Relation):
+            for arg in node.__args__:
+                if isinstance(arg, RemoteTable):
+                    counts[arg] += 1
+
+    batches_table = {}
+    for arg, count in counts.items():
+        ex = arg.remote_expr
+        if not ex.op().find((RemoteTable, MarkedRemoteTable, CachedNode, Read)):
+            batches = ex.to_pyarrow_batches()  # execute in native backend
         else:
-            batches = seen_expr[ex]
-
+            batches = ls.to_pyarrow_batches(ex)
         schema = ex.as_table().schema().to_pyarrow()
-        result, keep = SafeTee.tee(batches, 2)
-        seen_expr[ex] = keep
-        return pa.RecordBatchReader.from_batches(schema, result)
+        replicas = SafeTee.tee(batches, count)
+        batches_table[arg] = (schema, list(replicas))
 
     def replacer(node, _, **kwargs):
         if isinstance(node, Relation):
             updated = {}
             for k, v in list(kwargs.items()):
                 try:
-                    if v in tables:
-                        count = tables[v]
-                        name = f"{v.name}_{next(count)}"
+                    if v in batches_table:
+                        schema, batchess = batches_table[v]
+                        name = f"{v.name}_{len(batchess)}"
                         kwargs[k] = MarkedRemoteTable(
                             name,
                             schema=v.schema,
@@ -188,8 +196,10 @@ def register_and_transform_remote_tables(expr):
                             remote_expr=v.remote_expr,
                         )
 
-                        batches = get_batches(v.remote_expr)
-                        v.source.register(batches, table_name=name)
+                        reader = pa.RecordBatchReader.from_batches(
+                            schema, batchess.pop()
+                        )
+                        v.source.register(reader, table_name=name)
                         updated[v] = kwargs[k]
                         created[name] = v.source
 
@@ -201,20 +211,23 @@ def register_and_transform_remote_tables(expr):
 
         node = node.__recreate__(kwargs)
         if isinstance(node, RemoteTable):
+            schema, batchess = batches_table[node]
+            name = f"{node.name}_{len(batchess)}"
             result = MarkedRemoteTable(
-                node.name,
+                name,
                 schema=node.schema,
                 source=node.source,
                 namespace=node.namespace,
                 remote_expr=node.remote_expr,
             )
-            tables[result] = itertools.count()
-            batches = get_batches(node.remote_expr)
-            node.source.register(batches, table_name=node.name)
-            created[node.name] = node.source
+
+            reader = pa.RecordBatchReader.from_batches(schema, batchess.pop())
+            node.source.register(reader, table_name=name)
+            created[name] = node.source
+            batches_table[result] = batches_table.pop(node)
             node = result
 
         return node
 
-    expr = expr.op().replace(replace_fix(replacer)).to_expr()
+    expr = op.replace(replace_fix(replacer)).to_expr()
     return expr, created
