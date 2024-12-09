@@ -4,7 +4,7 @@ from ibis.backends.duckdb import Backend as IbisDuckDBBackend
 from ibis.expr import types as ir
 
 from letsql.backends.duckdb.compiler import DuckDBCompiler
-from letsql.expr.relations import RemoteTableReplacer
+from letsql.expr.relations import register_and_transform_remote_tables
 
 
 class Backend(IbisDuckDBBackend):
@@ -17,5 +17,5 @@ class Backend(IbisDuckDBBackend):
         limit: str | None = "default",
         **_: Any,
     ) -> Any:
-        expr = expr.op().replace(RemoteTableReplacer()).to_expr()
+        expr, _ = register_and_transform_remote_tables(expr)
         return super().execute(expr, params=params, limit=limit)
