@@ -49,20 +49,6 @@ class SafeTee(object):
         return tuple(cls(teeobj, lock) for teeobj in tee(iterable, n))
 
 
-class RemoteTableCounter:
-    def __init__(self, table):
-        self.table = table
-        self.count = itertools.count()
-
-    @property
-    def remote_expr(self):
-        return self.table.remote_expr
-
-    @property
-    def source(self):
-        return self.table.source
-
-
 def recursive_update(obj, replacements):
     if isinstance(obj, Node):
         if obj in replacements:
@@ -192,8 +178,8 @@ def register_and_transform_remote_tables(expr):
             for k, v in list(kwargs.items()):
                 try:
                     if v in tables:
-                        remote: RemoteTableCounter = tables[v]
-                        name = f"{v.name}_{next(remote.count)}"
+                        count = tables[v]
+                        name = f"{v.name}_{next(count)}"
                         kwargs[k] = MarkedRemoteTable(
                             name,
                             schema=v.schema,
@@ -202,10 +188,10 @@ def register_and_transform_remote_tables(expr):
                             remote_expr=v.remote_expr,
                         )
 
-                        batches = get_batches(remote.remote_expr)
-                        remote.source.register(batches, table_name=name)
+                        batches = get_batches(v.remote_expr)
+                        v.source.register(batches, table_name=name)
                         updated[v] = kwargs[k]
-                        created[name] = remote.source
+                        created[name] = v.source
 
                 except TypeError:  # v may not be hashable
                     continue
@@ -222,7 +208,7 @@ def register_and_transform_remote_tables(expr):
                 namespace=node.namespace,
                 remote_expr=node.remote_expr,
             )
-            tables[result] = RemoteTableCounter(node)
+            tables[result] = itertools.count()
             batches = get_batches(node.remote_expr)
             node.source.register(batches, table_name=node.name)
             created[node.name] = node.source
