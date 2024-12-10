@@ -9,28 +9,15 @@ def transform_cached_node(op, _, **kwargs):
     op = op.__recreate__(kwargs)
 
     if isinstance(op, CachedNode):
-        uncached, storage = op.parent, op.storage
+        storage = op.storage
+        parent = uncached(op)
 
-        first, _ = find_backend(uncached.op())
-        other = storage.source
-
-        if first is not other:
-            name = dask.base.tokenize(
-                {
-                    "schema": op.schema,
-                    "expr": uncached.unbind(),
-                    "source": first.name,
-                    "sink": other.name,
-                }
-            )
-
-            parent = RemoteTable.from_expr(other, uncached, name=name).to_expr()
-            op = CachedNode(
-                schema=op.schema,
-                parent=parent,
-                source=storage.source,
-                storage=storage,
-            )
+        op = CachedNode(
+            schema=op.schema,
+            parent=parent,
+            source=storage.source,
+            storage=storage,
+        )
 
     return op
 
@@ -58,14 +45,15 @@ def find_backend(op: ops.Node) -> tuple[BaseBackend, bool]:
 
 
 def uncached(node):
-    first, _ = find_backend(node.parent.op())
-    other = node.storage.source
     parent = node.parent
+    first, _ = find_backend(parent.op())
+    other = node.storage.source
+
     if first is not other:
         name = dask.base.tokenize(
             {
                 "schema": node.schema,
-                "expr": parent.unbind(),
+                "expr": parent,
                 "source": first.name,
                 "sink": other.name,
             }
