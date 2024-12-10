@@ -227,14 +227,15 @@ class Backend(DataFusionBackend):
         return expr
 
     def execute(self, expr: ir.Expr, **kwargs: Any):
-        with self._get_backend_and_expr(expr) as resource:
-            backend, expr = resource
-            return backend.execute(expr, **kwargs)
+        batch_reader = self.to_pyarrow_batches(expr, **kwargs)
+        return expr.__pandas_result__(
+            batch_reader.read_pandas(timestamp_as_object=True)
+        )
 
     def to_pyarrow(self, expr: ir.Expr, **kwargs: Any) -> pa.Table:
-        with self._get_backend_and_expr(expr) as resource:
-            backend, expr = resource
-            return backend.to_pyarrow(expr, **kwargs)
+        batch_reader = self.to_pyarrow_batches(expr, **kwargs)
+        arrow_table = batch_reader.read_all()
+        return expr.__pyarrow_result__(arrow_table)
 
     def to_pyarrow_batches(
         self,
