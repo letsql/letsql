@@ -8,9 +8,6 @@ from typing import Any, Mapping
 import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
-
-from letsql.common.utils.defer_utils import rbr_wrapper
-from letsql.internal import WindowUDF
 from ibis import BaseBackend
 from ibis.expr import types as ir, schema as sch
 from sqlglot import exp, parse_one
