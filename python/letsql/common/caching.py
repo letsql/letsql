@@ -144,7 +144,6 @@ class SnapshotStrategy(CacheStrategy):
 
     @staticmethod
     def normalize_databasetable(dt):
-        print("in snapshot strategy")
         if isinstance(dt, RemoteTable):
             # one alternative is to explicitly iterate over the fields name, schema, source, namespace
             # but explicit is better than implicit, additionally the name is not a safe bet for caching
