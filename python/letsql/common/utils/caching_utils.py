@@ -57,12 +57,6 @@ def find_backend(op: ops.Node) -> tuple[BaseBackend, bool]:
     )  # TODO what happens if it has more than one backend
 
 
-def exists(node: CachedNode):
-    parent = uncached(node)
-    key = node.storage.get_key(parent)
-    return node.storage.key_exists(key)
-
-
 def uncached(node):
     first, _ = find_backend(node.parent.op())
     other = node.storage.source
