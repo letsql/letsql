@@ -15,10 +15,12 @@ import letsql
 from letsql.common.utils.defer_utils import (
     Read,
 )
+from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import (
     make_native_op,
-    MarkedRemoteTable,
     RemoteTable,
+    MarkedRemoteTable,
+    replace_cache_table,
 )
 
 
@@ -131,15 +133,6 @@ def normalize_duckdb_databasetable(dt):
         dialect=dt.source.name
     )
 
-    if isinstance(dt, (MarkedRemoteTable, RemoteTable)):
-        return dask.tokenize._normalize_seq_func(
-            (
-                dt.schema.to_pandas(),
-                str(dt.remote_expr),
-                normalize_backend(dt.source),
-            )
-        )
-
     ((_, plan),) = dt.source.raw_sql(f"EXPLAIN SELECT * FROM {name}").fetchall()
     scan_line = plan.split("\n")[1]
     execution_plan_name = r"\s*│\s*(\w+)\s*│\s*"
@@ -170,14 +163,7 @@ def normalize_letsql_databasetable(dt):
     if dt.source.name != "let":
         raise ValueError
     native_source = dt.source._sources.get_backend(dt)
-    if isinstance(dt, (MarkedRemoteTable, RemoteTable)):
-        return dask.tokenize._normalize_seq_func(
-            (
-                dt.schema.to_pandas(),
-                str(dt.remote_expr),
-                normalize_backend(dt.source),
-            )
-        )
+
     if native_source.name == "let":
         return normalize_datafusion_databasetable(dt)
     new_dt = make_native_op(dt)
@@ -241,9 +227,24 @@ def normalize_databasetable(dt):
         "snowflake": normalize_snowflake_databasetable,
         "let": normalize_letsql_databasetable,
         "duckdb": normalize_duckdb_databasetable,
+        "trino": normalize_remote_databasetable,
     }
     f = dct[dt.source.name]
     return f(dt)
+
+
+@dask.base.normalize_token.register((RemoteTable, MarkedRemoteTable))
+def normalize_remote_table(dt):
+    if not isinstance(dt, (RemoteTable, MarkedRemoteTable)):
+        raise ValueError
+
+    return dask.base.normalize_token(
+        {
+            "schema": dt.schema,
+            "expr": dt.remote_expr,
+            "source": dt.source,
+        }
+    )
 
 
 @dask.base.normalize_token.register(ibis.backends.BaseBackend)
@@ -258,6 +259,8 @@ def normalize_backend(con):
         con_details = id(con.dictionary)
     elif name in ("datafusion", "duckdb", "let"):
         con_details = id(con.con)
+    elif name == "trino":
+        con_details = con.con.host
     else:
         raise ValueError
     return (name, con_details)
@@ -318,7 +321,9 @@ def normalize_agg_udf(udf):
 @dask.base.normalize_token.register(ibis.expr.types.Expr)
 def normalize_expr(expr):
     # FIXME: replace bound table names with their hashes
-    sql = unbound_expr_to_default_sql(expr.ls.uncached.unbind())
+    sql = unbound_expr_to_default_sql(
+        expr.op().replace(replace_fix(replace_cache_table)).to_expr().unbind()
+    )
     if not expr_is_bound(expr):
         return sql
 
