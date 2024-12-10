@@ -45,18 +45,15 @@ class LETSQLAccessor:
     def cached_nodes(self):
         def _find(node):
             cached = node.find((CachedNode, RemoteTable))
-            if not cached:
-                yield None
-            else:
-                for no in cached:
-                    if isinstance(no, RemoteTable):
-                        yield from _find(no.remote_expr.op())
-                    else:
-                        yield from _find(no.parent.op())
-                        yield no
+            for no in cached:
+                if isinstance(no, RemoteTable):
+                    yield from _find(no.remote_expr.op())
+                else:
+                    yield from _find(no.parent.op())
+                    yield no
 
         op = self.expr.op().replace(replace_fix(transform_cached_node))
-        return tuple(filter(None, _find(op)))
+        return tuple(_find(op))
 
     @property
     def storage(self):
