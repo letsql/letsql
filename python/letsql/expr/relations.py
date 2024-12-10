@@ -180,28 +180,29 @@ def register_and_transform_remote_tables(expr):
         replicas = SafeTee.tee(batches, count)
         batches_table[arg] = (schema, list(replicas))
 
+    def mark_remote_table(node):
+        schema, batchess = batches_table[node]
+        name = f"{node.name}_{len(batchess)}"
+        result = MarkedRemoteTable(
+            name,
+            schema=node.schema,
+            source=node.source,
+            namespace=node.namespace,
+            remote_expr=node.remote_expr,
+        )
+        reader = pa.RecordBatchReader.from_batches(schema, batchess.pop())
+        node.source.register(reader, table_name=name)
+        created[name] = node.source
+        return result
+
     def replacer(node, _, **kwargs):
         if isinstance(node, Relation):
             updated = {}
             for k, v in list(kwargs.items()):
                 try:
                     if v in batches_table:
-                        schema, batchess = batches_table[v]
-                        name = f"{v.name}_{len(batchess)}"
-                        kwargs[k] = MarkedRemoteTable(
-                            name,
-                            schema=v.schema,
-                            source=v.source,
-                            namespace=v.namespace,
-                            remote_expr=v.remote_expr,
-                        )
-
-                        reader = pa.RecordBatchReader.from_batches(
-                            schema, batchess.pop()
-                        )
-                        v.source.register(reader, table_name=name)
-                        updated[v] = kwargs[k]
-                        created[name] = v.source
+                        result = mark_remote_table(v)
+                        updated[v] = kwargs[k] = result
 
                 except TypeError:  # v may not be hashable
                     continue
@@ -211,19 +212,7 @@ def register_and_transform_remote_tables(expr):
 
         node = node.__recreate__(kwargs)
         if isinstance(node, RemoteTable):
-            schema, batchess = batches_table[node]
-            name = f"{node.name}_{len(batchess)}"
-            result = MarkedRemoteTable(
-                name,
-                schema=node.schema,
-                source=node.source,
-                namespace=node.namespace,
-                remote_expr=node.remote_expr,
-            )
-
-            reader = pa.RecordBatchReader.from_batches(schema, batchess.pop())
-            node.source.register(reader, table_name=name)
-            created[name] = node.source
+            result = mark_remote_table(node)
             batches_table[result] = batches_table.pop(node)
             node = result
 
