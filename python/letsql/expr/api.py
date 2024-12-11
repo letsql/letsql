@@ -1608,11 +1608,11 @@ def _check_collisions(expr: ir.Expr):
 
 
 def _pre_register(expr):
-    import letsql
+    import letsql as ls
 
     _check_collisions(expr)
     expr = expr.op().replace(replace_fix(transform_cached_node)).to_expr()
-    con = letsql.connect()
+    con = ls.connect()
     for t in expr.op().find(ops.DatabaseTable):
         if t not in con._sources.sources and not isinstance(t, RemoteTable):
             con.register(t.to_expr(), t.name)
