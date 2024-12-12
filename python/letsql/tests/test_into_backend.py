@@ -1,5 +1,3 @@
-from operator import methodcaller
-
 import ibis
 import pandas as pd
 import pyarrow as pa
@@ -100,11 +98,11 @@ def test_multiple_record_batches(pg):
     assert 0 < len(res) <= 15
 
 
-@pytest.mark.parametrize("method", ["to_pyarrow", "to_pyarrow_batches", "execute"])
+@pytest.mark.parametrize("method", [ls.to_pyarrow, ls.to_pyarrow_batches, ls.execute])
 def test_into_backend_simple(pg, method):
     con = ls.connect()
     expr = into_backend(pg.table("batting"), con, "ls_batting")
-    res = methodcaller(method)(expr)
+    res = method(expr)
 
     if isinstance(res, pa.RecordBatchReader):
         res = next(res)
