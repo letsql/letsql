@@ -319,7 +319,7 @@ def normalize_agg_udf(udf):
 def normalize_expr(expr):
     # FIXME: replace bound table names with their hashes
     sql = unbound_expr_to_default_sql(expr.ls.uncached.unbind())
-    if not expr_is_bound(expr):
+    if not (expr_is_bound(expr) or expr.op().find(Read)):
         return sql
 
     op = expr.op()
