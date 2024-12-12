@@ -1577,7 +1577,7 @@ def _cached_with_op(op, pretty):
     con = _backend_init()
 
     expr = op.to_expr()
-    sg_expr = con.compiler.to_sqlglot(expr.unbind())
+    sg_expr = con.compiler.to_sqlglot(expr)
     sql = sg_expr.sql(dialect=DataFusion, pretty=pretty)
     return sql
 
