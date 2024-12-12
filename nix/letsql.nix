@@ -216,7 +216,7 @@ let
       inherit
         (import ./commands.nix {
           inherit pkgs;
-          python = virtualenv;
+          python = virtualenv-editable;
         })
         letsql-commands-star
         ;
