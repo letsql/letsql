@@ -22,7 +22,7 @@ def transform_cached_node(op, _, **kwargs):
     return op
 
 
-def find_backend(op: ops.Node) -> tuple[BaseBackend, bool]:
+def find_backend(op: ops.Node, use_default=False) -> tuple[BaseBackend, bool]:
     backends = set()
     has_unbound = False
     node_types = (
@@ -37,6 +37,12 @@ def find_backend(op: ops.Node) -> tuple[BaseBackend, bool]:
             has_unbound = True
         else:
             backends.add(table.source)
+
+    if not backends and use_default:
+        from letsql.config import _backend_init
+
+        con = _backend_init()
+        backends.add(con)
 
     return (
         backends.pop(),

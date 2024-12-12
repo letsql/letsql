@@ -15,7 +15,7 @@ from ibis.common.exceptions import (
 from letsql.common.caching import (
     SourceStorage,
 )
-from letsql.common.utils.caching_utils import transform_cached_node
+from letsql.common.utils.caching_utils import transform_cached_node, find_backend
 from letsql.common.utils.graph_utils import replace_fix
 from letsql.common.utils.hotfix_utils import (
     hotfix,
@@ -194,7 +194,7 @@ def _letsql_find_backend(self, *, use_default=True):
 def letsql_cache(self, storage=None):
     # FIXME: push this into LETSQLAccessor
     try:
-        current_backend = self._find_backend(use_default=True)
+        current_backend, _ = find_backend(self.op(), use_default=True)
     except IbisError as e:
         if "Multiple backends found" in e.args[0]:
             current_backend = _backend_init()
