@@ -452,9 +452,8 @@ def test_postgres_parquet_snapshot(pg, tmp_path):
         pg.drop_table(to_name)
     pg_t = pg.create_table(name=to_name, obj=pg.table(from_name))
     storage = ParquetSnapshot(path=tmp_path.joinpath("parquet-snapshot-storage"))
-    expr_cached = (
-        pg_t.group_by("playerID").size().order_by("playerID").cache(storage=storage)
-    )
+    expr = pg_t.group_by("playerID").size().order_by("playerID")
+    expr_cached = expr.cache(storage=storage)
     dt = pg_t.op()
     (storage, uncached) = (expr_cached.ls.storage, expr_cached.ls.uncached_one)
 
@@ -469,6 +468,7 @@ def test_postgres_parquet_snapshot(pg, tmp_path):
     # should we test that SourceStorage.get is called?
     assert n_scans_after == 1
     assert storage.exists(uncached)
+    assert storage.exists(expr)
 
     # assert no change after re-execution of cached expr
     executed1 = ls.execute(expr_cached)
@@ -859,3 +859,41 @@ def test_caching_pandas(csv_dir):
     cache = SourceStorage(source=pandas_con)
     t = pandas_con.read_csv(diamonds_path).cache(storage=cache)
     assert ls.execute(t) is not None
+
+
+@pytest.mark.parametrize("expr_con", [ls.datafusion.connect(), ls.duckdb.connect()])
+def test_cross_source_snapshot(ls_con, alltypes_df, expr_con):
+    group_by = "year"
+    name = ibis.util.gen_name("tmp_table")
+
+    # create a temp table we can mutate
+    table = expr_con.create_table(name, alltypes_df)
+
+    storage = ParquetSnapshot(source=ls_con)
+
+    expr = table.group_by(group_by).agg(
+        {f"count_{col}": table[col].count() for col in table.columns}
+    )
+
+    cached_expr = expr.cache(storage=storage)
+
+    # test preconditions
+    assert not storage.exists(expr)  # the expr is not cached
+    assert storage.source is not expr_con  # the cache is cross source
+
+    # test cache creation
+    df = ls.execute(cached_expr)
+
+    assert not df.empty
+    assert storage.exists(expr)
+
+    # test cache use
+    executed1 = ls.execute(cached_expr)
+    assert df.equals(executed1)
+
+    # test NO cache invalidation
+    expr_con.insert(name, alltypes_df)
+    executed2 = ls.execute(cached_expr)
+    executed3 = ls.execute(cached_expr.ls.uncached)
+    assert df.equals(executed2)
+    assert not df.equals(executed3)

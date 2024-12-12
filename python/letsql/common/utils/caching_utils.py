@@ -45,18 +45,19 @@ def find_backend(op: ops.Node) -> tuple[BaseBackend, bool]:
 
 
 def uncached(node):
-    parent = node.parent
-    first, _ = find_backend(parent.op())
-    other = node.storage.source
+    return wrap_with_remote_table(node.schema, node.storage.source, node.parent)
 
-    if first is not other:
+
+def wrap_with_remote_table(schema, target, parent):
+    first, _ = find_backend(parent.op())
+    if first is not target:
         name = dask.base.tokenize(
             {
-                "schema": node.schema,
+                "schema": schema,
                 "expr": parent,
                 "source": first.name,
-                "sink": other.name,
+                "sink": target.name,
             }
         )
-        parent = RemoteTable.from_expr(other, parent, name=name).to_expr()
+        parent = RemoteTable.from_expr(target, parent, name=name).to_expr()
     return parent

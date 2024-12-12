@@ -22,6 +22,10 @@ from attr.validators import (
 
 import letsql as ls
 import letsql.common.utils.dask_normalize  # noqa: F401
+from letsql.common.utils.caching_utils import (
+    transform_cached_node,
+    wrap_with_remote_table,
+)
 from letsql.common.utils.dask_normalize import (
     patch_normalize_token,
 )
@@ -29,6 +33,7 @@ from letsql.common.utils.dask_normalize_expr import (
     normalize_backend,
     normalize_remote_table,
 )
+from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import RemoteTable
 
 abs_path_converter = toolz.compose(
@@ -253,6 +258,11 @@ class ParquetSnapshot:
             ),
         )
         object.__setattr__(self, "cache", cache)
+
+    def exists(self, expr: ir.Expr) -> bool:
+        expr = expr.op().replace(replace_fix(transform_cached_node)).to_expr()
+        expr = wrap_with_remote_table(expr.as_table().schema(), self.source, expr)
+        return self.cache.exists(expr)
 
     __getattr__ = chained_getattr
 
