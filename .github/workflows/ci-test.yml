@@ -27,8 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [x86_64, x86, aarch64]
-        python-version: ["3.10", "3.11"]
+        target: [x86_64, x86]
+        python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
@@ -50,7 +50,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             ./target/
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          key: cargo-cache-${{ matrix.python-version }}-${{ matrix.target }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
 
       - uses: actions/setup-python@v5
         with:
@@ -71,7 +71,7 @@ jobs:
           command: 'develop'
           target: ${{ matrix.target }}
           sccache: 'true'
-          manylinux: ${{ matrix.target == 'aarch64' && '2_28' || 'auto' }}
+          manylinux: 'auto'
 
       - name: start services
         run: docker compose up --build --wait

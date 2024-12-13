@@ -10,6 +10,10 @@ jobs:
   codspeed:
     name: Run benchmarks
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ x86_64 ]
+        python-version: [ "3.12" ]
     steps:
       - uses: actions/checkout@v4
       - uses: extractions/setup-just@v2
@@ -31,7 +35,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             ./target/
-          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          key: cargo-cache-${{ matrix.python-version }}-${{ matrix.target }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
 
       - uses: actions/setup-python@v5
         with:
