@@ -31,7 +31,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             ./target/
-          key: cargo-cache-${{ os.runner }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
+          key: cargo-cache-${{ runner.os }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
 
       - uses: actions/setup-python@v5
         with:
