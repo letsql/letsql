@@ -22,13 +22,19 @@ from attr.validators import (
 
 import letsql as ls
 import letsql.common.utils.dask_normalize  # noqa: F401
+from letsql.common.utils.caching_utils import (
+    transform_cached_node,
+    wrap_with_remote_table,
+)
 from letsql.common.utils.dask_normalize import (
     patch_normalize_token,
 )
 from letsql.common.utils.dask_normalize_expr import (
     normalize_backend,
+    normalize_remote_table,
 )
-
+from letsql.common.utils.graph_utils import replace_fix
+from letsql.expr.relations import RemoteTable
 
 abs_path_converter = toolz.compose(
     operator.methodcaller("expanduser"), operator.methodcaller("absolute"), pathlib.Path
@@ -136,17 +142,23 @@ class SnapshotStrategy(CacheStrategy):
     @staticmethod
     def normalize_backend(con):
         name = con.name
-        if name in ("pandas", "duckdb", "datafusion"):
+        if name in ("pandas", "duckdb", "datafusion", "let"):
             return (name, None)
         else:
             return normalize_backend(con)
 
     @staticmethod
     def normalize_databasetable(dt):
-        keys = ["name", "schema", "source", "namespace"]
-        return dask.tokenize._normalize_seq_func(
-            (key, getattr(dt, key)) for key in keys
-        )
+        if isinstance(dt, RemoteTable):
+            # one alternative is to explicitly iterate over the fields name, schema, source, namespace
+            # but explicit is better than implicit, additionally the name is not a safe bet for caching
+            # RemoteTable
+            return normalize_remote_table(dt)
+        else:
+            keys = ["name", "schema", "source", "namespace"]
+            return dask.tokenize._normalize_seq_func(
+                (key, getattr(dt, key)) for key in keys
+            )
 
 
 @frozen
@@ -201,17 +213,7 @@ class _SourceStorage(CacheStorage):
         return self._source.table(key).op()
 
     def _put(self, key, value):
-        expr = value.to_expr()
-        backends, _ = expr._find_backends()
-        # FIXME what happens when the backend is LETSQL, to_pyarrow won't work
-        if (
-            len(backends) == 1
-            and backends[0].name != "pandas"
-            and backends[0] is self._source
-        ):
-            self._source.create_table(key, expr)
-        else:
-            self._source.create_table(key, ls.to_pyarrow(expr))
+        self._source.create_table(key, ls.to_pyarrow(value.to_expr()))
         return self._get(key)
 
     def _drop(self, key):
@@ -256,6 +258,11 @@ class ParquetSnapshot:
             ),
         )
         object.__setattr__(self, "cache", cache)
+
+    def exists(self, expr: ir.Expr) -> bool:
+        expr = expr.op().replace(replace_fix(transform_cached_node)).to_expr()
+        expr = wrap_with_remote_table(expr.as_table().schema(), self.source, expr)
+        return self.cache.exists(expr)
 
     __getattr__ = chained_getattr
 
