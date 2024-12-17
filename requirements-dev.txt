@@ -29,6 +29,7 @@ debugpy==1.8.9
 decorator==5.1.1
 distlib==0.3.9
 exceptiongroup==1.2.2 ; python_full_version < '3.11'
+execnet==2.1.1
 executing==2.1.0
 fastjsonschema==2.20.0
 filelock==3.16.1
@@ -94,6 +95,7 @@ pytest-codspeed==3.0.0
 pytest-cov==6.0.0
 pytest-mock==3.14.0 ; python_full_version < '4.0'
 pytest-snapshot==0.9.0
+pytest-xdist==3.6.1
 python-dateutil==2.9.0.post0
 pythran==0.17.0 ; sys_platform == 'darwin'
 pytz==2024.2
