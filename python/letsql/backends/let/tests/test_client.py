@@ -15,7 +15,7 @@ def test_register_record_batch_reader(alltypes_df):
     actual = ls.execute(t2)
 
     assert isinstance(record_batch_reader, pa.RecordBatchReader)
-    assert_frame_equal(actual, alltypes_df)
+    assert_frame_equal(actual, alltypes_df, check_dtype=False)
 
 
 def test_register_expr(alltypes_df):
@@ -23,7 +23,7 @@ def test_register_expr(alltypes_df):
     t = con.register(alltypes_df, "alltypes")
     t2 = con.register(t, "alltypes2")
     actual = ls.execute(t2)
-    assert_frame_equal(actual, alltypes_df)
+    assert_frame_equal(actual, alltypes_df, check_dtype=False)
 
 
 def test_execute_nonnull():

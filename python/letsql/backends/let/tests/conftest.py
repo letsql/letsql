@@ -1,7 +1,13 @@
+from pathlib import Path
+
+import ibis
+import pandas as pd
 import pytest
 import pyarrow as pa
 
 import letsql as ls
+
+from ibis.formats.pandas import PandasData as data_mapper
 
 
 expected_tables = (
@@ -98,13 +104,69 @@ def awards_players(dirty):
 
 
 @pytest.fixture(scope="session")
-def alltypes_df(alltypes):
-    return alltypes.execute()
+def alltypes_df():
+    root = Path(__file__).absolute().parents[5]
+    data_dir = root / "ci" / "ibis-testing-data" / "parquet"
+    alltypes_path = data_dir / "functional_alltypes.parquet"
+    result = pd.read_parquet(alltypes_path)
+
+    schema = ibis.schema(
+        {
+            "id": "int32",
+            "bool_col": "boolean",
+            "tinyint_col": "int16",
+            "smallint_col": "int16",
+            "int_col": "int32",
+            "bigint_col": "int64",
+            "float_col": "float32",
+            "double_col": "float64",
+            "date_string_col": "string",
+            "string_col": "string",
+            "timestamp_col": "timestamp",
+            "year": "int32",
+            "month": "int32",
+        }
+    )
+
+    return data_mapper.convert_table(result, schema)
 
 
 @pytest.fixture(scope="session")
-def batting_df(batting):
-    return batting.execute()
+def batting_df():
+    root = Path(__file__).absolute().parents[5]
+    data_dir = root / "ci" / "ibis-testing-data" / "parquet"
+    batting_path = data_dir / "batting.parquet"
+
+    schema = ibis.schema(
+        {
+            "playerID": "string",
+            "yearID": "int64",
+            "stint": "int64",
+            "teamID": "string",
+            "lgID": "string",
+            "G": "int64",
+            "AB": "int64",
+            "R": "int64",
+            "H": "int64",
+            "X2B": "int64",
+            "X3B": "int64",
+            "HR": "int64",
+            "RBI": "int64",
+            "SB": "int64",
+            "CS": "int64",
+            "BB": "int64",
+            "SO": "int64",
+            "IBB": "int64",
+            "HBP": "int64",
+            "SH": "int64",
+            "SF": "int64",
+            "GIDP": "int64",
+        }
+    )
+
+    result = pd.read_parquet(batting_path)
+
+    return data_mapper.convert_table(result, schema)
 
 
 @pytest.fixture

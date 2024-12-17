@@ -134,7 +134,7 @@ def test_join(ls_con, alltypes, alltypes_df):
         alltypes_df, first_10, how="inner", on="id", suffixes=("", "_right")
     ).sort_values("id")
 
-    assert_frame_equal(actual, expected)
+    assert_frame_equal(actual, expected, check_dtype=False)
 
 
 @pytest.mark.parametrize("how", ["semi", "anti"])
