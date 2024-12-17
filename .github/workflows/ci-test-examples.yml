@@ -51,7 +51,7 @@ jobs:
       - name: install dependencies
         run: |
           source .venv/bin/activate
-          python -m pip install pytest maturin
+          python -m pip install pytest maturin "pytest-xdist[psutil]"
 
       - name: develop
         run: |
