@@ -18,7 +18,6 @@ import letsql as ls
 from letsql.common.caching import (
     ParquetCacheStorage,
 )
-from letsql.common.utils.caching_utils import uncached
 from letsql.common.utils.defer_utils import (
     deferred_read_csv,
     deferred_read_parquet,
@@ -192,7 +191,6 @@ def test_cached_deferred_read(con, pins_resource, filter_, request, tmp_path):
     df = pins_resource.df[filter_].reset_index(drop=True)
     t = pins_resource.deferred_reader(con, pins_resource.path, pins_resource.table_name)
     expr = t[filter_].cache(storage=storage)
-    uncached_expr = uncached(expr.op())
 
     # no work is done yet
     assert pins_resource.table_name not in con.tables
@@ -201,7 +199,7 @@ def test_cached_deferred_read(con, pins_resource, filter_, request, tmp_path):
     # something exists in both con and storage
     assert ls.execute(expr).equals(df)
     assert pins_resource.table_name in con.tables
-    assert storage.exists(uncached_expr)
+    assert storage.exists(expr)
 
     # we read from cache even if the table disappears
     con.drop_table(t.op().name, force=True)
@@ -209,16 +207,16 @@ def test_cached_deferred_read(con, pins_resource, filter_, request, tmp_path):
     assert pins_resource.table_name not in con.tables
 
     # we repopulate the cache
-    storage.drop(uncached_expr)
+    storage.drop(expr)
     assert ls.execute(expr).equals(df)
     assert pins_resource.table_name in con.tables
-    assert storage.exists(uncached_expr)
+    assert storage.exists(expr)
 
     if con.name == "postgres":
         # we are mode="create" by default, which means losing cache creates collision
         mode = get_partial_arguments(pins_resource.get_underlying_method(con))["mode"]
         assert mode == "create"
-        storage.drop(uncached_expr)
+        storage.drop(expr)
         with pytest.raises(
             ProgrammingError,
             match=f'relation "{pins_resource.table_name}" already exists',
@@ -231,10 +229,10 @@ def test_cached_deferred_read(con, pins_resource, filter_, request, tmp_path):
         )
         expr = t[filter_].cache(storage=storage)
         assert ls.execute(expr).equals(df)
-        assert storage.exists(uncached_expr)
+        assert storage.exists(expr)
         assert pins_resource.table_name in con.tables
         # this fails above, but works here because of mode="replace"
-        storage.drop(uncached_expr)
+        storage.drop(expr)
         assert ls.execute(expr).equals(df)
 
 
@@ -253,7 +251,6 @@ def test_cached_csv_mutate(con, iris_csv, tmp_path):
     kwargs = {"mode": "replace"} if con.name == "postgres" else {}
     t = iris_csv.deferred_reader(con, target_path, iris_csv.table_name, **kwargs)
     expr = t.cache(storage=storage)
-    uncached_expr = uncached(expr.op())
 
     # nothing exists yet
     assert iris_csv.table_name not in con.tables
@@ -262,12 +259,11 @@ def test_cached_csv_mutate(con, iris_csv, tmp_path):
     # initial cache population
     assert ls.execute(expr).equals(df)
     assert iris_csv.table_name in con.tables
-    assert storage.exists(uncached_expr)
+    assert storage.exists(expr)
 
     # mutate
     mutate_csv(target_path)
     df = iris_csv.immediate_reader(target_path)
-    assert not storage.exists(uncached_expr)
+    assert not storage.exists(expr)
     assert ls.execute(expr).equals(df)
-    uncached_expr = uncached(expr.op())
-    assert storage.exists(uncached_expr)
+    assert storage.exists(expr)

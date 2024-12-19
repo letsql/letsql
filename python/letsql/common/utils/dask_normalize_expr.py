@@ -15,12 +15,10 @@ import letsql as ls
 from letsql.common.utils.defer_utils import (
     Read,
 )
-from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import (
     make_native_op,
     RemoteTable,
     MarkedRemoteTable,
-    replace_cache_table,
 )
 
 
@@ -242,7 +240,8 @@ def normalize_remote_table(dt):
         {
             "schema": dt.schema,
             "expr": dt.remote_expr,
-            "source": dt.source,
+            # only thing that matters is the type of source its going into
+            "source": dt.source.name,
         }
     )
 
@@ -321,9 +320,8 @@ def normalize_agg_udf(udf):
 @dask.base.normalize_token.register(ibis.expr.types.Expr)
 def normalize_expr(expr):
     # FIXME: replace bound table names with their hashes
-    sql = unbound_expr_to_default_sql(
-        expr.op().replace(replace_fix(replace_cache_table)).to_expr().unbind()
-    )
+    sql = unbound_expr_to_default_sql(expr.ls.uncached.unbind())
+
     if not expr_is_bound(expr):
         return sql
 

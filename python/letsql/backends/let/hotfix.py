@@ -1,3 +1,5 @@
+import ibis.formats.pyarrow
+import ibis.expr.datatypes.core
 import ibis.expr.operations as ops
 import ibis.expr.types.core
 import ibis.expr.types.relations
@@ -14,9 +16,9 @@ from ibis.common.exceptions import (
 
 from letsql.common.caching import (
     SourceStorage,
+    maybe_prevent_cross_source_caching,
 )
-from letsql.common.utils.caching_utils import transform_cached_node, find_backend
-from letsql.common.utils.graph_utils import replace_fix
+from letsql.common.utils.caching_utils import find_backend
 from letsql.common.utils.hotfix_utils import (
     hotfix,
     none_tokenized,
@@ -27,8 +29,8 @@ from letsql.config import (
 from letsql.expr.relations import (
     CachedNode,
     Read,
-    replace_cache_table,
     RemoteTable,
+    replace_cache_table,
 )
 
 
@@ -52,7 +54,7 @@ class LETSQLAccessor:
                     yield from _find(no.parent.op())
                     yield no
 
-        op = self.expr.op().replace(replace_fix(transform_cached_node))
+        op = self.expr.op()
         return tuple(_find(op))
 
     @property
@@ -121,7 +123,7 @@ class LETSQLAccessor:
     @property
     def uncached(self):
         if self.has_cached:
-            op = self.expr.op().replace(replace_fix(transform_cached_node))
+            op = self.expr.op()
             return op.map_clear(replace_cache_table).to_expr()
         else:
             return self.expr
@@ -129,18 +131,14 @@ class LETSQLAccessor:
     @property
     def uncached_one(self):
         if self.is_cached:
-            op = self.expr.op().replace(replace_fix(transform_cached_node))
+            op = self.expr.op()
             return op.parent
         else:
             return self.expr
 
     def get_key(self):
         if self.is_cached and (self.exists() or not self.uncached_one.ls.has_cached):
-            return self.storage.get_key(
-                self.storage.source._register_and_transform_cache_tables(
-                    self.uncached_one
-                )
-            )
+            return self.storage.get_key(self.uncached_one)
         else:
             return None
 
@@ -153,13 +151,8 @@ class LETSQLAccessor:
 
     def exists(self):
         if self.is_cached:
-            # must iterate from the bottom up else we execute downstream cached tables
-            return all(
-                cn.storage.exists(
-                    cn.storage.source._register_and_transform_cache_tables(cn.parent)
-                )
-                for cn in self.cached_nodes[::-1]
-            )
+            cn = self.op
+            return cn.storage.exists(cn.parent)
         else:
             return None
 
@@ -201,9 +194,10 @@ def letsql_cache(self, storage=None):
         else:
             raise e
     storage = storage or SourceStorage(source=current_backend)
+    expr = maybe_prevent_cross_source_caching(self, storage)
     op = CachedNode(
-        schema=self.schema(),
-        parent=self,
+        schema=expr.schema(),
+        parent=expr,
         source=current_backend,
         storage=storage,
     )

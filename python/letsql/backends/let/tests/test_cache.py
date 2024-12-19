@@ -5,6 +5,7 @@ import pathlib
 import time
 import uuid
 
+import dask
 import ibis
 import ibis.expr.datatypes as dt
 import pandas as pd
@@ -39,6 +40,16 @@ from letsql.tests.util import (
 
 
 KEY_PREFIX = ls.config.options.cache.key_prefix
+
+
+@pytest.fixture
+def cached_two(ls_con, batting, tmp_path):
+    parquet_storage = ParquetCacheStorage(source=ls_con, path=tmp_path)
+    return (
+        batting[lambda t: t.yearID > 2014]
+        .cache()[lambda t: t.stint == 1]
+        .cache(storage=parquet_storage)
+    )
 
 
 @pytest.fixture(scope="function")
@@ -683,15 +694,19 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     cached_expr = (
         table.group_by(group_by)
         .agg({f"count_{col}": table[col].count() for col in table.columns})
+        .pipe(into_backend, ls_con)
         .cache(storage=SnapshotStorage(source=ls_con))
     )
-    (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
+    (storage, uncached) = get_storage_uncached(cached_expr)
 
     # test preconditions
     assert not storage.exists(uncached)
 
     # test cache creation
     executed0 = ls.execute(cached_expr)
+
+    with storage.normalization_context(uncached):
+        normalized0 = dask.base.normalize_token(uncached)
     assert storage.exists(uncached)
 
     # test cache use
@@ -705,9 +720,17 @@ def test_pandas_snapshot(ls_con, alltypes_df):
     cached_expr = (
         table2.group_by(group_by)
         .agg({f"count_{col}": table2[col].count() for col in table2.columns})
+        .pipe(into_backend, ls_con)
         .cache(storage)
     )
-    (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
+    (storage, uncached) = get_storage_uncached(cached_expr)
+    with storage.normalization_context(uncached):
+        normalized1 = dask.base.normalize_token(uncached)
+
+    # the "stable rename" occurs inside of SnapshotStrategy.get_key
+    assert normalized0[0] != normalized1[0]
+    # everything else is stable, despite the different date
+    assert normalized0[1:] == normalized1[1:]
     assert storage.exists(uncached)
     executed2 = ls.execute(cached_expr.ls.uncached)
     assert not executed0.equals(executed2)
@@ -726,7 +749,7 @@ def test_duckdb_snapshot(ls_con, alltypes_df):
         .agg({f"count_{col}": table[col].count() for col in table.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
     )
-    (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
+    (storage, uncached) = get_storage_uncached(cached_expr)
 
     # test preconditions
     assert not storage.exists(uncached)
@@ -760,7 +783,7 @@ def test_datafusion_snapshot(ls_con, alltypes_df):
         .agg({f"count_{col}": table[col].count() for col in table.columns})
         .cache(storage=SnapshotStorage(source=ls_con))
     )
-    (storage, uncached) = get_storage_uncached(ls_con, cached_expr)
+    (storage, uncached) = get_storage_uncached(cached_expr)
 
     # test preconditions
     assert not storage.exists(uncached)
@@ -897,3 +920,23 @@ def test_cross_source_snapshot(ls_con, alltypes_df, expr_con):
     executed3 = ls.execute(cached_expr.ls.uncached)
     assert df.equals(executed2)
     assert not df.equals(executed3)
+
+
+def test_storage_exists_doesnt_materialize(cached_two):
+    storage = cached_two.ls.storage
+    assert not storage.exists(cached_two)
+    assert not storage.exists(cached_two)
+    assert not cached_two.ls.exists()
+    ls.execute(cached_two.count())
+    assert cached_two.ls.exists()
+    assert storage.exists(cached_two)
+
+
+def test_ls_exists_doesnt_materialize(cached_two):
+    storage = cached_two.ls.storage
+    assert not cached_two.ls.exists()
+    assert not cached_two.ls.exists()
+    assert not storage.exists(cached_two)
+    ls.execute(cached_two.count())
+    assert cached_two.ls.exists()
+    assert storage.exists(cached_two)

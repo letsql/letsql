@@ -35,7 +35,7 @@ from ibis.expr.types import (
     struct,
 )
 
-from letsql.common.utils.caching_utils import transform_cached_node, find_backend
+from letsql.common.utils.caching_utils import find_backend
 from letsql.common.utils.defer_utils import rbr_wrapper
 from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import (
@@ -1647,7 +1647,6 @@ def _transform_deferred_reads(expr):
 
 def _pre_register(expr):
     _check_collisions(expr)
-    expr = expr.op().replace(replace_fix(transform_cached_node)).to_expr()
     return expr
 
 
