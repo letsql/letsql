@@ -3,11 +3,13 @@ from __future__ import annotations
 from typing import Callable
 
 import ibis.expr.types as ir
+from ibis import memtable
 import pytest
 from pytest import param
 
 import letsql as ls
 from letsql.tests.conftest import TEST_TABLES
+from letsql.tests.util import assert_frame_equal
 
 
 def test_list_tables(con):
@@ -105,3 +107,35 @@ def test_read(data_dir, extension, method):
         data_dir / extension / f"batting.{extension}", table_name=f"batting-{extension}"
     )
     assert ls.execute(table) is not None
+
+
+def test_train_test_split():
+    # Check counts and overlaps in train and test dataset
+    N = 100
+    test_size = 0.25
+    # init table
+    table = memtable([(i, "val") for i in range(N)], columns=["key1", "val"])
+    train_table, test_table = ls.train_test_split(
+        table, unique_key="key1", test_size=test_size, random_seed=42
+    )
+    # These values are for seed 42
+    assert train_table.count().execute() == 73
+    assert test_table.count().execute() == 27
+    assert set(train_table.columns) == set(table.columns)
+    assert set(test_table.columns) == set(table.columns)
+    # make sure data unioned together is itself
+    assert train_table.union(test_table).join(table, how="semi").count().execute() == N
+
+    # Check reproducibility
+    reproduced_train_table, reproduced_test_table = ls.train_test_split(
+        table, unique_key="key1", test_size=test_size, random_seed=42
+    )
+    assert_frame_equal(train_table.execute(), reproduced_train_table.execute())
+    assert_frame_equal(test_table.execute(), reproduced_test_table.execute())
+
+    # make sure it could generate different data with different random_seed
+    different_train_table, different_test_table = ls.train_test_split(
+        table, unique_key="key1", test_size=test_size, random_seed=0
+    )
+    assert not train_table.execute().equals(different_train_table.execute())
+    assert not test_table.execute().equals(different_test_table.execute())
