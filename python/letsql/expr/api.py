@@ -8,9 +8,6 @@ import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Union, overload
 
-# TODO: fix this import issue
-from random import getrandbits as grb
-from random import seed as rndm_seed
 import ibis
 import ibis.expr.builders as bl
 import ibis.expr.datatypes as dt
@@ -1691,8 +1688,8 @@ def train_test_split(
         more uniform bucket assignments, making the split ratio closer to the desired
         value.
     num_buckets
-        The number of buckets into which the data is divided during the splitting
-        process. It controls how finely the data is divided into buckets during
+        The number of buckets into which the data can be binned after being hashed and taking the abs value.
+        It controls how finely the data is divided into buckets during
         the split process. Adjusting num_buckets can affect the granularity and
         efficiency of the splitting operation, balancing between accuracy and
         computational efficiency.
@@ -1727,12 +1724,21 @@ def train_test_split(
     if not (0 < test_size < 1):
         raise ValueError("test size should be a float between 0 and 1.")
 
-    # Set the random seed for reproducibility
-    if random_seed:
-        rndm_seed(random_seed)
+    if not (isinstance(num_buckets, int)):
+        raise ValueError("num_buckets must be an integer.")
 
-    # Generate a random 256-bit key
-    random_str = str(grb(256))
+    if not (num_buckets > 1 and isinstance(num_buckets, int)):
+        raise ValueError(
+            "num_buckets = 1 places all data into training set. For any integer x  >=0  , x mod 1 = 0 . "
+        )
+
+    # Set the random seed & Generate a random 256-bit key
+    if random_seed:
+        # explicitly import random because of def random L#462
+        random_str = str(__import__("random").Random(random_seed).getrandbits(256))
+    else:
+        # use system entropy to get seed os.urandom()
+        random_str = str(__import__("random").Random().getrandbits(256))
 
     if isinstance(unique_key, str):
         unique_key = [unique_key]

@@ -139,3 +139,42 @@ def test_train_test_split():
     )
     assert not train_table.execute().equals(different_train_table.execute())
     assert not test_table.execute().equals(different_test_table.execute())
+
+
+def test_train_test_split_invalid_test_size():
+    table = memtable({"key": [1, 2, 3]})
+    with pytest.raises(ValueError, match="test size should be a float between 0 and 1"):
+        ls.train_test_split(table, unique_key="key", test_size=1.5)
+    with pytest.raises(ValueError, match="test size should be a float between 0 and 1"):
+        ls.train_test_split(table, unique_key="key", test_size=-0.5)
+
+
+def test_train_test_split_invalid_num_buckets_type():
+    table = memtable({"key": [1, 2, 3]})
+    with pytest.raises(ValueError, match="num_buckets must be an integer"):
+        ls.train_test_split(table, unique_key="key", test_size=0.5, num_buckets=10.5)
+
+
+def test_train_test_split_invalid_num_buckets_value():
+    table = memtable({"key": [1, 2, 3]})
+    with pytest.raises(
+        ValueError, match="num_buckets = 1 places all data into training set"
+    ):
+        ls.train_test_split(table, unique_key="key", test_size=0.5, num_buckets=1)
+
+
+def test_train_test_split_multiple_keys():
+    data = {
+        "key1": range(100),
+        "key2": [chr(i % 26 + 65) for i in range(100)],  # A, B, C, ...
+        "value": [i % 3 for i in range(100)],
+    }
+    table = memtable(data)
+    train_table, test_table = ls.train_test_split(
+        table,
+        unique_key=["key1", "key2"],
+        test_size=0.25,
+        num_buckets=10,
+        random_seed=99,
+    )
+    assert train_table.union(test_table).join(table, how="anti").count().execute() == 0
