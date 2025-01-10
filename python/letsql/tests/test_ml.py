@@ -8,7 +8,7 @@ import letsql as ls
 from letsql.tests.util import assert_frame_equal
 
 
-def test_train_test_split_new1():
+def test_train_test_split():
     # Check counts and overlaps in train and test dataset
     N = 100
     test_size = 0.25
