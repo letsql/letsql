@@ -6,7 +6,7 @@ import datetime
 import functools
 import operator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union, overload
+from typing import TYPE_CHECKING, Any, Union, overload, Iterable
 
 import ibis
 import ibis.expr.builders as bl
@@ -38,6 +38,8 @@ from ibis.expr.types import (
 from letsql.expr.relations import (
     RemoteTable,
 )
+
+from letsql.expr import ml
 
 
 if TYPE_CHECKING:
@@ -107,6 +109,7 @@ __all__ = (
     "time",
     "today",
     "train_test_split",
+    "train_test_splits",
     "to_parquet",
     "to_pyarrow",
     "to_pyarrow_batches",
@@ -1658,103 +1661,111 @@ def to_parquet(expr: ir.Expr, path: str | Path, **kwargs: Any):
     return con.to_parquet(expr, path, **kwargs)
 
 
-def train_test_split(
-    table: ir.Table,
-    unique_key: str | list[str],
-    test_size: float = 0.25,
-    num_buckets: int = 100,
-    random_seed: int | None = None,
-) -> tuple[ir.Table, ir.Table]:
-    """Randomly split Ibis table data into training and testing tables.
+# def train_test_split(
+#     table: ir.Table,
+#     unique_key: str | list[str],
+#     test_size: float = 0.25,
+#     num_buckets: int = 100,
+#     random_seed: int | None = None,
+# ) -> tuple[ir.Table, ir.Table]:
+#     """Randomly split Ibis table data into training and testing tables.
 
-    This function splits an Ibis table into training and testing tables
-    based on a unique key or combination of keys. It uses a hashing function to
-    convert the unique key into an integer, then applies a modulo operation to split
-    the data into buckets. The training table consists of data points from a subset of
-    these buckets, while the remaining data points form the test table.
+#     This function splits an Ibis table into training and testing tables
+#     based on a unique key or combination of keys. It uses a hashing function to
+#     convert the unique key into an integer, then applies a modulo operation to split
+#     the data into buckets. The training table consists of data points from a subset of
+#     these buckets, while the remaining data points form the test table.
 
-    Parameters
-    ----------
-    table
-        The input Ibis table to be split.
-    unique_key
-        The column name(s) that uniquely identify each row in the table. This unique_key
-        is used to create a deterministic split of the dataset through a hashing
-        process.
-    test_size
-        The ratio of the dataset to include in the test split, which should be between
-        0 and 1. This ratio is approximate because the hashing algorithm may not provide
-        a uniform bucket distribution for small datasets. Larger datasets will result in
-        more uniform bucket assignments, making the split ratio closer to the desired
-        value.
-    num_buckets
-        The number of buckets into which the data can be binned after being hashed and taking the abs value.
-        It controls how finely the data is divided into buckets during
-        the split process. Adjusting num_buckets can affect the granularity and
-        efficiency of the splitting operation, balancing between accuracy and
-        computational efficiency.
-    random_seed
-        Seed for the random number generator. If provided, ensures reproducibility
-        of the split.
+#     Parameters
+#     ----------
+#     table
+#         The input Ibis table to be split.
+#     unique_key
+#         The column name(s) that uniquely identify each row in the table. This unique_key
+#         is used to create a deterministic split of the dataset through a hashing
+#         process.
+#     test_size
+#         The ratio of the dataset to include in the test split, which should be between
+#         0 and 1. This ratio is approximate because the hashing algorithm may not provide
+#         a uniform bucket distribution for small datasets. Larger datasets will result in
+#         more uniform bucket assignments, making the split ratio closer to the desired
+#         value.
+#     num_buckets
+#         The number of buckets into which the data can be binned after being hashed and taking the abs value.
+#         It controls how finely the data is divided into buckets during
+#         the split process. Adjusting num_buckets can affect the granularity and
+#         efficiency of the splitting operation, balancing between accuracy and
+#         computational efficiency.
+#     random_seed
+#         Seed for the random number generator. If provided, ensures reproducibility
+#         of the split.
 
-    Returns
-    -------
-    tuple[ir.Table, ir.Table]
-        A tuple containing two Ibis tables: (train_table, test_table).
+#     Returns
+#     -------
+#     tuple[ir.Table, ir.Table]
+#         A tuple containing two Ibis tables: (train_table, test_table).
 
-    Raises
-    ------
-    ValueError
-        If test_size is not a float between 0 and 1.
+#     Raises
+#     ------
+#     ValueError
+#         If test_size is not a float between 0 and 1.
 
-    Examples
-    --------
-    >>> import letsql as ls
+#     Examples
+#     --------
+#     >>> import letsql as ls
 
-    Split an Ibis table into training and testing tables.
+#     Split an Ibis table into training and testing tables.
 
-    >>> table = ibis.memtable({"key1": range(100)})
-    >>> train_table, test_table = ls.train_test_split(
-    ...     table,
-    ...     unique_key="key1",
-    ...     test_size=0.2,
-    ...     random_seed=0,
-    ... )
-    """
-    if not (0 < test_size < 1):
-        raise ValueError("test size should be a float between 0 and 1.")
+#     >>> table = ibis.memtable({"key1": range(100)})
+#     >>> train_table, test_table = ls.train_test_split(
+#     ...     table,
+#     ...     unique_key="key1",
+#     ...     test_size=0.2,
+#     ...     random_seed=0,
+#     ... )
+#     """
+#     if not (0 < test_size < 1):
+#         raise ValueError("test size should be a float between 0 and 1.")
 
-    if not (isinstance(num_buckets, int)):
-        raise ValueError("num_buckets must be an integer.")
+#     if not (isinstance(num_buckets, int)):
+#         raise ValueError("num_buckets must be an integer.")
 
-    if not (num_buckets > 1 and isinstance(num_buckets, int)):
-        raise ValueError(
-            "num_buckets = 1 places all data into training set. For any integer x  >=0  , x mod 1 = 0 . "
-        )
+#     if not (num_buckets > 1 and isinstance(num_buckets, int)):
+#         raise ValueError(
+#             "num_buckets = 1 places all data into training set. For any integer x  >=0  , x mod 1 = 0 . "
+#         )
 
-    # Set the random seed & Generate a random 256-bit key
-    if random_seed:
-        # explicitly import random because of def random L#462
-        random_str = str(__import__("random").Random(random_seed).getrandbits(256))
-    else:
-        # use system entropy to get seed os.urandom()
-        random_str = str(__import__("random").Random().getrandbits(256))
+#     # Set the random seed & Generate a random 256-bit key
+#     if random_seed:
+#         # explicitly import random because of def random L#462
+#         random_str = str(__import__("random").Random(random_seed).getrandbits(256))
+#     else:
+#         # use system entropy to get seed os.urandom()
+#         random_str = str(__import__("random").Random().getrandbits(256))
 
-    if isinstance(unique_key, str):
-        unique_key = [unique_key]
+#     if isinstance(unique_key, str):
+#         unique_key = [unique_key]
 
-    # Append random string to the name to avoid collision
-    train_flag = f"train_{random_str}"
-    comb_key = ibis.literal(",").join(table[col].cast("str") for col in unique_key)
+#     # Append random string to the name to avoid collision
+#     train_flag = f"train_{random_str}"
+#     comb_key = ibis.literal(",").join(table[col].cast("str") for col in unique_key)
 
-    table = table.mutate(
-        **{
-            train_flag: (comb_key + random_str).hash().abs() % num_buckets
-            < int((1 - test_size) * num_buckets)
-        }
-    )
+#     table = table.mutate(
+#         **{
+#             train_flag: (comb_key + random_str).hash().abs() % num_buckets
+#             < int((1 - test_size) * num_buckets)
+#         }
+#     )
 
-    return (
-        table.filter(table[train_flag]).drop([train_flag]),
-        table.filter(~table[train_flag]).drop([train_flag]),
-    )
+#     return (
+#         table.filter(table[train_flag]).drop([train_flag]),
+#         table.filter(~table[train_flag]).drop([train_flag]),
+#     )
+
+
+def train_test_split(*args, **kwargs) -> tuple[ir.Table, ir.Table]:
+    return ml.train_test_split(*args, **kwargs)
+
+
+def train_test_splits(*args, **kwargs) -> Iterable[tuple[ir.Table, ir.Table]]:
+    return ml.train_test_splits(*args, **kwargs)
