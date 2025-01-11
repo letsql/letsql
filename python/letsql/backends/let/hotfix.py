@@ -73,6 +73,8 @@ class LETSQLAccessor:
         def _find_backends(expr):
             _backends, _ = expr._find_backends()
             _backends = set(_backends)
+            if backend := expr._find_backend():
+                _backends.add(backend)
 
             for node in expr.op().find_topmost(CachedNode):
                 _backends.update(_find_backends(node.parent))
