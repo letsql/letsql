@@ -1,78 +1,115 @@
 from random import Random
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, List, Iterator
 
 # TODO: How should we / should we enforce letsql table ?
 import ibis.expr.types as ir
 from ibis import literal
-import functools
 
 
-def train_test_split(
-    table: ir.Table,
-    unique_key: str | list[str],
-    test_size: float = 0.25,
-    num_buckets: int = 10000,
-    random_seed: int | None = None,
-) -> Tuple[ir.Table, ir.Table]:
-    """Randomly split Ibis table data into training and testing tables.
-
-    This function splits an Ibis table into training and testing tables
-    based on a unique key or combination of keys. It uses a hashing function to
-    convert the unique key into an integer, then applies a modulo operation to split
-    the data into buckets. The training table consists of data points from a subset of
-    these buckets, while the remaining data points form the test table.
+def _calculate_bounds(test_sizes: List[float]) -> List[Tuple[float, float]]:
+    """
+    Calculates the cumulative sum of test_sizes and generates bounds for splitting data.
 
     Parameters
     ----------
-    table
-        The input Ibis table to be split.
-    unique_key
-        The column name(s) that uniquely identify each row in the table. This unique_key
-        is used to create a deterministic split of the dataset through a hashing
-        process.
-    test_size
-        The ratio of the dataset to include in the test split, which should be between
-        0 and 1. This ratio is approximate because the hashing algorithm may not provide
-        a uniform bucket distribution for small datasets. Larger datasets will result in
-        more uniform bucket assignments, making the split ratio closer to the desired
-        value.  This can be a float or a list of floats, if a list of floats is entered you will receive
-        a train test split tuple for each of float.
-    num_buckets
-        The number of buckets into which the data can be binned after being hashed and taking the abs value.
-        It controls how finely the data is divided into buckets during
-        the split process. Adjusting num_buckets can affect the granularity and
-        efficiency of the splitting operation, balancing between accuracy and
-        computational efficiency. Note that the default is 10,000 if your data is smaller than this you should decrease the bucket size.
-        Changing num_buckets will also potentially an observations membership.
-    random_seed
-        Seed for the random number generator. If provided, ensures reproducibility
-        of the split.
+    test_sizes : List[float]
+        A list of floats representing the desired proportions for data splits.
+        Each value should be between 0 and 1, and their sum should ideally be less than or equal to 1.
 
     Returns
     -------
-    tuple[ir.Table, ir.Table]
-        A tuple containing two Ibis tables: (train_table, test_table).
+    List[Tuple[float, float]]
+        A list of tuples, where each tuple contains two floats representing the
+        lower and upper bounds for a split. These bounds are calculated based on
+        the cumulative sum of the `test_sizes`.
+    """
+
+    if not all(0 < size < 1 for size in test_sizes):
+        raise ValueError("All test sizes must be between 0 and 1.")
+    if not sum(test_sizes) == 1:
+        raise ValueError("Test sizes must sum to 1")
+
+    num_splits = len(test_sizes)
+    cumulative_sizes = [sum(test_sizes[: i + 1]) for i in range(num_splits)]
+    cumulative_sizes.insert(0, 0.0)
+    bounds = [(cumulative_sizes[i], cumulative_sizes[i + 1]) for i in range(num_splits)]
+    return bounds
+
+
+def train_test_splits(
+    table: ir.Table,
+    unique_key: str | list[str],
+    test_sizes: Iterable[float] | float,
+    num_buckets: int = 10000,
+    random_seed: int | None = None,
+) -> Iterator[ir.Table]:
+    """Generates multiple train/test splits of an Ibis table for different test sizes.
+
+    This function splits an Ibis table into multiple subsets based on a unique key
+    or combination of keys and a list of test sizes. It uses a hashing function to
+    convert the unique key into an integer, then applies a modulo operation to split
+    the data into buckets. Each subset of data is defined by a range of
+    buckets determined by the cumulative sum of the test sizes.
+
+    Parameters
+    ----------
+    table : ir.Table
+        The input Ibis table to be split.
+    unique_key : str | list[str]
+        The column name(s) that uniquely identify each row in the table. This
+        unique_key is used to create a deterministic split of the dataset
+        through a hashing process.
+    test_sizes : Iterable[float] | float
+        An iterable of floats representing the desired proportions for data splits.
+        Each value should be between 0 and 1, and their sum must equal 1. The
+        order of test sizes determines the order of the generated subsets. If float is passed
+        it assumes that the value is for the test size and that a tradition tain test split of (1-test_size, test_size) is returned.
+    num_buckets : int, optional
+        The number of buckets into which the data can be binned after being
+        hashed (default is 10000). It controls how finely the data is divided
+        during the split process. Adjusting num_buckets can affect the
+        granularity and efficiency of the splitting operation, balancing
+        between accuracy and computational efficiency.
+    random_seed : int | None, optional
+        Seed for the random number generator. If provided, ensures
+        reproducibility of the split (default is None).
+
+    Returns
+    -------
+    Iterator[ir.Table]
+        An iterator yielding Ibis table expressions, each representing a
+        subset of the original table based on the specified test sizes.
 
     Raises
     ------
     ValueError
-        If test_size is not a float between 0 and 1.
+        If any value in `test_sizes` is not between 0 and 1.
+        If `test_sizes` does not sum to 1.
+        If `num_buckets` is not an integer greater than 1.
 
     Examples
     --------
     >>> import letsql as ls
-
-    Split an Ibis table into training and testing tables.
-
-    >>> table = ibis.memtable({"key1": range(100)})
-    >>> train_table, test_table = ls.train_test_split(
-    ...     table,
-    ...     unique_key="key1",
-    ...     test_size=0.2,
-    ...     random_seed=0,
-    ... )
+    >>> import ibis
+    >>> table = ibis.memtable({"key": range(100), "value": range(100,200)})
+    >>> unique_key = "key"
+    >>> test_sizes = [0.2, 0.3, 0.5]
+    >>> splits = ls.train_test_splits(table, unique_key, test_sizes, num_buckets=10, random_seed=42)
+    >>> for i, split_table in enumerate(splits):
+    ...     print(f"Split {i+1} size: {split_table.count().execute()}")
+    ...     print(split_table.execute())
+    Split 1 size: 20
+    Split 2 size: 30
+    Split 3 size: 50
     """
-    if not (0 < test_size < 1):
+    # Convert to traditional train test split
+    if isinstance(test_sizes, float):
+        test_sizes = [1 - test_sizes, test_sizes]
+
+    if not all(isinstance(test_size, float) for test_size in test_sizes):
+        raise ValueError("Test size must be float.")
+
+    if not all((0 < test_size < 1) for test_size in test_sizes):
         raise ValueError("test size should be a float between 0 and 1.")
 
     if not (isinstance(num_buckets, int)):
@@ -80,72 +117,32 @@ def train_test_split(
 
     if not (num_buckets > 1 and isinstance(num_buckets, int)):
         raise ValueError(
-            "num_buckets = 1 places all data into training set. For any integer x  >=0  , x mod 1 = 0 . "
+            "num_buckets = 1 places all data into training set. For any integer x  >=0 , x mod 1 = 0 . "
         )
 
-    # Set the random seed if set, & Generate a random 256-bit key
+    if not sum(test_sizes) == 1:
+        raise ValueError("Test sizes must sum to 1")
 
+    # Get cumulative bounds
+    bounds = _calculate_bounds(test_sizes=test_sizes)
+
+    # Set the random seed if set, & Generate a random 256-bit key
     random_str = str(Random(random_seed).getrandbits(256))
 
     if isinstance(unique_key, str):
         unique_key = [unique_key]
 
-    # Append random string to the name to avoid collision
-    train_flag = f"train_{random_str}"
     comb_key = literal(",").join(table[col].cast("str") for col in unique_key)
 
-    table = table.mutate(
-        **{
-            train_flag: (comb_key + random_str).hash().abs() % num_buckets
-            < int((1 - test_size) * num_buckets)
-        }
-    )
+    table = table.mutate(**{"hash": (comb_key + random_str).hash().abs() % num_buckets})
+    train_test_filters = [
+        (
+            literal(bound[0]).cast("decimal(38, 9)") * num_buckets <= table.hash
+        )  # lower bound condition
+        & (
+            table.hash < literal(bound[1]).cast("decimal(38, 9)") * num_buckets
+        )  # upper bound condition
+        for i, bound in enumerate(bounds)
+    ]
 
-    return (
-        table.filter(table[train_flag]).drop([train_flag]),
-        table.filter(~table[train_flag]).drop([train_flag]),
-    )
-
-
-def train_test_splits(
-    table: ir.Table,
-    unique_key: str | list[str],
-    test_sizes: list[float],
-    num_buckets: int = 100,
-    random_seed: int | None = None,
-) -> Iterable[Tuple[ir.Table, ir.Table]]:
-    """
-    Generates multiple train/test splits of an Ibis table for different test sizes.
-
-
-    Parameters
-    ----------
-    table : ir.Table
-        The Ibis table to split.
-    unique_key : str | list[str]
-        The column name(s) that uniquely identify each row.
-    test_sizes : list[float]
-        A list of test sizes (proportions between 0 and 1) for which to generate splits.
-    num_buckets : int, optional
-        The number of buckets to use for hashing (default is 100).
-    random_seed : int | None, optional
-        The random seed for reproducibility (default is None).
-
-    Returns
-    -------
-    Iterable[Tuple[ir.Table, ir.Table]]
-        An iterable of (train_table, test_table) tuples, one for each test size.
-    """
-    # Create a partially applied function with fixed arguments
-    partial_train_test_split = functools.partial(
-        train_test_split,
-        table=table,
-        unique_key=unique_key,
-        num_buckets=num_buckets,
-        random_seed=random_seed,
-    )
-    if not all(isinstance(item, float) for item in test_sizes):
-        raise ValueError(" test_sizes needs to be a list of floats.")
-    # Yield train/test splits for each test size
-    for test_size in test_sizes:
-        yield partial_train_test_split(test_size=test_size)
+    return (table.filter(_filter).drop(["hash"]) for _filter in train_test_filters)

@@ -6,7 +6,7 @@ import datetime
 import functools
 import operator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union, overload, Iterable
+from typing import TYPE_CHECKING, Any, Union, overload, Iterable, Iterator
 
 import ibis
 import ibis.expr.builders as bl
@@ -1665,5 +1665,5 @@ def train_test_split(*args, **kwargs) -> tuple[ir.Table, ir.Table]:
     return ml.train_test_split(*args, **kwargs)
 
 
-def train_test_splits(*args, **kwargs) -> Iterable[tuple[ir.Table, ir.Table]]:
+def train_test_splits(*args, **kwargs) -> Iterator[tuple[ir.Table, ir.Table]]:
     return ml.train_test_splits(*args, **kwargs)
