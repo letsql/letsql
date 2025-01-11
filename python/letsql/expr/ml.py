@@ -77,7 +77,7 @@ def train_test_splits(
     Returns
     -------
     Iterator[ir.Table]
-        An iterator yielding Ibis table expressions, each representing a
+        An iterator yielding Ibis table expressions, each representing a mutually exclusive
         subset of the original table based on the specified test sizes.
 
     Raises
