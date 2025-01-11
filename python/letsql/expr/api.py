@@ -108,7 +108,6 @@ __all__ = (
     "table",
     "time",
     "today",
-    "train_test_split",
     "train_test_splits",
     "to_parquet",
     "to_pyarrow",
@@ -1659,10 +1658,6 @@ def to_parquet(expr: ir.Expr, path: str | Path, **kwargs: Any):
             con.register(t.to_expr(), t.name)
 
     return con.to_parquet(expr, path, **kwargs)
-
-
-def train_test_split(*args, **kwargs) -> tuple[ir.Table, ir.Table]:
-    return ml.train_test_split(*args, **kwargs)
 
 
 def train_test_splits(*args, **kwargs) -> Iterator[tuple[ir.Table, ir.Table]]:
