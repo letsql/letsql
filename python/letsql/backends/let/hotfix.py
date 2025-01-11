@@ -165,7 +165,7 @@ class LETSQLAccessor:
 def _letsql_find_backend(self, *, use_default=True):
     # FIXME: push this into LETSQLAccessor
     try:
-        if tuple(op.source for op in self.op().find(Read)):
+        if tuple(op.source for op in self.op().find((Read, CachedNode))):
             current_backend = _backend_init()
         else:
             current_backend = self._find_backend._original(
