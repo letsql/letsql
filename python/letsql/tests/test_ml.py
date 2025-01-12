@@ -5,7 +5,6 @@ import pytest
 import letsql as ls
 from letsql.expr.ml import _calculate_bounds
 
-# from letsql.tests.conftest import TEST_TABLES
 from letsql.tests.util import assert_frame_equal
 
 
