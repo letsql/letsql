@@ -24,11 +24,6 @@ def _calculate_bounds(test_sizes: List[float]) -> List[Tuple[float, float]]:
         the cumulative sum of the `test_sizes`.
     """
 
-    if not all(0 < size < 1 for size in test_sizes):
-        raise ValueError("All test sizes must be between 0 and 1.")
-    if not sum(test_sizes) == 1:
-        raise ValueError("Test sizes must sum to 1")
-
     num_splits = len(test_sizes)
     cumulative_sizes = [sum(test_sizes[: i + 1]) for i in range(num_splits)]
     cumulative_sizes.insert(0, 0.0)
