@@ -2,6 +2,7 @@ from random import Random
 from typing import Tuple, Iterable, List, Iterator
 
 # TODO: How should we / should we enforce letsql table ?
+
 import ibis.expr.types as ir
 from ibis import literal
 

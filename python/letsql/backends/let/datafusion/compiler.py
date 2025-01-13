@@ -6,6 +6,7 @@ from functools import partial
 from itertools import starmap
 from typing import Mapping, Any
 
+from datafusion import functions as fn
 import ibis.common.exceptions as com
 import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
@@ -29,6 +30,16 @@ def _replace_offset(offset):
 
 class DataFusionType(PostgresType):
     unknown_type_strings = {"utf8": dt.string, "float64": dt.float64, "date32": dt.date}
+
+
+class Hash(ops.Value):
+    """Represents a row-wise hash operation using SHA256."""
+
+    arg = ops.Node  # The input expression (e.g., concatenated string)
+    output_type = dt.String  # The output will be a string (the hash value)
+
+    def __init__(self, arg):
+        super().__init__(arg=arg)
 
 
 class DataFusionCompiler(SQLGlotCompiler):
@@ -77,6 +88,7 @@ class DataFusionCompiler(SQLGlotCompiler):
         ops.Unnest: "unnest",
         ops.StringToDate: "to_date",
         ops.StringToTimestamp: "to_timestamp",
+        ops.Hash: "hash",
     }
 
     def _to_timestamp(self, value, target_dtype, literal=False):
@@ -92,6 +104,11 @@ class DataFusionCompiler(SQLGlotCompiler):
         )
         str_value = str(value) if literal else value
         return self.f.arrow_cast(str_value, f"Timestamp({unit}, {tz})")
+
+    def visit_Hash(self, op: Hash, **kwargs):
+        # Generate the DataFusion expression for the digest function
+        arg_sql = self.translate(op.arg, **kwargs)
+        return fn.digest(arg_sql, "sha256")
 
     def visit_NonNullLiteral(self, op, *, value, dtype):
         if dtype.is_decimal():
