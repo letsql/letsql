@@ -1,5 +1,8 @@
 import ibis
 import pyarrow as pa
+import pyarrow.parquet as pq
+import pytest
+from pytest import param
 
 import letsql as ls
 from letsql.tests.util import (
@@ -75,3 +78,60 @@ def test_register_table_with_uppercase_multiple_times(ls_con):
     assert uppercase_table_name in ls_con.list_tables()
     assert ls.execute(t) is not None
     assert t.schema() == expected_schema
+
+
+@pytest.mark.xfail(reason="datafusion metadata reading not working")
+def test_parquet_expr_metadata_available(
+    ls_con, parquet_metadata, parquet_path_with_metadata
+):
+    table_name = "t"
+    ls_con.read_parquet(parquet_path_with_metadata, table_name=table_name)
+    con_metadata = ls_con.con.table(table_name).schema().metadata
+    assert not set(parquet_metadata.items()).difference(set(con_metadata.items()))
+
+
+@pytest.mark.parametrize(
+    "path",
+    (
+        param(
+            "parquet_path_with_metadata",
+            id="pathlib",
+            marks=[],
+        ),
+        param(
+            "s3://letsql-pytest/with-metadata.parquet",
+            id="s3",
+            marks=[pytest.mark.slow],
+        ),
+        param(
+            "https://letsql-pytest.s3.us-east-2.amazonaws.com/with-metadata.parquet",
+            id="https",
+            marks=[
+                pytest.mark.xfail(
+                    reason="pyarrow.parquet.read_metadata can't do http/https"
+                )
+            ],
+        ),
+    ),
+)
+def test_parquet_metadata_readable(request, parquet_metadata, path):
+    try:
+        path = request.getfixturevalue(path)
+    except Exception:
+        pass
+    metadata = pq.read_metadata(path)
+    assert not set(parquet_metadata.items()).difference(set(metadata.metadata.items()))
+
+
+def test_file_sort_order_injected(ls_con, parquet_path_with_metadata):
+    table_name = "t"
+    t = ls_con.read_parquet(parquet_path_with_metadata, table_name=table_name)
+    expr = t.group_by("b").agg(max_a=t["a"].max())
+    sql = f"EXPLAIN {ls.to_sql(expr)}"
+    physical_plan = (
+        ls_con.con.sql(sql)
+        .to_pandas()
+        .set_index("plan_type")
+        .loc["physical_plan", "plan"]
+    )
+    assert "ordering_mode=Sorted" in physical_plan
