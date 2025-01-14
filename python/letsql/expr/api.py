@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import datetime
 import functools
-import operator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Union, overload, Mapping
 
@@ -14,7 +13,6 @@ import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
 import ibis.expr.schema as sch
 import ibis.expr.types as ir
-import toolz
 from ibis import api
 from ibis.backends.sql.dialects import DataFusion
 from ibis.common.deferred import Deferred, _, deferrable
@@ -1600,21 +1598,6 @@ def to_sql(expr: ir.Expr, pretty: bool = True) -> SQLString:
     """
 
     return SQLString(_cached_with_op(expr.unbind().op(), pretty))
-
-
-def _check_collisions(expr: ir.Expr):
-    names_to_backends = toolz.groupby(
-        operator.itemgetter(0),
-        ((t.name, t.source, id(t.source)) for t in expr.op().find(ops.DatabaseTable)),
-    )
-    bad_names = tuple(
-        (name, tuple(con for _, con, _ in vs))
-        for name, vs in names_to_backends.items()
-        if len(vs) > 1
-    )
-
-    if bad_names:
-        raise ValueError(f"name collision detected: {bad_names}")
 
 
 def _register_and_transform_cache_tables(expr):
