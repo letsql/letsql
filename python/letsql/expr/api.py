@@ -1653,11 +1653,6 @@ def _transform_deferred_reads(expr):
     return expr, dt_to_read
 
 
-def _pre_register(expr):
-    _check_collisions(expr)
-    return expr
-
-
 def execute(expr: ir.Expr, **kwargs: Any):
     batch_reader = to_pyarrow_batches(expr, **kwargs)
     return expr.__pandas_result__(batch_reader.read_pandas(timestamp_as_object=True))
@@ -1669,8 +1664,6 @@ def to_pyarrow_batches(
     chunk_size: int = 1_000_000,
     **kwargs: Any,
 ):
-    expr = _pre_register(expr)
-
     expr = _register_and_transform_cache_tables(expr)
     expr, created = register_and_transform_remote_tables(expr)
     expr, dt_to_read = _transform_deferred_reads(expr)
