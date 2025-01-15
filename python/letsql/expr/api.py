@@ -5,7 +5,7 @@ from __future__ import annotations
 import datetime
 import functools
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union, overload, Mapping
+from typing import TYPE_CHECKING, Any, Union, overload, Iterable, Iterator, Mapping
 
 import ibis
 import ibis.expr.builders as bl
@@ -40,6 +40,8 @@ from letsql.expr.relations import (
     CachedNode,
     register_and_transform_remote_tables,
 )
+
+from letsql.expr.ml import train_tests_splits
 
 
 if TYPE_CHECKING:
@@ -108,6 +110,7 @@ __all__ = (
     "table",
     "time",
     "today",
+    "train_test_splits",
     "to_parquet",
     "to_pyarrow",
     "to_pyarrow_batches",
@@ -1685,3 +1688,7 @@ def to_parquet(
         with pq.ParquetWriter(path, batch_reader.schema, **kwargs) as writer:
             for batch in batch_reader:
                 writer.write_batch(batch)
+
+
+def train_test_splits(*args, **kwargs) -> Iterator[tuple[ir.Table, ir.Table]]:
+    return train_tests_splits(*args, **kwargs)
