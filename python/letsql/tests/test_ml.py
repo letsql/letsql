@@ -4,7 +4,7 @@ from ibis import memtable
 import pytest
 import letsql as ls
 from letsql.expr.ml import _calculate_bounds
-
+import pandas as pd
 from letsql.tests.util import assert_frame_equal
 
 
@@ -180,3 +180,70 @@ def test_train_test_splits_num_buckets_gt_one():
                 table, "key", test_sizes, random_seed=123, num_buckets=1
             )
         )
+
+
+@pytest.mark.parametrize(
+    "connection_name,expected_conn_type",
+    [
+        ("letsql", ls.backends.let.Backend),
+        ("datafusion", ls.backends.datafusion.Backend),
+        ("duckdb", ls.backends.duckdb.Backend),
+        ("postgres", ls.backends.postgres.Backend),
+    ],
+)
+def test_train_test_splits_intersections_parameterized(
+    create_connections, connection_name, expected_conn_type
+):
+    # This is testing the base case where a single float becomes ( 1-test_size , test_size ) proportion
+    # Check counts and overlaps in train and test dataset
+    N = 10000
+    test_size = [0.1, 0.2, 0.7]
+
+    # init table
+    # table = memtable([(i, "val") for i in range(N)], columns=["key1", "val"])
+    test_df = pd.DataFrame([(i, "val") for i in range(N)], columns=["key1", "val"])
+    con = create_connections[connection_name]
+    con.create_table("test_df", test_df)
+    table = con.table("test_df")
+
+    results = [
+        r
+        for r in ls.train_test_splits(
+            table,
+            unique_key="key1",
+            test_sizes=test_size,
+            num_buckets=N,
+            random_seed=42,
+        )
+    ]
+
+    # make sure all splits mutually exclusive
+    # These are all  a \ b  U  a intersect b  where b are the other splits
+    element1 = results[0]
+    complement1 = results[1].union(results[2])
+
+    element2 = results[1]
+    complement2 = results[0].union(results[2])
+
+    element3 = results[2]
+    complement3 = results[0].union(results[1])
+
+    assert element1.union(complement1).join(table, how="anti").count().execute() == 0
+    assert (
+        element1.join(complement1, element1.key1 == complement1.key1).count().execute()
+        == 0
+    )
+
+    assert element2.union(complement2).join(table, how="anti").count().execute() == 0
+    assert (
+        element2.join(complement2, element2.key1 == complement2.key1).count().execute()
+        == 0
+    )
+
+    assert element3.union(complement3).join(table, how="anti").count().execute() == 0
+    assert (
+        element3.join(complement3, element3.key1 == complement3.key1).count().execute()
+        == 0
+    )
+
+    assert isinstance(con, expected_conn_type)

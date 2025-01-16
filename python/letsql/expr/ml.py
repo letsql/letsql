@@ -31,7 +31,7 @@ def _calculate_bounds(test_sizes: List[float]) -> List[Tuple[float, float]]:
     return bounds
 
 
-def train_test_splits(
+def _train_test_splits(
     table: ir.Table,
     unique_key: str | list[str],
     test_sizes: Iterable[float] | float,

@@ -11,6 +11,8 @@ from letsql.common.utils.aws_utils import (
     make_s3_credentials_defaults,
 )
 
+import os
+
 TEST_TABLES = {
     "functional_alltypes": ibis.schema(
         {
@@ -279,3 +281,20 @@ def struct(con):
 @pytest.fixture(scope="session")
 def struct_df(struct):
     return struct.execute()
+
+
+@pytest.fixture(scope="module")
+def create_connections():
+    connections = {
+        "letsql": ls.connect(),
+        "datafusion": ls.datafusion.connect(),
+        "duckdb": ls.duckdb.connect(),
+        "postgres": ls.postgres.connect(
+            host=os.environ["POSTGRES_HOST"],
+            user=os.environ["POSTGRES_USER"],
+            password=os.environ["POSTGRES_PASSWORD"],
+            port=int(os.environ["POSTGRES_PORT"]),
+            database=os.environ["POSTGRES_DATABASE"],
+        ),
+    }
+    return connections
