@@ -183,16 +183,20 @@ def test_train_test_splits_num_buckets_gt_one():
 
 
 @pytest.mark.parametrize(
-    "connection_name,expected_conn_type",
-    [
-        ("letsql", ls.backends.let.Backend),
-        ("duckdb", ls.backends.duckdb.Backend),
-        ("postgres", ls.backends.postgres.Backend),
-    ],
+    "connect_method",
+    (
+        ls.connect,
+        ls.duckdb.connect,
+        ls.postgres.connect_env,
+        pytest.param(
+            ls.datafusion.connect,
+            marks=pytest.mark.xfail(
+                reason="Compilation rule for 'Hash' operation is not define"
+            ),
+        ),
+    ),
 )
-def test_train_test_splits_intersections_parameterized_pass(
-    create_passing_connections, connection_name, expected_conn_type
-):
+def test_train_test_splits_intersections_parameterized_pass(connect_method):
     # This is testing the base case where a single float becomes ( 1-test_size , test_size ) proportion
     # Check counts and overlaps in train and test dataset
     N = 10000
@@ -200,8 +204,8 @@ def test_train_test_splits_intersections_parameterized_pass(
 
     # create test table for backend
     test_df = pd.DataFrame([(i, "val") for i in range(N)], columns=["key1", "val"])
-    con = create_passing_connections[connection_name]
-    test_table_name = f"{connection_name}_test_df"
+    con = connect_method()
+    test_table_name = f"{con.name}_test_df"
     con.create_table(test_table_name, test_df)
 
     table = con.table(test_table_name)
@@ -245,43 +249,4 @@ def test_train_test_splits_intersections_parameterized_pass(
         element3.join(complement3, element3.key1 == complement3.key1).count().execute()
         == 0
     )
-
-    assert isinstance(con, expected_conn_type)
     con.drop_table(test_table_name)
-
-
-@pytest.mark.xfail(reason="Compilation rule for 'Hash' operation is not define")
-@pytest.mark.parametrize(
-    "connection_name,expected_conn_type",
-    [
-        ("datafusion", ls.backends.datafusion.Backend),
-    ],
-)
-def test_train_test_splits_intersections_parameterized_fail(
-    create_failing_connections, connection_name, expected_conn_type
-):
-    # This is testing the base case where a single float becomes ( 1-test_size , test_size ) proportion
-    # Check counts and overlaps in train and test dataset
-    N = 10000
-    test_size = [0.1, 0.2, 0.7]
-
-    # create test table for backend
-    test_df = pd.DataFrame([(i, "val") for i in range(N)], columns=["key1", "val"])
-    con = create_failing_connections[connection_name]
-    test_table_name = f"{connection_name}_test_df"
-    con.create_table(test_table_name, test_df)
-
-    table = con.table(test_table_name)
-
-    results = [
-        r
-        for r in ls.train_test_splits(
-            table,
-            unique_key="key1",
-            test_sizes=test_size,
-            num_buckets=N,
-            random_seed=42,
-        )
-    ]
-
-    results[0].execute()

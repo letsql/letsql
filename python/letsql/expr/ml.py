@@ -31,7 +31,7 @@ def _calculate_bounds(test_sizes: List[float]) -> List[Tuple[float, float]]:
     return bounds
 
 
-def _train_test_splits(
+def train_test_splits(
     table: ir.Table,
     unique_key: str | list[str],
     test_sizes: Iterable[float] | float,
@@ -123,21 +123,24 @@ def _train_test_splits(
 
     # Set the random seed if set, & Generate a random 256-bit key
     random_str = str(Random(random_seed).getrandbits(256))
+    hash_name = f"hash_{random_str}"
 
     if isinstance(unique_key, str):
         unique_key = [unique_key]
 
     comb_key = literal(",").join(table[col].cast("str") for col in unique_key)
 
-    table = table.mutate(**{"hash": (comb_key + random_str).hash().abs() % num_buckets})
+    table = table.mutate(
+        **{hash_name: (comb_key + random_str).hash().abs() % num_buckets}
+    )
     train_test_filters = [
         (
-            literal(bound[0]).cast("decimal(38, 9)") * num_buckets <= table.hash
+            literal(bound[0]).cast("decimal(38, 9)") * num_buckets <= table[hash_name]
         )  # lower bound condition
         & (
-            table.hash < literal(bound[1]).cast("decimal(38, 9)") * num_buckets
+            table[hash_name] < literal(bound[1]).cast("decimal(38, 9)") * num_buckets
         )  # upper bound condition
         for i, bound in enumerate(bounds)
     ]
 
-    return (table.filter(_filter).drop(["hash"]) for _filter in train_test_filters)
+    return (table.filter(_filter).drop([hash_name]) for _filter in train_test_filters)

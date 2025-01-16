@@ -40,7 +40,7 @@ from letsql.expr.relations import (
     CachedNode,
     register_and_transform_remote_tables,
 )
-from letsql.expr.ml import _train_test_splits
+from letsql.expr import ml
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
@@ -1689,4 +1689,4 @@ def to_parquet(
 
 
 def train_test_splits(*args, **kwargs) -> Iterator[tuple[ir.Table, ir.Table]]:
-    return _train_test_splits(*args, **kwargs)
+    return ml.train_test_splits(*args, **kwargs)
