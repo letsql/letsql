@@ -732,105 +732,6 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
         self.con.register_record_batch_reader(table_ident, source)
         return self.table(table_name)
 
-    def create_table(
-        self,
-        name: str,
-        obj: ir.Table
-        | pd.DataFrame
-        | pa.Table
-        | pa.RecordBatchReader
-        | pa.RecordBatch
-        | None = None,
-        *,
-        schema: sch.SchemaLike | None = None,
-        database: str | None = None,
-        temp: bool = False,
-        overwrite: bool = False,
-    ):
-        """Create a table in DataFusion.
-
-        Parameters
-        ----------
-        name
-            Name of the table to create
-        obj
-            The data with which to populate the table; optional, but at least
-            one of `obj` or `schema` must be specified
-        schema
-            The schema of the table to create; optional, but at least one of
-            `obj` or `schema` must be specified
-        database
-            The name of the database in which to create the table; if not
-            passed, the current database is used.
-        temp
-            Create a temporary table
-        overwrite
-            If `True`, replace the table if it already exists, otherwise fail
-            if the table exists
-
-        """
-        if obj is None and schema is None:
-            raise ValueError("Either `obj` or `schema` must be specified")
-        if schema is not None:
-            schema = ibis.schema(schema)
-
-        properties = []
-
-        if temp:
-            properties.append(sge.TemporaryProperty())
-
-        quoted = self.compiler.quoted
-
-        if isinstance(obj, ir.Expr):
-            table = obj
-
-            # If it's a memtable, it will get registered in the pre-execute hooks
-            self._run_pre_execute_hooks(table)
-
-            compiler = self.compiler
-            relname = "_"
-            query = sg.select(
-                *(
-                    compiler.cast(
-                        sg.column(col, table=relname, quoted=quoted), dtype
-                    ).as_(col, quoted=quoted)
-                    for col, dtype in table.schema().items()
-                )
-            ).from_(
-                compiler.to_sqlglot(table).subquery(
-                    sg.to_identifier(relname, quoted=quoted)
-                )
-            )
-        elif obj is not None:
-            table_ident = sg.table(name, db=database, quoted=quoted).sql(self.dialect)
-            _read_in_memory(obj, table_ident, self, overwrite=overwrite)
-            return self.table(name, database=database)
-        else:
-            query = None
-
-        table_ident = sg.table(name, db=database, quoted=quoted)
-
-        if query is None:
-            target = sge.Schema(
-                this=table_ident,
-                expressions=(schema or table.schema()).to_sqlglot(self.dialect),
-            )
-        else:
-            target = table_ident
-
-        create_stmt = sge.Create(
-            kind="TABLE",
-            this=target,
-            properties=sge.Properties(expressions=properties),
-            expression=query,
-            replace=overwrite,
-        )
-
-        with self._safe_raw_sql(create_stmt):
-            pass
-
-        return self.table(name, database=database)
-
     def to_pyarrow_batches(
         self,
         expr: ir.Expr,
@@ -888,6 +789,106 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
         return expr.__pandas_result__(
             batch_reader.read_pandas(timestamp_as_object=True)
         )
+
+    def create_table(
+        self,
+        name: str,
+        obj: pd.DataFrame | pa.Table | ir.Table | None = None,
+        *,
+        schema: sch.Schema | None = None,
+        database: str | None = None,
+        temp: bool = False,
+        overwrite: bool = False,
+    ):
+        """Create a table in Datafusion.
+
+        Parameters
+        ----------
+        name
+            Name of the table to create
+        obj
+            The data with which to populate the table; optional, but at least
+            one of `obj` or `schema` must be specified
+        schema
+            The schema of the table to create; optional, but at least one of
+            `obj` or `schema` must be specified
+        database
+            The name of the database in which to create the table; if not
+            passed, the current database is used.
+        temp
+            Create a temporary table
+        overwrite
+            If `True`, replace the table if it already exists, otherwise fail
+            if the table exists
+
+        """
+        if obj is None and schema is None:
+            raise ValueError("Either `obj` or `schema` must be specified")
+
+        properties = []
+
+        if temp:
+            properties.append(sge.TemporaryProperty())
+
+        quoted = self.compiler.quoted
+
+        if obj is not None:
+            if not isinstance(obj, ir.Expr):
+                table = ls.memtable(obj)
+            else:
+                table = obj
+
+            self._run_pre_execute_hooks(table)
+            compiler = self.compiler
+
+            relname = "_"
+            query = sg.select(
+                *(
+                    compiler.cast(
+                        sg.column(col, table=relname, quoted=quoted), dtype
+                    ).as_(col, quoted=quoted)
+                    for col, dtype in table.schema().items()
+                )
+            ).from_(
+                compiler.to_sqlglot(table).subquery(
+                    sg.to_identifier(relname, quoted=quoted)
+                )
+            )
+        else:
+            query = None
+
+        table_ident = sg.to_identifier(name, quoted=quoted)
+
+        if query is None:
+            column_defs = [
+                sge.ColumnDef(
+                    this=sg.to_identifier(colname, quoted=quoted),
+                    kind=self.compiler.type_mapper.from_ibis(typ),
+                    constraints=(
+                        None
+                        if typ.nullable
+                        else [sge.ColumnConstraint(kind=sge.NotNullColumnConstraint())]
+                    ),
+                )
+                for colname, typ in (schema or table.schema()).items()
+            ]
+
+            target = sge.Schema(this=table_ident, expressions=column_defs)
+        else:
+            target = table_ident
+
+        create_stmt = sge.Create(
+            kind="TABLE",
+            this=target,
+            properties=sge.Properties(expressions=properties),
+            expression=query,
+            replace=overwrite,
+        )
+
+        with self._safe_raw_sql(create_stmt):
+            pass
+
+        return self.table(name, database=database)
 
     def truncate_table(
         self, name: str, database: str | None = None, schema: str | None = None
