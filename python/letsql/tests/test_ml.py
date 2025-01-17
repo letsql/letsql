@@ -175,7 +175,7 @@ def test_approx_sum(test_sizes):
 
 def test_calculate_bounds():
     test_sizes = [0.2, 0.3, 0.5]
-    expected_bounds = [(0.0, 0.2), (0.2, 0.5), (0.5, 1.0)]
+    expected_bounds = ((0.0, 0.2), (0.2, 0.5), (0.5, 1.0))
     assert _calculate_bounds(test_sizes) == expected_bounds
 
 
