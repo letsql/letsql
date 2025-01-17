@@ -97,14 +97,14 @@ def test_register_table(con):
 
 def test_register_pandas(con):
     df = pd.DataFrame({"x": [1, 2, 3]})
-    con.create_table("my_table", df)
-    assert con.table("my_table").x.sum().execute() == 6
+    con.create_table("my_pandas_table", df)
+    assert con.table("my_pandas_table").x.sum().execute() == 6
 
 
 def test_register_batches(con):
     batch = pa.record_batch([pa.array([1, 2, 3])], names=["x"])
-    con.create_table("my_table", batch)
-    assert con.table("my_table").x.sum().execute() == 6
+    con.create_table("my_batch_table", batch)
+    assert con.table("my_batch_table").x.sum().execute() == 6
 
 
 def test_register_dataset(con):
