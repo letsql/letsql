@@ -6,7 +6,7 @@ db = ls.duckdb.connect()
 
 
 batting = pg.table("batting")
-awards_players = db.register(
+awards_players = db.read_parquet(
     ls.config.options.pins.get_path("awards_players"),
     table_name="awards_players",
 )

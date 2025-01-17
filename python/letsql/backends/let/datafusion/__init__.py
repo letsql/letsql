@@ -27,6 +27,7 @@ from ibis.backends import CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
 from ibis.backends.sql import SQLBackend
 from ibis.backends.sql.compilers.base import C
 from ibis.common.annotations import Argument
+from ibis.common.dispatch import lazy_singledispatch
 from ibis.expr.operations import Namespace
 from ibis.expr.operations.udf import InputType
 from ibis.expr.operations.udf import ScalarUDF
@@ -724,6 +725,112 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
 
         return self.register(delta_table.to_pyarrow_dataset(), table_name=table_name)
 
+    def read_record_batches(self, source, table_name=None):
+        table_name = table_name or gen_name("read_record_batches")
+        table_ident = str(sg.to_identifier(table_name, quoted=self.compiler.quoted))
+        self.con.deregister_table(table_ident)
+        self.con.register_record_batch_reader(table_ident, source)
+        return self.table(table_name)
+
+    def create_table(
+        self,
+        name: str,
+        obj: ir.Table
+        | pd.DataFrame
+        | pa.Table
+        | pa.RecordBatchReader
+        | pa.RecordBatch
+        | None = None,
+        *,
+        schema: sch.SchemaLike | None = None,
+        database: str | None = None,
+        temp: bool = False,
+        overwrite: bool = False,
+    ):
+        """Create a table in DataFusion.
+
+        Parameters
+        ----------
+        name
+            Name of the table to create
+        obj
+            The data with which to populate the table; optional, but at least
+            one of `obj` or `schema` must be specified
+        schema
+            The schema of the table to create; optional, but at least one of
+            `obj` or `schema` must be specified
+        database
+            The name of the database in which to create the table; if not
+            passed, the current database is used.
+        temp
+            Create a temporary table
+        overwrite
+            If `True`, replace the table if it already exists, otherwise fail
+            if the table exists
+
+        """
+        if obj is None and schema is None:
+            raise ValueError("Either `obj` or `schema` must be specified")
+        if schema is not None:
+            schema = ibis.schema(schema)
+
+        properties = []
+
+        if temp:
+            properties.append(sge.TemporaryProperty())
+
+        quoted = self.compiler.quoted
+
+        if isinstance(obj, ir.Expr):
+            table = obj
+
+            # If it's a memtable, it will get registered in the pre-execute hooks
+            self._run_pre_execute_hooks(table)
+
+            compiler = self.compiler
+            relname = "_"
+            query = sg.select(
+                *(
+                    compiler.cast(
+                        sg.column(col, table=relname, quoted=quoted), dtype
+                    ).as_(col, quoted=quoted)
+                    for col, dtype in table.schema().items()
+                )
+            ).from_(
+                compiler.to_sqlglot(table).subquery(
+                    sg.to_identifier(relname, quoted=quoted)
+                )
+            )
+        elif obj is not None:
+            table_ident = sg.table(name, db=database, quoted=quoted).sql(self.dialect)
+            _read_in_memory(obj, table_ident, self, overwrite=overwrite)
+            return self.table(name, database=database)
+        else:
+            query = None
+
+        table_ident = sg.table(name, db=database, quoted=quoted)
+
+        if query is None:
+            target = sge.Schema(
+                this=table_ident,
+                expressions=(schema or table.schema()).to_sqlglot(self.dialect),
+            )
+        else:
+            target = table_ident
+
+        create_stmt = sge.Create(
+            kind="TABLE",
+            this=target,
+            properties=sge.Properties(expressions=properties),
+            expression=query,
+            replace=overwrite,
+        )
+
+        with self._safe_raw_sql(create_stmt):
+            pass
+
+        return self.table(name, database=database)
+
     def to_pyarrow_batches(
         self,
         expr: ir.Expr,
@@ -782,106 +889,6 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
             batch_reader.read_pandas(timestamp_as_object=True)
         )
 
-    def create_table(
-        self,
-        name: str,
-        obj: pd.DataFrame | pa.Table | ir.Table | None = None,
-        *,
-        schema: sch.Schema | None = None,
-        database: str | None = None,
-        temp: bool = False,
-        overwrite: bool = False,
-    ):
-        """Create a table in Datafusion.
-
-        Parameters
-        ----------
-        name
-            Name of the table to create
-        obj
-            The data with which to populate the table; optional, but at least
-            one of `obj` or `schema` must be specified
-        schema
-            The schema of the table to create; optional, but at least one of
-            `obj` or `schema` must be specified
-        database
-            The name of the database in which to create the table; if not
-            passed, the current database is used.
-        temp
-            Create a temporary table
-        overwrite
-            If `True`, replace the table if it already exists, otherwise fail
-            if the table exists
-
-        """
-        if obj is None and schema is None:
-            raise ValueError("Either `obj` or `schema` must be specified")
-
-        properties = []
-
-        if temp:
-            properties.append(sge.TemporaryProperty())
-
-        quoted = self.compiler.quoted
-
-        if obj is not None:
-            if not isinstance(obj, ir.Expr):
-                table = ls.memtable(obj)
-            else:
-                table = obj
-
-            self._run_pre_execute_hooks(table)
-            compiler = self.compiler
-
-            relname = "_"
-            query = sg.select(
-                *(
-                    compiler.cast(
-                        sg.column(col, table=relname, quoted=quoted), dtype
-                    ).as_(col, quoted=quoted)
-                    for col, dtype in table.schema().items()
-                )
-            ).from_(
-                compiler.to_sqlglot(table).subquery(
-                    sg.to_identifier(relname, quoted=quoted)
-                )
-            )
-        else:
-            query = None
-
-        table_ident = sg.to_identifier(name, quoted=quoted)
-
-        if query is None:
-            column_defs = [
-                sge.ColumnDef(
-                    this=sg.to_identifier(colname, quoted=quoted),
-                    kind=self.compiler.type_mapper.from_ibis(typ),
-                    constraints=(
-                        None
-                        if typ.nullable
-                        else [sge.ColumnConstraint(kind=sge.NotNullColumnConstraint())]
-                    ),
-                )
-                for colname, typ in (schema or table.schema()).items()
-            ]
-
-            target = sge.Schema(this=table_ident, expressions=column_defs)
-        else:
-            target = table_ident
-
-        create_stmt = sge.Create(
-            kind="TABLE",
-            this=target,
-            properties=sge.Properties(expressions=properties),
-            expression=query,
-            replace=overwrite,
-        )
-
-        with self._safe_raw_sql(create_stmt):
-            pass
-
-        return self.table(name, database=database)
-
     def truncate_table(
         self, name: str, database: str | None = None, schema: str | None = None
     ) -> None:
@@ -922,3 +929,92 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
             with pq.ParquetWriter(path, batch_reader.schema, **kwargs) as writer:
                 for batch in batch_reader:
                     writer.write_batch(batch)
+
+
+@contextlib.contextmanager
+def _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+    """Workaround inability to overwrite tables in dataframe API.
+
+    DataFusion has helper methods for loading in-memory data, but these methods
+    don't allow overwriting tables.
+    The SQL interface allows creating tables from existing tables, so we register
+    the data as a table using the dataframe API, then run a
+
+    CREATE [OR REPLACE] TABLE table_name AS SELECT * FROM in_memory_thing
+
+    and that allows us to toggle the overwrite flag.
+    """
+    src = sge.Create(
+        this=table_name,
+        kind="TABLE",
+        expression=sg.select("*").from_(tmp_name),
+        replace=overwrite,
+    )
+
+    yield
+
+    _conn.raw_sql(src)
+    _conn.drop_table(tmp_name)
+
+
+@lazy_singledispatch
+def _read_in_memory(
+    source: Any, table_name: str, _conn: Backend, overwrite: bool = False
+):
+    raise NotImplementedError("No support for source or imports missing")
+
+
+@_read_in_memory.register(dict)
+def _pydict(source, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("pydict")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.from_pydict(source, name=tmp_name)
+
+
+@_read_in_memory.register("polars.DataFrame")
+def _polars(source, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("polars")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.from_polars(source, name=tmp_name)
+
+
+@_read_in_memory.register("polars.LazyFrame")
+def _polars(source, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("polars")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.from_polars(source.collect(), name=tmp_name)
+
+
+@_read_in_memory.register("pyarrow.Table")
+def _pyarrow_table(source, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("pyarrow")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.from_arrow(source, name=tmp_name)
+
+
+@_read_in_memory.register("pyarrow.RecordBatchReader")
+def _pyarrow_rbr(source, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("pyarrow")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.from_arrow(source.read_all(), name=tmp_name)
+
+
+@_read_in_memory.register("pyarrow.RecordBatch")
+def _pyarrow_rb(source, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("pyarrow")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.register_record_batches(tmp_name, [[source]])
+
+
+@_read_in_memory.register("pyarrow.dataset.Dataset")
+def _pyarrow_rb(source, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("pyarrow")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.register_dataset(tmp_name, source)
+
+
+@_read_in_memory.register("pandas.DataFrame")
+def _pandas(source: pd.DataFrame, table_name, _conn, overwrite: bool = False):
+    tmp_name = gen_name("pandas")
+    with _create_and_drop_memtable(_conn, table_name, tmp_name, overwrite):
+        _conn.con.from_pandas(source, name=tmp_name)
