@@ -121,10 +121,6 @@ class RemoteTable(ops.DatabaseTable):
         )
 
 
-class MarkedRemoteTable(ops.DatabaseTable):
-    remote_expr: Expr = None
-
-
 def into_backend(expr, con, name=None):
     return RemoteTable.from_expr(con=con, expr=expr, name=name).to_expr()
 
@@ -172,7 +168,7 @@ def register_and_transform_remote_tables(expr):
     batches_table = {}
     for arg, count in counts.items():
         ex = arg.remote_expr
-        if not ex.op().find((RemoteTable, MarkedRemoteTable, CachedNode, Read)):
+        if not ex.op().find((RemoteTable, CachedNode, Read)):
             batches = ex.to_pyarrow_batches()  # execute in native backend
         else:
             batches = ls.to_pyarrow_batches(ex)
