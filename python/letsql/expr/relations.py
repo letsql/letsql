@@ -8,7 +8,7 @@ from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
 from ibis.common.graph import Graph
 from ibis.expr import operations as ops
-from ibis.expr.operations import Relation, Node
+from ibis.expr.operations import Relation, Node, DatabaseTable
 
 from letsql.common.utils.graph_utils import replace_fix
 
@@ -183,12 +183,11 @@ def register_and_transform_remote_tables(expr):
     def mark_remote_table(node):
         schema, batchess = batches_table[node]
         name = f"{node.name}_{len(batchess)}"
-        result = MarkedRemoteTable(
-            name,
+        result = DatabaseTable(
+            name=name,
             schema=node.schema,
             source=node.source,
             namespace=node.namespace,
-            remote_expr=node.remote_expr,
         )
         reader = pa.RecordBatchReader.from_batches(schema, batchess.pop())
         node.source.read_record_batches(reader, table_name=name)
@@ -201,8 +200,7 @@ def register_and_transform_remote_tables(expr):
             for k, v in list(kwargs.items()):
                 try:
                     if v in batches_table:
-                        result = mark_remote_table(v)
-                        updated[v] = kwargs[k] = result
+                        updated[v] = mark_remote_table(v)
 
                 except TypeError:  # v may not be hashable
                     continue
