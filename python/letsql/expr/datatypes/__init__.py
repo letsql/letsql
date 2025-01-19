@@ -12,5 +12,5 @@ class LargeString(Variadic, Singleton):
 
     """
 
-    scalar = "LargeStringScalar"
-    column = "LargeStringColumn"
+    scalar = "StringScalar"
+    column = "StringColumn"
