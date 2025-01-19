@@ -57,7 +57,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 # include string view
-_from_pyarrow_types[pa.string_view()] = dt.String
+_from_pyarrow_types[pa.string_view()] = LargeString
 _from_pyarrow_types[pa.large_string()] = LargeString
 _to_pyarrow_types[LargeString] = pa.large_string()
 
