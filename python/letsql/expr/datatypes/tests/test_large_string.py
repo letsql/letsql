@@ -60,7 +60,8 @@ def test_can_read_write_parquet(utf8_data, tmp_path):
     names_parquet_path = tmp_path / "names.parquet"
     ls.to_parquet(t, names_parquet_path)
 
-    t = ls.read_parquet(names_parquet_path, "names_parquet")
+    # need to specify the schema when reading parquet because DataFusion transforms into StringView
+    t = ls.read_parquet(names_parquet_path, "names_parquet", schema=schema.to_pyarrow())
     assert t.schema() == schema
 
     actual = ls.execute(t)
