@@ -1,8 +1,7 @@
-from ibis.common.grounds import Singleton
-from ibis.expr.datatypes import Variadic
+from ibis.expr.datatypes import String
 
 
-class LargeString(Variadic, Singleton):
+class LargeString(String):
     """A type representing a large_string.
 
     Notes

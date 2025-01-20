@@ -5,7 +5,7 @@ from ibis.expr.datatypes import Int64
 import letsql as ls
 
 from letsql.expr.datatypes import LargeString
-from letsql.tests.util import assert_frame_equal
+from letsql.tests.util import assert_frame_equal, assert_series_equal
 
 
 def test_can_create_table(utf8_data):
@@ -67,3 +67,16 @@ def test_can_read_write_parquet(utf8_data, tmp_path):
     actual = ls.execute(t)
 
     assert_frame_equal(utf8_data, actual)
+
+
+def test_can_execute_test_ops(utf8_data):
+    con = ls.connect()
+    schema = ibis.schema([("name", LargeString), ("age", Int64)])
+    t = con.create_table("names", utf8_data, schema=schema)
+    assert t.schema() == schema
+
+    expr = t.name.startswith("A").name("prefix")
+    actual = con.execute(expr)
+    expected = utf8_data["name"].str.startswith("A")
+
+    assert_series_equal(actual, expected, check_names=False)
