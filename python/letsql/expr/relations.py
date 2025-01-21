@@ -8,7 +8,7 @@ from ibis import Schema, Expr
 from ibis.common.collections import FrozenDict
 from ibis.common.graph import Graph
 from ibis.expr import operations as ops
-from ibis.expr.operations import Relation, Node, DatabaseTable
+from ibis.expr.operations import Relation, Node
 
 from letsql.common.utils.graph_utils import replace_fix
 
@@ -179,16 +179,10 @@ def register_and_transform_remote_tables(expr):
     def mark_remote_table(node):
         schema, batchess = batches_table[node]
         name = f"{node.name}_{len(batchess)}"
-        result = DatabaseTable(
-            name=name,
-            schema=node.schema,
-            source=node.source,
-            namespace=node.namespace,
-        )
         reader = pa.RecordBatchReader.from_batches(schema, batchess.pop())
-        node.source.read_record_batches(reader, table_name=name)
+        result = node.source.read_record_batches(reader, table_name=name)
         created[name] = node.source
-        return result
+        return result.op()
 
     def replacer(node, _, **kwargs):
         if isinstance(node, Relation):
