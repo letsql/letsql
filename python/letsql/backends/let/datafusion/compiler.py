@@ -180,6 +180,10 @@ class DataFusionCompiler(SQLGlotCompiler):
             from ibis.formats.pyarrow import PyArrowType
 
             return self.f.arrow_cast(arg, f"{PyArrowType.from_ibis(to)}".capitalize())
+
+        if isinstance(to, LargeString):
+            return self.f.arrow_cast(arg, "LargeUtf8")
+
         return self.cast(arg, to)
 
     def visit_Arbitrary(self, op, *, arg, where):

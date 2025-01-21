@@ -1,6 +1,7 @@
 import ibis
+import pandas as pd
 
-from ibis.expr.datatypes import Int64
+from ibis.expr.datatypes import Int64, String
 
 import letsql as ls
 
@@ -80,3 +81,15 @@ def test_can_execute_test_ops(utf8_data):
     expected = utf8_data["name"].str.startswith("A")
 
     assert_series_equal(actual, expected, check_names=False)
+
+
+def test_cast(utf8_data):
+    con = ls.connect()
+    t = con.register(utf8_data, "t")
+    expr = t.mutate(a=t.name.cast(LargeString))
+    actual = ls.execute(expr)
+
+    assert expr.schema() == ibis.schema(
+        [("name", String), ("age", Int64), ("a", LargeString)]
+    )
+    assert isinstance(actual, pd.DataFrame)
