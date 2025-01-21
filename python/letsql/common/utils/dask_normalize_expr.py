@@ -248,7 +248,6 @@ def normalize_databasetable(dt):
 def normalize_remote_table(dt):
     if not isinstance(dt, (RemoteTable, MarkedRemoteTable)):
         raise ValueError
-
     return dask.base.normalize_token(
         {
             "schema": dt.schema,
@@ -346,7 +345,7 @@ def normalize_expr(expr):
         elif isinstance(node, ir.SQLQueryResult):
             queries.append(node)
 
-    sql = str(ls.to_sql(expr.ls.uncached))
+    sql = str(ls.to_sql(expr))
 
     if not (dts or queries or reads):
         return sql
