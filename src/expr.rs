@@ -95,6 +95,8 @@ pub mod union;
 mod wildcard;
 pub mod window;
 
+use sort_expr::PySortExpr;
+
 /// A PyExpr that can be used on a DataFrame
 #[pyclass(name = "Expr", module = "datafusion.expr", subclass)]
 #[derive(Debug, Clone)]
@@ -247,7 +249,7 @@ impl PyExpr {
 
     /// Create a sort PyExpr from an existing PyExpr.
     #[pyo3(signature = (ascending=true, nulls_first=true))]
-    pub fn sort(&self, ascending: bool, nulls_first: bool) -> PyOrdered {
+    pub fn sort(&self, ascending: bool, nulls_first: bool) -> PySortExpr {
         self.expr.clone().sort(ascending, nulls_first).into()
     }
 
@@ -709,6 +711,7 @@ pub(crate) fn init_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<create_memory_table::PyCreateMemoryTable>()?;
     m.add_class::<create_view::PyCreateView>()?;
     m.add_class::<distinct::PyDistinct>()?;
+    m.add_class::<sort_expr::PySortExpr>()?;
     m.add_class::<subquery_alias::PySubqueryAlias>()?;
     m.add_class::<drop_table::PyDropTable>()?;
     m.add_class::<repartition::PyPartitioning>()?;
