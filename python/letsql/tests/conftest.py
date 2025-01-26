@@ -11,6 +11,7 @@ from letsql.common.utils.aws_utils import (
     make_s3_credentials_defaults,
 )
 
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 TEST_TABLES = {
     "functional_alltypes": ibis.schema(
@@ -282,3 +283,56 @@ def struct(con):
 @pytest.fixture(scope="session")
 def struct_df(struct):
     return struct.execute()
+
+
+@pytest.fixture(scope="session")
+def float_model_path():
+    """Diamonds model with all float features"""
+    return FIXTURES_DIR / "pretrained_model.json"
+
+
+@pytest.fixture(scope="session")
+def mixed_model_path():
+    return FIXTURES_DIR / "pretrained_model_mixed.json"
+
+
+@pytest.fixture(scope="session")
+def feature_table():
+    con = ls.connect()
+    df = pd.DataFrame(
+        {
+            "carat": [0.23, 0.21, 0.23],
+            "depth": [61.5, None, 56.9],
+            "table": [55.0, 61.0, 65.0],
+            "x": [3.95, 3.89, 4.05],
+            "y": [3.98, 3.84, 4.07],
+            "z": [2.43, 2.31, 2.31],
+            "cut_good": [0.0, 0.0, 1.0],
+            "cut_ideal": [1.0, 0.0, 0.0],
+            "cut_premium": [0.0, 1.0, 0.0],
+            "cut_very_good": [0.0, 0.0, 0.0],
+            "color_e": [1.0, 1.0, 1.0],
+            "color_f": [0.0, 0.0, 0.0],
+            "color_g": [0.0, 0.0, 0.0],
+            "color_h": [0.0, 0.0, 0.0],
+            "color_i": [0.0, 0.0, 0.0],
+            "color_j": [0.0, 0.0, 0.0],
+            "clarity_if": [0.0, 0.0, 0.0],
+            "clarity_si1": [0.0, 1.0, 0.0],
+            "clarity_si2": [1.0, 0.0, 0.0],
+            "clarity_vs1": [0.0, 0.0, 1.0],
+            "clarity_vs2": [0.0, 0.0, 0.0],
+            "clarity_vvs1": [0.0, 0.0, 0.0],
+            "clarity_vvs2": [0.0, 0.0, 0.0],
+            "target": [326, 326, 327],
+            "expected_pred": [472.00235, 580.98920, 480.31976],
+        }
+    )
+
+    return con.create_table("xgb_table", df)
+
+
+@pytest.fixture
+def prediction_expr(feature_table, float_model_path):
+    predict_fn = ls.expr.ml.make_xgboost_udf(float_model_path)
+    return feature_table.mutate(pred=predict_fn.on_expr)
