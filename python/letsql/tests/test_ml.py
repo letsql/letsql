@@ -279,7 +279,7 @@ def test_make_xgboost_udf_signature(float_model_path):
 def test_make_xgboost_udf_mixed_features(mixed_model_path):
     """XGBoost UDF should support int64 and boolean feature types"""
     predict_fn = ls.expr.ml.make_xgboost_udf(mixed_model_path)
-    assert "i" in predict_fn.feature_types
+    assert "i" in predict_fn.model.feature_types
 
 
 def test_make_xgboost_udf__repr(mixed_model_path):
