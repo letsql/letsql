@@ -11,6 +11,7 @@ from letsql.common.utils.aws_utils import (
     make_s3_credentials_defaults,
 )
 
+
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 TEST_TABLES = {
@@ -367,10 +368,10 @@ def feature_table():
 
 @pytest.fixture
 def prediction_expr(feature_table, float_model_path):
-    predict_fn = ls.expr.ml.make_xgboost_udf(float_model_path)
+    predict_fn = ls.expr.ml.make_quickgrove_udf(float_model_path)
     return feature_table.mutate(pred=predict_fn.on_expr)
 
 @pytest.fixture
 def mixed_prediction_expr(mixed_feature_table, mixed_model_path):
-    predict_fn = ls.expr.ml.make_xgboost_udf(mixed_model_path)
+    predict_fn = ls.expr.ml.make_quickgrove_udf(mixed_model_path)
     return mixed_feature_table.mutate(pred=predict_fn.on_expr)

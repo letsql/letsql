@@ -1,6 +1,8 @@
 import functools
 import inspect
+import os
 import types
+import warnings
 from pathlib import Path
 from random import Random
 from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Tuple, Union
@@ -17,6 +19,7 @@ from ibis.common.patterns import pattern, replace
 from ibis.expr.operations.udf import InputType, ScalarUDF
 from ibis.expr.rules import ValueOf
 from ibis.util import Namespace
+
 
 if TYPE_CHECKING:
     from quickgrove import PyGradientBoostedDecisionTrees
@@ -253,7 +256,7 @@ def _create_udf_node(
     udf_name: str,
     extra_meta: dict = None,
 ) -> type:
-    """Dynamically create a subclass of ScalarUDF for an XGBoost-based function."""
+    """Dynamically create a subclass of ScalarUDF for an quickgrove-based function."""
 
     meta = {
         "dtype": dt.float32,
@@ -282,6 +285,10 @@ def _all_predicates_are_features(filter_op: ops.Filter, model) -> bool:
         ):
             return False
     return True
+
+
+def _extract_model_name(model_path):
+    return os.path.splitext(os.path.basename(model_path))[0]
 
 
 def _create_udf_function(
@@ -319,15 +326,16 @@ def _create_udf_function(
     return new_func
 
 
-def make_xgboost_udf(
+def make_quickgrove_udf(
     model_or_path: Union[str, Path, "PyGradientBoostedDecisionTrees"],
 ) -> UDFWrapper:
     """
-    Create a UDF from an XGBoost (quickgrove) model.
+    Create a UDF from an quickgrove (quickgrove) model.
     Accepts either an already-loaded model or a path to the model.
     """
 
     model, model_path = _load_quickgrove_model(model_or_path)
+    fn_model_name = _extract_model_name(model_path)
 
     _validate_model_features(model, SUPPORTED_TYPES)
 
@@ -350,14 +358,14 @@ def make_xgboost_udf(
         model=model,
         fn_from_arrays=fn_from_arrays,
         fields=fields,
-        udf_name="predict_xgboost",
+        udf_name=fn_model_name,
         extra_meta={"model_path": model_path},
     )
 
     udf_func = _create_udf_function(
         node_cls=node_cls,
         fn_from_arrays=fn_from_arrays,
-        func_name="predict_xgboost",
+        func_name=fn_model_name,
         fields=fields,
     )
     return UDFWrapper(
@@ -379,9 +387,10 @@ def collect_predicates(filter_op: ops.Filter) -> List[dict]:
         if isinstance(pred, (ops.Less, ops.Greater, ops.GreaterEqual)):
             if isinstance(pred.left, ops.Field) and isinstance(pred.right, ops.Literal):
                 field_name = pred.left.name
-                # if the predicate is on the UDF, skip
                 if isinstance(parent_op.values.get(field_name), ops.ScalarUDF):
-                    return []
+                    raise ValueError(
+                        f"Unsupported predicate on UDF column: {field_name}"
+                    )
 
                 predicates.append(
                     {
@@ -402,15 +411,17 @@ def make_pruned_udf(
     `original_udf` must have a `.model` attribute.
     """
 
+    from quickgrove import Feature
+
     model = original_udf.model
     pred_feature_names = {pred["column"] for pred in predicates}
     model_feature_names = set(model.feature_names)
 
-    # if any  columns ain't in the model, skip pruning
     if not pred_feature_names.issubset(model_feature_names):
+        warnings.warn(
+            "Feature not found in predicates, skipping pruning...", UserWarning
+        )
         return original_udf
-
-    from quickgrove import Feature
 
     pruned_model = model.prune(
         [
@@ -418,7 +429,6 @@ def make_pruned_udf(
             if pred["op"] == "Less"
             else Feature(pred["column"]) >= pred["value"]
             if pred["op"] == "Greater"
-            # since xgboost trees only go < or >=, greater than is just >=
             else Feature(pred["column"]) >= pred["value"]
             for pred in predicates
         ]
@@ -444,12 +454,12 @@ def make_pruned_udf(
         model=pruned_model,
         fn_from_arrays=fn_from_arrays,
         fields=fields,
-        udf_name="predict_xgboost_pruned",
+        udf_name=original_udf.__func_name__ + "_pruned",
     )
     udf_func = _create_udf_function(
         node_cls=node_cls,
         fn_from_arrays=fn_from_arrays,
-        func_name="predict_xgboost_pruned",
+        func_name=original_udf.__func_name__ + "_pruned",
         fields=fields,
     )
 
@@ -462,8 +472,8 @@ def make_pruned_udf(
 
 
 @replace(p.Filter(p.Project))
-def prune_gbdt_model(_, **kwargs):
-    """Rewrite rule to prune GBDT model based on filter predicates."""
+def prune_quickgrove_model(_, **kwargs):
+    """Rewrite rule to prune quickgrove model based on filter predicates."""
 
     parent_op = _.parent
     predicates = collect_predicates(_)
@@ -508,9 +518,9 @@ def prune_gbdt_model(_, **kwargs):
     return ops.Filter(parent=new_project, predicates=new_predicates)
 
 
-def rewrite_gbdt_expression(expr: ir.Table) -> ir.Table:
-    """Rewrite an Ibis expression by pruning GBDT models based on filter conditions."""
+def rewrite_quickgrove_expression(expr: ir.Table) -> ir.Table:
+    """Rewrite an Ibis expression by pruning quickgrove models based on filter conditions."""
 
     op = expr.op()
-    new_op = op.replace(prune_gbdt_model)
+    new_op = op.replace(prune_quickgrove_model)
     return new_op.to_expr()
