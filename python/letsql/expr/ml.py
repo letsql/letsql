@@ -266,6 +266,7 @@ def _create_udf_node(
         "__udf_namespace__": p,
         "__module__": "letsql.expr.ml",
         "__func_name__": udf_name,
+        "__fields__": fields,
         "model": model,
     }
     if extra_meta:
@@ -291,34 +292,29 @@ def _extract_model_name(model_path):
     return os.path.splitext(os.path.basename(model_path))[0]
 
 
-def _create_udf_function(
-    node_cls: type,
-    fn_from_arrays: Callable,
-    func_name: str,
-    fields: dict,
-) -> Callable:
+def _create_udf_function(node_cls: type) -> Callable:
     """
     Create a function that, when called, instantiates `node_cls` and returns the Ibis expression.
     Attach an `inspect.Signature` for introspection.
     """
+    fn_from_arrays = node_cls.__func__.fget(None)
 
     @functools.wraps(fn_from_arrays)
     def construct(*args, **kwargs):
         return node_cls(*args, **kwargs).to_expr()
 
     signature = inspect.Signature(
-        fields_to_parameters(fields),
+        fields_to_parameters(node_cls.__fields__),
         return_annotation=dt.float32,
     )
 
-    # do we need a separate function object to rename properly?
     def actual_func(*args, **kwargs):
         return construct(*args, **kwargs)
 
     new_func = types.FunctionType(
         actual_func.__code__,
         actual_func.__globals__,
-        name=func_name,
+        name=node_cls.__func_name__,
         argdefs=actual_func.__defaults__,
         closure=actual_func.__closure__,
     )
@@ -354,20 +350,16 @@ def make_quickgrove_udf(
     def fn_from_arrays(*arrays):
         return model.predict_arrays(list(arrays))
 
-    node_cls = _create_udf_node(
-        model=model,
-        fn_from_arrays=fn_from_arrays,
-        fields=fields,
-        udf_name=fn_model_name,
-        extra_meta={"model_path": model_path},
+    udf_func = _create_udf_function(
+        _create_udf_node(
+            model=model,
+            fn_from_arrays=fn_from_arrays,
+            fields=fields,
+            udf_name=fn_model_name,
+            extra_meta={"model_path": model_path},
+        )
     )
 
-    udf_func = _create_udf_function(
-        node_cls=node_cls,
-        fn_from_arrays=fn_from_arrays,
-        func_name=fn_model_name,
-        fields=fields,
-    )
     return UDFWrapper(
         udf_func,
         model,
@@ -450,17 +442,13 @@ def make_pruned_udf(
     def fn_from_arrays(*arrays):
         return pruned_model.predict_arrays(list(arrays))
 
-    node_cls = _create_udf_node(
-        model=pruned_model,
-        fn_from_arrays=fn_from_arrays,
-        fields=fields,
-        udf_name=original_udf.__func_name__ + "_pruned",
-    )
     udf_func = _create_udf_function(
-        node_cls=node_cls,
-        fn_from_arrays=fn_from_arrays,
-        func_name=original_udf.__func_name__ + "_pruned",
-        fields=fields,
+        _create_udf_node(
+            model=pruned_model,
+            fn_from_arrays=fn_from_arrays,
+            fields=fields,
+            udf_name=original_udf.__func_name__ + "_pruned",
+        )
     )
 
     return UDFWrapper(
@@ -518,7 +506,7 @@ def prune_quickgrove_model(_, **kwargs):
     return ops.Filter(parent=new_project, predicates=new_predicates)
 
 
-def rewrite_quickgrove_expression(expr: ir.Table) -> ir.Table:
+def rewrite_quickgrove_expr(expr: ir.Table) -> ir.Table:
     """Rewrite an Ibis expression by pruning quickgrove models based on filter conditions."""
 
     op = expr.op()

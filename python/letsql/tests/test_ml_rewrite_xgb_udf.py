@@ -35,7 +35,7 @@ def test_multiple_predicates(prediction_expr):
 def test_model_pruning(prediction_expr):
     """Ensures pruned model predictions match original model predictions"""
     original = prediction_expr.filter(_.carat < 1.0).execute()
-    optimized = ls.expr.ml.rewrite_quickgrove_expression(
+    optimized = ls.expr.ml.rewrite_quickgrove_expr(
         prediction_expr.filter(_.carat < 1.0)
     ).execute()
     np.testing.assert_array_almost_equal(
@@ -46,7 +46,7 @@ def test_model_pruning(prediction_expr):
 def test_pruned_model_exists_in_repr(prediction_expr):
     """Checks that pruned models are correctly marked in their string representation"""
     original = prediction_expr.filter(_.carat < 1.0)
-    optimized = ls.expr.ml.rewrite_quickgrove_expression(
+    optimized = ls.expr.ml.rewrite_quickgrove_expr(
         prediction_expr.filter(_.carat < 1.0)
     )
     assert "_pruned" not in repr(original)
@@ -56,7 +56,7 @@ def test_pruned_model_exists_in_repr(prediction_expr):
 def test_mixed_pruned_model_types(mixed_prediction_expr):
     """Verifies that mixed model types maintain prediction accuracy after pruning"""
     original = mixed_prediction_expr.filter(_.carat < 1.0).execute()
-    optimized = ls.expr.ml.rewrite_quickgrove_expression(
+    optimized = ls.expr.ml.rewrite_quickgrove_expr(
         mixed_prediction_expr.filter(_.carat < 1.0)
     ).execute()
     np.testing.assert_array_almost_equal(
@@ -69,21 +69,21 @@ def test_prune_if_predicates_are_on_udf(mixed_model_path, mixed_feature_table):
     predict_udf = ls.expr.ml.make_quickgrove_udf(mixed_model_path)
     t = mixed_feature_table.mutate(pred=predict_udf.on_expr).filter(_.pred < 1)
     with pytest.raises(ValueError):
-        ls.expr.ml.rewrite_quickgrove_expression(t)
+        ls.expr.ml.rewrite_quickgrove_expr(t)
 
 
 def test_prune_if_predicates_are_not_features(mixed_model_path, mixed_feature_table):
     """Confirms that models aren't pruned when filters are on non-feature columns"""
     predict_udf = ls.expr.ml.make_quickgrove_udf(mixed_model_path)
     t = mixed_feature_table.mutate(pred=predict_udf.on_expr).filter(_.target >= 1)
-    optimized = ls.expr.ml.rewrite_quickgrove_expression(t)
+    optimized = ls.expr.ml.rewrite_quickgrove_expr(t)
     assert "pruned" not in repr(optimized)
 
 
 def test_mixed_prune_greather_than(mixed_prediction_expr):
     """Tests model pruning with greater than comparisons"""
     original = mixed_prediction_expr.filter(_.carat > 1.0).execute()
-    optimized = ls.expr.ml.rewrite_quickgrove_expression(
+    optimized = ls.expr.ml.rewrite_quickgrove_expr(
         mixed_prediction_expr.filter(_.carat > 1.0)
     ).execute()
     np.testing.assert_array_almost_equal(
@@ -94,7 +94,7 @@ def test_mixed_prune_greather_than(mixed_prediction_expr):
 def test_mixed_prune_greather_than_or_equal(mixed_prediction_expr):
     """Tests model pruning with greater than or equal comparisons"""
     original = mixed_prediction_expr.filter(_.carat >= 1.0).execute()
-    optimized = ls.expr.ml.rewrite_quickgrove_expression(
+    optimized = ls.expr.ml.rewrite_quickgrove_expr(
         mixed_prediction_expr.filter(_.carat >= 1.0)
     ).execute()
     np.testing.assert_array_almost_equal(
