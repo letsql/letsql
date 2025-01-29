@@ -38,6 +38,7 @@ from ibis.expr.types import (
 from letsql.common.utils.caching_utils import find_backend
 from letsql.common.utils.defer_utils import rbr_wrapper
 from letsql.common.utils.graph_utils import replace_fix
+from letsql.expr.letsql_expr import LetSQLExpr, wrap_ibis_function
 from letsql.expr.ml import train_test_splits
 from letsql.expr.relations import (
     CachedNode,
@@ -204,12 +205,13 @@ def schema(
     return api.schema(pairs=pairs, names=names, types=types)
 
 
+@wrap_ibis_function
 def table(
     schema: SchemaLike | None = None,
     name: str | None = None,
     catalog: str | None = None,
     database: str | None = None,
-) -> ir.Table:
+) -> LetSQLExpr[ir.Table]:
     """Create a table literal or an abstract table without data.
 
     Ibis uses the word database to refer to a collection of tables, and the word
@@ -254,7 +256,9 @@ def table(
     UnboundTable: cat.db.t
       a int64
     """
-    return api.table(schema=schema, name=name, catalog=catalog, database=database)
+    return LetSQLExpr(
+        api.table(schema=schema, name=name, catalog=catalog, database=database)
+    )
 
 
 def memtable(
@@ -755,7 +759,8 @@ def ntile(buckets: int | ir.IntegerValue) -> ir.IntegerColumn:
     return api.ntile(buckets)
 
 
-def row_number() -> ir.IntegerColumn:
+@wrap_ibis_function
+def row_number() -> LetSQLExpr[ir.IntegerColumn]:
     """Return an analytic function expression for the current row number.
 
     ::: {.callout-note}
@@ -787,7 +792,7 @@ def row_number() -> ir.IntegerColumn:
     └────────┴────────┘
 
     """
-    return api.row_number()
+    return LetSQLExpr(api.row_number())
 
 
 def read_csv(
