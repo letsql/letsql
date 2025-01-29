@@ -51,7 +51,7 @@ jobs:
 
       # Update output format to enable automatic inline annotations.
       - name: Run Ruff
-        run: ruff check --output-format=github python examples docs
+        run: uv run --no-project ruff check --output-format=github python examples docs
 
       - name: Run fmt
         uses: actions-rs/cargo@v1
