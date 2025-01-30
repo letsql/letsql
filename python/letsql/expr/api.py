@@ -261,6 +261,7 @@ def table(
     )
 
 
+@wrap_ibis_function
 def memtable(
     data,
     *,
@@ -350,7 +351,7 @@ def memtable(
     if isinstance(data, pa.RecordBatch):
         data = data.to_pandas()
 
-    return api.memtable(data, columns=columns, schema=schema, name=name)
+    return LetSQLExpr(api.memtable(data, columns=columns, schema=schema, name=name))
 
 
 def desc(expr: ir.Column | str) -> ir.Value:
