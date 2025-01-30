@@ -58,8 +58,8 @@ class Backend(SQLBackend):
         self,
         host="localhost",
         port=8815,
-        username="test",
-        password="password",
+        username=None,
+        password=None,
         tls_roots=None,
     ) -> None:
         self.con = FlightClient(

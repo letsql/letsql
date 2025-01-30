@@ -6,14 +6,13 @@ import pyarrow as pa
 import pytest
 
 import letsql as ls
-from letsql.flight import BasicAuth, FlightServer, make_con
+from letsql.flight import FlightServer, make_con
 from letsql.flight.action import AddExchangeAction
 from letsql.flight.exchanger import UDFExchanger
 
 
-scheme = "grpc+tls"
+scheme = "grpc"
 host = "localhost"
-port = "5005"
 
 
 def port_in_use(port, host="localhost"):
@@ -33,17 +32,12 @@ def port_in_use(port, host="localhost"):
         pytest.param(ls.connect, 5005, id="letsql"),
     ],
 )
-def test_register_and_list_tables(connection, port, tls_key_pair):
+def test_register_and_list_tables(connection, port):
     assert not port_in_use(port), f"Port {port} already in use"
-
-    certificate_path, key_path = tls_key_pair
 
     with FlightServer(
         location="{}://{}:{}".format(scheme, host, port),
-        certificate_path=certificate_path,
-        key_path=key_path,
         verify_client=False,
-        auth=BasicAuth("test", "password"),
         connection=connection,
     ) as main:
         con = make_con(main)
@@ -71,17 +65,12 @@ def test_register_and_list_tables(connection, port, tls_key_pair):
         pytest.param(ls.connect, 5005, id="letsql"),
     ],
 )
-def test_read_parquet(connection, port, tls_key_pair, parquet_dir):
+def test_read_parquet(connection, port, parquet_dir):
     assert not port_in_use(port), f"Port {port} already in use"
-
-    certificate_path, key_path = tls_key_pair
 
     with FlightServer(
         location="{}://{}:{}".format(scheme, host, port),
-        certificate_path=certificate_path,
-        key_path=key_path,
         verify_client=False,
-        auth=BasicAuth("test", "password"),
         connection=connection,
     ) as main:
         con = make_con(main)
@@ -107,20 +96,15 @@ def instrument_reader(reader, prefix=""):
         pytest.param(ls.connect, 5005, id="letsql"),
     ],
 )
-def test_exchange(connection, port, tls_key_pair):
+def test_exchange(connection, port):
     assert not port_in_use(port), f"Port {port} already in use"
-
-    certificate_path, key_path = tls_key_pair
 
     def my_f(df):
         return df[["a", "b"]].sum(axis=1)
 
     with FlightServer(
         location="{}://{}:{}".format(scheme, host, port),
-        certificate_path=certificate_path,
-        key_path=key_path,
         verify_client=False,
-        auth=BasicAuth("test", "password"),
         connection=connection,
     ) as main:
         client = make_con(main).con
