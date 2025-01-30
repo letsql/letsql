@@ -78,7 +78,6 @@ def test_register_and_list_tables(connection, port):
 def test_read_parquet(connection, port, parquet_dir):
     flight_url = FlightUrl.from_defaults(port=port)
     assert not flight_url.port_in_use(), f"Port {port} already in use"
-
     with FlightServer(
         flight_url=flight_url,
         verify_client=False,
