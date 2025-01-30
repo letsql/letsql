@@ -1405,6 +1405,7 @@ docs = [
 test = [
     { name = "datafusion" },
     { name = "duckdb" },
+    { name = "pyopenssl" },
     { name = "pytest-snapshot" },
     { name = "quickgrove" },
     { name = "scikit-learn" },
@@ -1465,6 +1466,7 @@ docs = [
 test = [
     { name = "datafusion", specifier = ">=43.1.0" },
     { name = "duckdb", specifier = ">=1.1.3" },
+    { name = "pyopenssl", specifier = ">=24.3.0" },
     { name = "pytest-snapshot", specifier = ">=0.9.0,<1.0.0" },
     { name = "quickgrove", specifier = ">=0.1.2" },
     { name = "scikit-learn", specifier = ">=1.4.0,<2.0.0" },
