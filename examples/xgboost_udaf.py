@@ -48,11 +48,14 @@ ibis_output_type = dt.infer(({"feature": "feature", "score": 0.0},))
 
 
 t = ls.connect().read_parquet(ls.config.options.pins.get_path("lending-club"))
+
 agg_udf = udf.agg.pandas_df(
     curried_calc_best_features,
     t[cols].schema(),
     ibis_output_type,
     name="calc_best_features",
 )
+
 expr = t.group_by(by).agg(agg_udf.on_expr(t).name("best_features")).order_by(by)
+
 result = ls.execute(expr)
