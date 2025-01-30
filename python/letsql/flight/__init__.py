@@ -50,8 +50,11 @@ class FlightServer:
         self.key_path = key_path
         self.auth = auth
 
-        tls_certificates = None
-        basic_auth_middleware = None
+        kwargs = {
+            "verify_client": verify_client,
+            "root_certificates": root_certificates,
+        }
+
         if key_path is not None and certificate_path is not None:
             with open(certificate_path, "rb") as cert_file:
                 tls_cert_chain = cert_file.read()
@@ -59,17 +62,16 @@ class FlightServer:
             with open(key_path, "rb") as key_file:
                 tls_private_key = key_file.read()
 
-            tls_certificates = [(tls_cert_chain, tls_private_key)]
-            basic_auth_middleware = to_basic_auth_middleware(auth)
+            kwargs["tls_certificates"] = [(tls_cert_chain, tls_private_key)]
+
+        if auth is not None:
+            kwargs["auth_handler"] = NoOpAuthHandler()
+            kwargs["middleware"] = to_basic_auth_middleware(auth)
 
         self.server = FlightServerDelegate(
             connection,
             location,
-            tls_certificates=tls_certificates,
-            verify_client=verify_client,
-            root_certificates=root_certificates,
-            auth_handler=NoOpAuthHandler(),
-            middleware=basic_auth_middleware,
+            **kwargs,
         )
 
     def __enter__(self):
@@ -86,14 +88,20 @@ def make_con(
 
     url = urlparse(con.location)
 
+    kwargs = {
+        "host": url.hostname,
+        "port": url.port,
+    }
+
+    if con.auth is not None:
+        kwargs["username"] = con.auth.username
+        kwargs["password"] = con.auth.password
+
+    if con.certificate_path is not None:
+        kwargs["tls_roots"] = con.certificate_path
+
     instance = Backend()
-    instance.do_connect(
-        host=url.hostname,
-        port=url.port,
-        username=con.auth.username,
-        password=con.auth.password,
-        tls_roots=con.certificate_path,
-    )
+    instance.do_connect(**kwargs)
     return instance
 
 

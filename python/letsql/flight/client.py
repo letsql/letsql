@@ -19,8 +19,8 @@ class FlightClient:
         self,
         host="localhost",
         port=8815,
-        username="test",
-        password="password",
+        username=None,
+        password=None,
         tls_roots=None,
     ):
         """
@@ -39,12 +39,16 @@ class FlightClient:
             with open(tls_roots, "rb") as root_certs:
                 kwargs["tls_root_certs"] = root_certs.read()
 
-        self._client = pa.flight.FlightClient(f"grpc+tls://{host}:{port}", **kwargs)
+        self._client = pa.flight.FlightClient(f"grpc://{host}:{port}", **kwargs)
         self._wait_on_healthcheck()
-        token_pair = self._client.authenticate_basic_token(
-            username.encode(), password.encode()
-        )
-        self._options = pa.flight.FlightCallOptions(headers=[token_pair])
+
+        if username and password:
+            token_pair = self._client.authenticate_basic_token(
+                username.encode(), password.encode()
+            )
+            self._options = pa.flight.FlightCallOptions(headers=[token_pair])
+        else:
+            self._options = None
 
     def _wait_on_healthcheck(self):
         while True:
