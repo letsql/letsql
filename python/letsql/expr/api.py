@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import functools
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Union, overload
 
@@ -38,7 +39,7 @@ from ibis.expr.types import (
 from letsql.common.utils.caching_utils import find_backend
 from letsql.common.utils.defer_utils import rbr_wrapper
 from letsql.common.utils.graph_utils import replace_fix
-from letsql.expr.letsql_expr import LetSQLExpr, wrap_ibis_function
+from letsql.expr.letsql_expr import BridgeExpr, wrap_ibis_function
 from letsql.expr.ml import train_test_splits
 from letsql.expr.relations import (
     CachedNode,
@@ -136,6 +137,66 @@ pi = ops.Pi().to_expr()
 deferred = _
 
 
+def get_ibis_doc(func):
+    return func.__doc__ or ""
+
+
+def modify_examples_section(
+    doc: str, custom_examples: str, mode: str = "append"
+) -> str:
+    #   (Examples\n[-]+\n) -> group(1)
+    #   the "body" of examples -> group(2)
+    #   stops at next top-level heading or end
+    # I dunno
+    pattern = r"(Examples\s*\n[-]+\n)(?P<body>(?:.*?\n)+?)(?=\n[A-Z][a-z]+\n[-]+|$)"
+    match = re.search(pattern, doc, flags=re.MULTILINE | re.DOTALL)
+
+    if match:
+        original_body = match.group("body")
+
+        if mode == "replace":
+            new_body = custom_examples
+        elif mode == "append":
+            new_body = original_body.rstrip("\n") + "\n\n" + custom_examples + "\n"
+        else:
+            raise ValueError("mode must be 'append' or 'replace'")
+
+        start_idx, end_idx = match.span("body")
+        doc = doc[:start_idx] + new_body + doc[end_idx:]
+    else:
+        doc += f"\nExamples\n--------\n{custom_examples}\n"
+
+    return doc
+
+
+def transform_doc_for_letsql(
+    ibis_func,
+    replacements=None,
+    custom_examples=None,
+    examples_mode="append",
+    remove_see_also=False,
+    custom_see_also=None,
+):
+    import re
+
+    doc = ibis_func.__doc__ or ""
+
+    if replacements:
+        for old, new in replacements.items():
+            doc = doc.replace(old, new)
+
+    if custom_examples is not None:
+        doc = modify_examples_section(doc, custom_examples, mode=examples_mode)
+
+    if remove_see_also:
+        doc = re.sub(r"\n+[ ]*See Also[ ]*\n(?:[^\n]*\n)+(?=\n|$)", "\n", doc)
+
+    if custom_see_also:
+        doc += f"\nSee Also\n--------\n{custom_see_also}\n"
+
+    return doc
+
+
 def param(type: Union[dt.DataType, str]) -> ir.Scalar:
     """Create a deferred parameter of a given type.
 
@@ -211,7 +272,7 @@ def table(
     name: str | None = None,
     catalog: str | None = None,
     database: str | None = None,
-) -> LetSQLExpr[ir.Table]:
+) -> BridgeExpr[ir.Table]:
     """Create a table literal or an abstract table without data.
 
     Ibis uses the word database to refer to a collection of tables, and the word
@@ -256,7 +317,7 @@ def table(
     UnboundTable: cat.db.t
       a int64
     """
-    return LetSQLExpr(
+    return BridgeExpr(
         api.table(schema=schema, name=name, catalog=catalog, database=database)
     )
 
@@ -351,7 +412,33 @@ def memtable(
     if isinstance(data, pa.RecordBatch):
         data = data.to_pandas()
 
-    return LetSQLExpr(api.memtable(data, columns=columns, schema=schema, name=name))
+    return BridgeExpr(api.memtable(data, columns=columns, schema=schema, name=name))
+
+
+my_custom_examples = """\
+>>> import letsql
+>>> df = pd.DataFrame({"col": [1,2,3]})
+>>> t = letsql.memtable(df)
+>>> t
+┌──── LetSQL Expression Plan ─────┐
+
+  [InMemoryTable 📦]
+└─────────────────────────────────┘
+
+# Additional LetSQL example lines here...
+"""
+
+memtable.__doc__ = transform_doc_for_letsql(
+    ibis_func=ibis.memtable,
+    replacements={
+        "import ibis": "import letsql",
+        "ibis.": "letsql.",
+    },
+    custom_examples=my_custom_examples,
+    examples_mode="append",  # or "replace"
+    remove_see_also=True,  # optional
+    custom_see_also="`letsql.into_backend` - switch the table to another backend",
+)
 
 
 def desc(expr: ir.Column | str) -> ir.Value:
@@ -761,7 +848,7 @@ def ntile(buckets: int | ir.IntegerValue) -> ir.IntegerColumn:
 
 
 @wrap_ibis_function
-def row_number() -> LetSQLExpr[ir.IntegerColumn]:
+def row_number() -> BridgeExpr[ir.IntegerColumn]:
     """Return an analytic function expression for the current row number.
 
     ::: {.callout-note}
@@ -793,7 +880,7 @@ def row_number() -> LetSQLExpr[ir.IntegerColumn]:
     └────────┴────────┘
 
     """
-    return LetSQLExpr(api.row_number())
+    return BridgeExpr(api.row_number())
 
 
 def read_csv(
