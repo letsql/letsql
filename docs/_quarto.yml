@@ -24,7 +24,7 @@ website:
 
     left:
       - text: "Overview"
-        href: concepts.qmd
+        href: overview.qmd
       - text: "User Guide"
         href: installation.qmd
       - text: "API Reference"
@@ -37,7 +37,7 @@ website:
       collapse-level: 2
       align: left
       contents:
-        - href: concepts.qmd
+        - href: overview.qmd
     - id: user-guide
       title: "User Guide"
       contents:
