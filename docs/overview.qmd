@@ -1,0 +1,88 @@
+# Overview
+
+# What is LetSQL?
+
+LetSQL simplifies ML pipeline development through multi-engine composition and deferred execution. Built on Apache Arrow, DataFusion, and Ibis.
+
+```bash
+pip install letsql
+```
+
+## Core Capabilities
+
+### 1. Multi-Engine Composition
+
+- Switch engines mid-pipeline using `into_backend`
+- Use specialized capabilities across DuckDB, DataFusion, pandas, Trino, Snowflake, and BigQuery
+- Expression segmentation across engines
+
+### 2. Local Caching
+
+- Automatic caching of intermediate results
+- Hashes the query and schema for easy invalidation
+- Remote caching support (coming soon)
+
+### 3. User-Defined Everything (UDX)
+
+- Write pure functions instead of DAGs
+- Stream data with stateful UDAFs and UDWFs
+- Deploy models as UDFs
+
+Additionally, LetSQL provides a command-line interface for building, running, and serving pipelines (coming soon!).
+
+# Stateless Execution
+
+LetSQL promotes a stateless execution model that brings several advantages:
+
+- **Reproducibility**: Pipeline results are deterministic and reproducible
+- **Scalability**: Easy horizontal scaling without state synchronization
+- **Fault Tolerance**: Quick recovery from failures without state restoration
+
+ This style of execution features:
+
+1. All transformations are pure functions
+2. State is explicitly passed between pipeline stages
+3. Intermediate results are automatically cached
+4. Pipeline segments can be executed independently
+
+## Example
+
+Here's how these features work together in a typical ML pipeline:
+
+```python
+
+```
+
+# Target Users
+
+## Data Scientists and ML Engineers
+
+LetSQL is designed to seamlessly integrate into the modern data scientist's workflow while providing the robustness needed for production ML systems:
+
+### For Experimentation
+
+- Interactive development with cached intermediate results
+- Easy switching between different query engines for specialized operations (e.g., DuckDB for AsOf joins)
+- Familiar pandas-like API through Ibis integration
+- Native integration with popular ML frameworks like PyTorch
+- Reproducible train/test splits with built-in data versioning
+
+### For Production
+
+- Scalable pipeline deployment with minimal code changes
+- Enterprise security integration through existing query engines
+- Efficient resource utilization with stateless execution
+- Built-in monitoring and observability
+
+# Common Use Cases
+
+1. Extend data warehouse capabilities with custom UDFs
+2. Build production ML pipelines on enterprise data platforms
+3. Deploy models through standardized Flight endpoints
+4. Optimize batch inference for tree-based models
+
+# Supported Backends
+
+1. **In-Process**: DuckDB, DataFusion, Pandas
+2. **Distributed**: Trino, Snowflake, BigQuery
+3. **Object Stores**
