@@ -51,11 +51,8 @@ class BridgeExpr(Generic[T]):
     def __init__(self, ibis_expr: T):
         self._ibis_expr = ibis_expr
 
-    def op(self):
-        return self._ibis_expr.op()
-
-    def schema(self):
-        return self._ibis_expr.schema()
+    def __getattr__(self, item):
+        return getattr(self._ibis_expr, item)
 
     def execute(self, **kwargs: Any):
         # avoid circular import
