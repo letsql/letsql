@@ -26,6 +26,17 @@ def wrap_ibis_function(func):
     return _wrapped
 
 
+def wrap_with_bridge_expr(fun):
+    @functools.wraps(fun)
+    def wrapped(*args, **kwargs):
+        try:
+            return BridgeExpr(fun(*args, **kwargs))
+        except ibis_exc.IbisError as e:
+            raise LetSQLError(f"Error in {fun.__name__}: {e}") from e
+
+    return wrapped
+
+
 class LetSQLError(Exception):
     """All user-facing errors for LetSQL."""
 
@@ -40,8 +51,11 @@ class BridgeExpr(Generic[T]):
     def __init__(self, ibis_expr: T):
         self._ibis_expr = ibis_expr
 
-    # def __repr__(self):
-    #     return f"<BridgeExpr: {self._ibis_expr!r}>"
+    def op(self):
+        return self._ibis_expr.op()
+
+    def schema(self):
+        return self._ibis_expr.schema()
 
     def execute(self, **kwargs: Any):
         # avoid circular import
