@@ -54,6 +54,9 @@ class BridgeExpr(Generic[T]):
     def __getattr__(self, item):
         return getattr(self._ibis_expr, item)
 
+    def __getitem__(self, item):
+        return self._ibis_expr[item]
+
     def execute(self, **kwargs: Any):
         # avoid circular import
         from letsql.expr.api import execute
