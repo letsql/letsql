@@ -1,6 +1,7 @@
 import functools
 from typing import Any, Generic, TypeVar
 
+import ibis
 import ibis.common.exceptions as ibis_exc
 import ibis.expr.types as ir
 
@@ -26,15 +27,36 @@ def wrap_ibis_function(func):
     return _wrapped
 
 
-def wrap_with_bridge_expr(fun):
+def wrap_with_bridge(fun):
+    """Decorator to wrap an Ibis function so it raises `LetSQLError`."""
+
     @functools.wraps(fun)
-    def wrapped(*args, **kwargs):
+    def _wrapped(*args, **kwargs):
         try:
-            return BridgeExpr(fun(*args, **kwargs))
+            res = []
+            for arg in args:
+                if isinstance(arg, BridgeExpr):
+                    res.append(arg._ibis_expr)
+                else:
+                    res.append(arg)
+
+            kw_res = {}
+            for k, v in kwargs.items():
+                if isinstance(v, BridgeExpr):
+                    kw_res[k] = v._ibis_expr
+                else:
+                    kw_res[k] = v
+
+            result = fun(*res, **kw_res)
+
+            if isinstance(result, ir.Expr):
+                result = BridgeExpr(result)
+
+            return result
         except ibis_exc.IbisError as e:
             raise LetSQLError(f"Error in {fun.__name__}: {e}") from e
 
-    return wrapped
+    return _wrapped
 
 
 class LetSQLError(Exception):
@@ -52,10 +74,18 @@ class BridgeExpr(Generic[T]):
         self._ibis_expr = ibis_expr
 
     def __getattr__(self, item):
-        return getattr(self._ibis_expr, item)
+        maybe_fun = getattr(self._ibis_expr, item)
+        if callable(maybe_fun):
+            return wrap_with_bridge(maybe_fun)
+        return maybe_fun
 
     def __getitem__(self, item):
-        return self._ibis_expr[item]
+        result = self._ibis_expr[item]
+
+        if isinstance(result, ibis.Expr):
+            return BridgeExpr(result)
+
+        return result
 
     def execute(self, **kwargs: Any):
         # avoid circular import
@@ -63,7 +93,19 @@ class BridgeExpr(Generic[T]):
 
         return execute(self._ibis_expr, **kwargs)
 
-    def into_backend(self, backend, name):
+    def to_pyarrow_batches(self, *args, **kwargs):
+        # avoid circular import
+        from letsql.expr.api import to_pyarrow_batches
+
+        return to_pyarrow_batches(self._ibis_expr, *args, **kwargs)
+
+    def to_pyarrow(self, *args, **kwargs):
+        # avoid circular import
+        from letsql.expr.api import to_pyarrow
+
+        return to_pyarrow(self._ibis_expr, **kwargs)
+
+    def into_backend(self, backend, name=None):
         new_ibis_expr = into_backend(self._ibis_expr, backend, name)
         return BridgeExpr(new_ibis_expr)
 

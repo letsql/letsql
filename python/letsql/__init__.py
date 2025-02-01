@@ -7,12 +7,14 @@ from inspect import signature
 from types import NoneType
 from typing import get_type_hints
 
+import ibis
+
 from letsql import examples
 from letsql.config import options
 from letsql.expr import api
 from letsql.expr.api import *  # noqa: F403
 from letsql.backends.let import Backend
-from letsql.expr.letsql_expr import wrap_with_bridge_expr
+from letsql.expr.letsql_expr import wrap_with_bridge
 from letsql.internal import SessionConfig
 
 try:
@@ -50,44 +52,46 @@ def load_backend(name):
         backend = module.Backend()
         backend.register_options()
 
-        def get_return_types(cls):
-            # Get all methods in the class
-            methods = [
-                attr
-                for attr in dir(cls)
-                if callable(getattr(cls, attr)) and not attr.startswith("_")
-            ]
-
-            return_types = {}
-            for method_name in methods:
-                method = getattr(cls, method_name)
-
-                # Option 1: Using get_type_hints (preferred for modern Python)
-                try:
-                    hints = get_type_hints(method)
-                    return_type = hints.get("return")
-                    return_types[method_name] = return_type
-                except Exception:
-                    # Option 2: Fallback to using signature
-                    sig = signature(method)
-                    return_type = sig.return_annotation
-                    return_types[method_name] = (
-                        return_type if return_type != sig.empty else None
-                    )
-
-            return return_types
-
-        for method, return_type in get_return_types(type(backend)).items():
-            if return_type is not None and not isinstance(return_type, NoneType):
-                try:
-                    if issubclass(return_type, ibis.Expr):
-                        fun = getattr(backend, method)
-                        setattr(backend, method, wrap_with_bridge_expr(fun))
-                except Exception:
-                    pass
-
         def connect(*args, **kwargs):
-            return backend.connect(*args, **kwargs)
+            instance = backend.connect(*args, **kwargs)
+
+            def get_return_types(cls):
+                # Get all methods in the class
+                methods = [
+                    attr
+                    for attr in dir(cls)
+                    if callable(getattr(cls, attr)) and not attr.startswith("_")
+                ]
+
+                return_types = {}
+                for method_name in methods:
+                    method = getattr(cls, method_name)
+
+                    # Option 1: Using get_type_hints (preferred for modern Python)
+                    try:
+                        hints = get_type_hints(method)
+                        return_type = hints.get("return")
+                        return_types[method_name] = return_type
+                    except Exception:
+                        # Option 2: Fallback to using signature
+                        sig = signature(method)
+                        return_type = sig.return_annotation
+                        return_types[method_name] = (
+                            return_type if return_type != sig.empty else None
+                        )
+
+                return return_types
+
+            for method, return_type in get_return_types(type(instance)).items():
+                if return_type is not None and not isinstance(return_type, NoneType):
+                    try:
+                        if issubclass(return_type, ibis.Expr):
+                            fun = getattr(instance, method)
+                            setattr(instance, method, wrap_with_bridge(fun))
+                    except Exception:
+                        pass
+
+            return instance
 
         connect.__doc__ = backend.do_connect.__doc__
         connect.__wrapped__ = backend.do_connect
@@ -111,6 +115,43 @@ def connect(session_config: SessionConfig | None = None) -> Backend:
     """Create a LETSQL backend."""
     instance = Backend()
     instance.do_connect(session_config)
+
+    def get_return_types(cls):
+        # Get all methods in the class
+        methods = [
+            attr
+            for attr in dir(cls)
+            if callable(getattr(cls, attr)) and not attr.startswith("_")
+        ]
+
+        return_types = {}
+        for method_name in methods:
+            method = getattr(cls, method_name)
+
+            # Option 1: Using get_type_hints (preferred for modern Python)
+            try:
+                hints = get_type_hints(method)
+                return_type = hints.get("return")
+                return_types[method_name] = return_type
+            except Exception:
+                # Option 2: Fallback to using signature
+                sig = signature(method)
+                return_type = sig.return_annotation
+                return_types[method_name] = (
+                    return_type if return_type != sig.empty else None
+                )
+
+        return return_types
+
+    for method, return_type in get_return_types(type(instance)).items():
+        if return_type is not None and not isinstance(return_type, NoneType):
+            try:
+                if issubclass(return_type, ibis.Expr):
+                    fun = getattr(instance, method)
+                    setattr(instance, method, wrap_with_bridge(fun))
+            except Exception:
+                pass
+
     return instance
 
 
