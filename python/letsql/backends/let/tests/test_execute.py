@@ -323,17 +323,17 @@ def test_sql_execution(ls_con, duckdb_con, awards_players, batting):
         return t[t.lgID == "NL"].drop("yearID", "lgID")
 
     ddb_players = ls_con.register(
-        duckdb_con.table("ddb_players")._ibis_expr, table_name="ddb_players"
+        duckdb_con.table("ddb_players"), table_name="ddb_players"
     )
 
-    left = batting[batting.yearID == 2015]._ibis_expr
+    left = batting[batting.yearID == 2015]
     right_df = make_right(awards_players).execute()
     left_df = left.execute()
     predicate = ["playerID"]
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
     expr = ls_con.register(left, "batting").join(
-        make_right(ls_con.register(ddb_players._ibis_expr, "players")),
+        make_right(ls_con.register(ddb_players, "players")),
         predicate,
         how="inner",
     )
@@ -365,7 +365,7 @@ def test_sql_execution(ls_con, duckdb_con, awards_players, batting):
 def test_multiple_execution_letsql_register_table(ls_con, csv_dir):
     table_name = "csv_players"
     t = ls_con.read_csv(csv_dir / "awards_players.csv", table_name=table_name)
-    ls_con.register(t._ibis_expr, table_name=f"{ls_con.name}_{table_name}")
+    ls_con.register(t, table_name=f"{ls_con.name}_{table_name}")
 
     assert (first := t.execute()) is not None
     assert (second := t.execute()) is not None
@@ -401,7 +401,7 @@ def test_expr_over_same_table_multiple_times(ls_con, parquet_dir, other_con):
         t = other_con.read_parquet(batting_path, table_name=table_name)
 
     ls_table_name = f"{other_con.name}_{table_name}"
-    ls_con.register(t._ibis_expr, ls_table_name)
+    ls_con.register(t, ls_table_name)
     other = ls_con.table(ls_table_name)
 
     expr = batting[[col]].distinct().join(other[[col]].distinct(), col)
@@ -421,7 +421,7 @@ def test_register_arbitrary_expression(ls_con, duckdb_con):
     expected = expr.execute()
 
     ddb_batting_table_name = f"{duckdb_con.name}_{batting_table_name}"
-    table = ls_con.register(expr._ibis_expr, table_name=ddb_batting_table_name)
+    table = ls_con.register(expr, table_name=ddb_batting_table_name)
     result = table.execute()
 
     assert result is not None
@@ -597,11 +597,11 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
     left_storage = SourceStorage(source=left.op().source)
     right_storage = SourceStorage(source=right.op().source)
 
-    left_t = ls_con.register(left._ibis_expr, table_name=f"left-{table_name}")[
+    left_t = ls_con.register(left, table_name=f"left-{table_name}")[
         lambda t: t.yearID == 2015
     ].cache(right_storage)
 
-    right_t = ls_con.register(right._ibis_expr, table_name=f"right-{table_name}")[
+    right_t = ls_con.register(right, table_name=f"right-{table_name}")[
         lambda t: t.yearID == 2014
     ].cache(left_storage)
 

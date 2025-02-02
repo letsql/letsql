@@ -27,27 +27,27 @@ def wrap_ibis_function(func):
     return _wrapped
 
 
+def recursively_replace(any) -> Any:
+    if isinstance(any, BridgeExpr):
+        return any._ibis_expr
+    elif isinstance(any, (tuple, list)):
+        return tuple(recursively_replace(o) for o in any)
+    elif isinstance(any, dict):
+        return {recursively_replace(k): recursively_replace(v) for k, v in any.items()}
+    else:
+        return any
+
+
 def wrap_with_bridge(fun):
     """Decorator to wrap an Ibis function so it raises `LetSQLError`."""
 
     @functools.wraps(fun)
     def _wrapped(*args, **kwargs):
         try:
-            res = []
-            for arg in args:
-                if isinstance(arg, BridgeExpr):
-                    res.append(arg._ibis_expr)
-                else:
-                    res.append(arg)
+            args = recursively_replace(args)
+            kwargs = recursively_replace(kwargs)
 
-            kw_res = {}
-            for k, v in kwargs.items():
-                if isinstance(v, BridgeExpr):
-                    kw_res[k] = v._ibis_expr
-                else:
-                    kw_res[k] = v
-
-            result = fun(*res, **kw_res)
+            result = fun(*args, **kwargs)
 
             if isinstance(result, ir.Expr):
                 result = BridgeExpr(result)
