@@ -165,6 +165,14 @@ def test_train_test_splits_must_sum_one():
         next(ls.train_test_splits(table, "key", [0.1, 0.5]))
 
 
+@pytest.mark.parametrize(
+    "test_sizes",
+    ((1 / n,) * n for n in range(2, 100, 5)),
+)
+def test_approx_sum(test_sizes):
+    _calculate_bounds(test_sizes)
+
+
 def test_calculate_bounds():
     test_sizes = [0.2, 0.3, 0.5]
     expected_bounds = [(0.0, 0.2), (0.2, 0.5), (0.5, 1.0)]

@@ -7,11 +7,11 @@ from pathlib import Path
 from random import Random
 from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Tuple, Union
 
+# TODO: How should we / should we enforce letsql table ?
 import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
-
-# TODO: How should we / should we enforce letsql table ?
 import ibis.expr.types as ir
+import pandas as pd
 from ibis import literal
 from ibis.common.annotations import Argument
 from ibis.common.collections import FrozenDict
@@ -51,6 +51,7 @@ def _calculate_bounds(test_sizes: List[float]) -> List[Tuple[float, float]]:
         the cumulative sum of the `test_sizes`.
     """
 
+    pd._testing.assert_almost_equal(sum(test_sizes), 1)
     num_splits = len(test_sizes)
     cumulative_sizes = [sum(test_sizes[: i + 1]) for i in range(num_splits)]
     cumulative_sizes.insert(0, 0.0)
