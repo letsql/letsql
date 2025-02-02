@@ -217,7 +217,7 @@ def test_train_test_splits_intersections_parameterized_pass(connect_method):
     test_df = pd.DataFrame([(i, "val") for i in range(N)], columns=["key1", "val"])
     con = connect_method()
     test_table_name = f"{con.name}_test_df"
-    con.create_table(test_table_name, test_df)
+    con.create_table(test_table_name, test_df, temp=con.name == "postgres")
 
     table = con.table(test_table_name)
 
