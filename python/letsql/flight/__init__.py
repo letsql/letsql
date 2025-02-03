@@ -83,7 +83,7 @@ class FlightServer:
         verify_client=False,
         root_certificates=None,
         auth: BasicAuth = None,
-        connection=ls.duckdb.connect,
+        connection=ls.connect,
     ):
         self.flight_url = flight_url
         self.certificate_path = certificate_path
