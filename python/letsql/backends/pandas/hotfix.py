@@ -1,10 +1,9 @@
-import ibis.common.exceptions as com
-from ibis.backends.pandas import Backend as PandasBackend
-
+import letsql.vendor.ibis.common.exceptions as com
 from letsql.common.utils.hotfix_utils import (
     hotfix,
     none_tokenized,
 )
+from letsql.vendor.ibis.backends.pandas import Backend as PandasBackend
 
 
 @hotfix(

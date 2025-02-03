@@ -1,9 +1,9 @@
-import ibis.backends.postgres
 import sqlglot as sg
 import sqlglot.expressions as sge
 import toolz
 
 import letsql as ls
+import letsql.vendor.ibis.backends.postgres
 from letsql.common.utils.hotfix_utils import (
     hotfix,
     none_tokenized,
@@ -11,7 +11,7 @@ from letsql.common.utils.hotfix_utils import (
 
 
 @hotfix(
-    ibis.backends.postgres.Backend,
+    letsql.vendor.ibis.backends.postgres.Backend,
     "create_catalog",
     none_tokenized,
 )
@@ -30,7 +30,7 @@ def create_catalog(self, name: str, force: bool = False) -> None:
 
 
 @hotfix(
-    ibis.backends.postgres.Backend,
+    letsql.vendor.ibis.backends.postgres.Backend,
     "clone",
     none_tokenized,
 )

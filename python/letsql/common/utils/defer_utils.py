@@ -1,12 +1,7 @@
-import ibis
 import pandas as pd
 import pyarrow as pa
 import sqlglot as sg
 import toolz
-from ibis.backends.sql.compilers.base import SQLGlotCompiler
-from ibis.util import (
-    gen_name,
-)
 
 import letsql as ls
 from letsql.common.utils.hotfix_utils import (
@@ -18,6 +13,11 @@ from letsql.common.utils.inspect_utils import (
 )
 from letsql.expr.relations import (
     Read,
+)
+from letsql.vendor import ibis
+from letsql.vendor.ibis.backends.sql.compilers.base import SQLGlotCompiler
+from letsql.vendor.ibis.util import (
+    gen_name,
 )
 
 

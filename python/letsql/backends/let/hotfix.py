@@ -1,8 +1,3 @@
-import ibis.expr.datatypes.core
-import ibis.expr.operations as ops
-import ibis.expr.types.core
-import ibis.expr.types.relations
-import ibis.formats.pyarrow
 from attr import (
     field,
     frozen,
@@ -10,10 +5,12 @@ from attr import (
 from attr.validators import (
     instance_of,
 )
-from ibis.common.exceptions import (
-    IbisError,
-)
 
+import letsql.vendor.ibis.expr.datatypes.core
+import letsql.vendor.ibis.expr.operations as ops
+import letsql.vendor.ibis.expr.types.core
+import letsql.vendor.ibis.expr.types.relations
+import letsql.vendor.ibis.formats.pyarrow
 from letsql.common.caching import (
     SourceStorage,
     maybe_prevent_cross_source_caching,
@@ -32,11 +29,14 @@ from letsql.expr.relations import (
     RemoteTable,
     replace_cache_table,
 )
+from letsql.vendor.ibis.common.exceptions import (
+    IbisError,
+)
 
 
 @frozen
 class LETSQLAccessor:
-    expr = field(validator=instance_of(ibis.expr.types.core.Expr))
+    expr = field(validator=instance_of(letsql.vendor.ibis.expr.types.core.Expr))
     node_types = (ops.DatabaseTable, ops.SQLQueryResult)
 
     @property
@@ -160,7 +160,7 @@ class LETSQLAccessor:
 
 
 @hotfix(
-    ibis.expr.types.core.Expr,
+    letsql.vendor.ibis.expr.types.core.Expr,
     "_find_backend",
     "9e19dfcd3404a043987ff26dce7a40ad",
 )
@@ -182,7 +182,7 @@ def _letsql_find_backend(self, *, use_default=True):
 
 
 @hotfix(
-    ibis.expr.types.relations.Table,
+    letsql.vendor.ibis.expr.types.relations.Table,
     "cache",
     "654b574765abdd475264851b89112881",
 )
@@ -207,7 +207,7 @@ def letsql_cache(self, storage=None):
 
 
 @hotfix(
-    ibis.expr.types.core.Expr,
+    letsql.vendor.ibis.expr.types.core.Expr,
     "ls",
     none_tokenized,
 )

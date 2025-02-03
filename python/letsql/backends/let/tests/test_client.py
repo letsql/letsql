@@ -1,10 +1,10 @@
-import ibis
 import pyarrow as pa
 
 import letsql as ls
 from letsql.tests.util import (
     assert_frame_equal,
 )
+from letsql.vendor import ibis
 
 
 def test_register_record_batch_reader(alltypes_df):

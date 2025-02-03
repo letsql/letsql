@@ -1,10 +1,9 @@
 from typing import Any, Mapping
 
-import ibis.expr.types as ir
-from ibis.backends.snowflake import Backend as IbisSnowflakeBackend
-
+import letsql.vendor.ibis.expr.types as ir
 from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import CachedNode, replace_cache_table
+from letsql.vendor.ibis.backends.snowflake import Backend as IbisSnowflakeBackend
 
 
 class Backend(IbisSnowflakeBackend):

@@ -74,7 +74,7 @@ def connect(session_config: SessionConfig | None = None) -> Backend:
 
 
 def __getattr__(name):
-    import ibis
+    from letsql.vendor import ibis
 
     try:
         importlib.import_module(f"letsql.backends.{name}.hotfix")

@@ -1,7 +1,6 @@
 import os
 
 import adbc_driver_postgresql.dbapi
-import ibis
 import sqlglot as sg
 import sqlglot.expressions as sge
 import toolz
@@ -18,6 +17,7 @@ import letsql.backends.postgres.hotfix  # noqa: F401
 from letsql.backends.postgres import (
     Backend as PGBackend,
 )
+from letsql.vendor import ibis
 
 
 try:

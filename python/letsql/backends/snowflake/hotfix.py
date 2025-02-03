@@ -2,21 +2,21 @@ import contextlib
 import itertools
 import warnings
 
-import ibis
-import ibis.expr.schema as sch
-import ibis.expr.types as ir
 import pandas as pd
 import pyarrow as pa
 import sqlglot as sg
 import sqlglot.expressions as sge
-from ibis.backends.snowflake import _SNOWFLAKE_MAP_UDFS
-from ibis.expr.operations.relations import (
-    Namespace,
-)
 
 import letsql as ls
+import letsql.vendor.ibis.expr.schema as sch
+import letsql.vendor.ibis.expr.types as ir
 from letsql.common.utils.hotfix_utils import (
     hotfix,
+)
+from letsql.vendor import ibis
+from letsql.vendor.ibis.backends.snowflake import _SNOWFLAKE_MAP_UDFS
+from letsql.vendor.ibis.expr.operations.relations import (
+    Namespace,
 )
 
 

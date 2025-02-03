@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import ibis.expr.datatypes as dt
 import numpy as np
 import pandas as pd
 import pytest
-from ibis import memtable
 
 import letsql as ls
+import letsql.vendor.ibis.expr.datatypes as dt
 from letsql.expr.ml import _calculate_bounds
 from letsql.tests.util import assert_frame_equal
+from letsql.vendor.ibis import memtable
 
 
 def test_train_test_splits_intersections():

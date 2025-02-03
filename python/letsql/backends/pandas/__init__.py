@@ -1,7 +1,8 @@
 from typing import MutableMapping
 
 import pandas as pd
-from ibis.backends.pandas import Backend as IbisPandasBackend
+
+from letsql.vendor.ibis.backends.pandas import Backend as IbisPandasBackend
 
 
 class Backend(IbisPandasBackend):

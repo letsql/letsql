@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import ibis
 import numpy as np
 import pandas as pd
 import pytest
@@ -10,6 +9,7 @@ from letsql.common.utils.aws_utils import (
     connection_is_set,
     make_s3_credentials_defaults,
 )
+from letsql.vendor import ibis
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -296,6 +296,7 @@ def float_model_path():
 def mixed_model_path():
     return FIXTURES_DIR / "pretrained_model_mixed.json"
 
+
 @pytest.fixture(scope="session")
 def mixed_feature_table():
     con = ls.connect()
@@ -329,6 +330,7 @@ def mixed_feature_table():
         }
     )
     return con.create_table("mixed_table", df)
+
 
 @pytest.fixture(scope="session")
 def feature_table():
@@ -370,6 +372,7 @@ def feature_table():
 def prediction_expr(feature_table, float_model_path):
     predict_fn = ls.expr.ml.make_quickgrove_udf(float_model_path)
     return feature_table.mutate(pred=predict_fn.on_expr)
+
 
 @pytest.fixture
 def mixed_prediction_expr(mixed_feature_table, mixed_model_path):

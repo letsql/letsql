@@ -1,12 +1,12 @@
-import ibis
 import pandas as pd
 import pyarrow as pa
 import pytest
-from ibis import _
 
 import letsql as ls
 from letsql.common.caching import ParquetCacheStorage, SourceStorage
 from letsql.expr.relations import into_backend, register_and_transform_remote_tables
+from letsql.vendor import ibis
+from letsql.vendor.ibis import _
 
 
 expected_tables = (
@@ -38,7 +38,7 @@ def pg():
 @pytest.fixture(scope="session")
 def trino_table():
     return (
-        ibis.trino.connect(database="tpch", schema="sf1")
+        ls.trino.connect(database="tpch", schema="sf1")
         .table("orders")
         .cast({"orderdate": "date"})
     )
