@@ -95,6 +95,8 @@ let
 
   letsql-maturin-build = pkgs.writeShellScriptBin "letsql-maturin-build" ''
     set -eux
+    repo_dir=$(git rev-parse --show-toplevel)
+    cd "$repo_dir"
     ${python}/bin/maturin build --release
   '';
 
