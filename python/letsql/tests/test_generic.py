@@ -3,18 +3,18 @@ from __future__ import annotations
 import decimal
 from operator import invert, neg
 
-import ibis.common.exceptions as com
-import ibis.expr.datatypes as dt
 import numpy as np
 import pandas as pd
 import pytest
 import toolz
-from ibis import _
-from ibis.common.annotations import ValidationError
 from pytest import param
 
 import letsql as ls
+import letsql.vendor.ibis.common.exceptions as com
+import letsql.vendor.ibis.expr.datatypes as dt
 from letsql.tests.util import assert_frame_equal, assert_series_equal
+from letsql.vendor.ibis import _
+from letsql.vendor.ibis.common.annotations import ValidationError
 
 
 def test_null_literal(con):

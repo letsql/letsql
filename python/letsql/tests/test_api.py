@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Callable
 
-import ibis.expr.types as ir
 import pytest
 from pytest import param
 
 import letsql as ls
+import letsql.vendor.ibis.expr.types as ir
 from letsql.tests.conftest import TEST_TABLES
 
 

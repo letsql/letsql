@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-import ibis
 import numpy as np
 import pandas as pd
 import pandas.testing as tm
@@ -12,6 +11,7 @@ from pytest import param
 
 import letsql as ls
 from letsql.tests.util import assert_frame_equal
+from letsql.vendor import ibis
 
 
 if TYPE_CHECKING:
@@ -123,7 +123,7 @@ def test_dunder_array_table(alltypes, dtype):
 
 @pytest.mark.parametrize("dtype", [None, "f8"])
 def test_dunder_array_column(alltypes, dtype):
-    from ibis import _
+    from letsql.vendor.ibis import _
 
     expr = alltypes.group_by("string_col").agg(int_col=_.int_col.sum()).int_col
     result = np.sort(np.asarray(expr, dtype=dtype))
@@ -219,7 +219,7 @@ def test_repr_mimebundle(alltypes, interactive, expr_type, monkeypatch):
     "option", ["max_rows", "max_length", "max_string", "max_depth"]
 )
 def test_ibis_config_wrapper(option, monkeypatch):
-    import ibis
+    from letsql.vendor import ibis
 
     letsql_option_value = getattr(ls.options.repr.interactive, option)
     assert letsql_option_value == getattr(ibis.options.repr.interactive, option)
