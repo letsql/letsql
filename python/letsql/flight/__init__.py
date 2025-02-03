@@ -88,36 +88,40 @@ class FlightServer:
         self.flight_url = flight_url
         self.certificate_path = certificate_path
         self.key_path = key_path
+        self.root_certificates = root_certificates
         self.auth = auth
 
         if self.flight_url.port_in_use():
             raise ValueError(
                 f"Port {self.flight_url.port} already in use (flight_url={self.flight_url})"
             )
+        self.server = FlightServerDelegate(
+            connection,
+            flight_url.to_location(),
+            verify_client=verify_client,
+            **self.auth_kwargs,
+        )
 
+    @property
+    def auth_kwargs(self):
         kwargs = {
-            "verify_client": verify_client,
-            "root_certificates": root_certificates,
+            "root_certificates": self.root_certificates,
         }
 
-        if key_path is not None and certificate_path is not None:
-            with open(certificate_path, "rb") as cert_file:
+        if self.key_path is not None and self.certificate_path is not None:
+            with open(self.certificate_path, "rb") as cert_file:
                 tls_cert_chain = cert_file.read()
 
-            with open(key_path, "rb") as key_file:
+            with open(self.key_path, "rb") as key_file:
                 tls_private_key = key_file.read()
 
             kwargs["tls_certificates"] = [(tls_cert_chain, tls_private_key)]
 
-        if auth is not None:
+        if self.auth is not None:
             kwargs["auth_handler"] = NoOpAuthHandler()
-            kwargs["middleware"] = to_basic_auth_middleware(auth)
+            kwargs["middleware"] = to_basic_auth_middleware(self.auth)
 
-        self.server = FlightServerDelegate(
-            connection,
-            flight_url.to_location(),
-            **kwargs,
-        )
+        return kwargs
 
     def __enter__(self):
         return self
