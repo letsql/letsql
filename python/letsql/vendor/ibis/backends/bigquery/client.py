@@ -8,7 +8,7 @@ import functools
 import dateutil.parser
 import google.cloud.bigquery as bq
 
-import letsql.common.exceptions as com
+import letsql.vendor.ibis.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 from letsql.vendor.ibis.backends.bigquery.datatypes import BigQuerySchema, BigQueryType
 

@@ -9,6 +9,7 @@ import letsql.vendor.ibis.expr.datatypes as dt
 from letsql import memtable
 from letsql.expr.ml import _calculate_bounds, make_quickgrove_udf
 from letsql.tests.util import assert_frame_equal
+from letsql.vendor.ibis import memtable
 
 
 def test_train_test_splits_intersections():

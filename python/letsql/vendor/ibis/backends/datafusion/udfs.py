@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow_hotfix  # noqa: F401
 
-import letsql.common.exceptions as com
+import letsql.vendor.ibis.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 
 
