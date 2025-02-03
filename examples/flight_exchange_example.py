@@ -18,27 +18,32 @@ SPLIT_KEY = "split"
 MODEL_BINARY_KEY = "model_binary"
 
 
+value = 0
+
+
+def train_batch_df(df):
+    global value
+    value += len(df)
+    return value
+
+
 class IterativeSplitTrainExchanger(AbstractExchanger):
     @classmethod
     @property
     def exchange_f(cls):
-        value = 0
-
         def train_batch(split_reader):
-            nonlocal value
             df = split_reader.read_pandas()
             (split, *rest) = df[SPLIT_KEY].unique()
             assert not rest
-            value += len(df)
+            value = train_batch_df(df)
             batch = pa.RecordBatch.from_pydict(
                 {
-                    "model_binary": [pickle.dumps(value)],
-                    "split": [split],
+                    MODEL_BINARY_KEY: [pickle.dumps(value)],
+                    SPLIT_KEY: [split],
                 }
             )
             return batch
 
-        # return functools.partial(streaming_split_exchange, train_batch)
         return functools.partial(streaming_split_exchange, SPLIT_KEY, train_batch)
 
     @classmethod
@@ -80,7 +85,7 @@ class IterativeSplitTrainExchanger(AbstractExchanger):
         return "iterative-split-train"
 
 
-def train_test_split_union(expr, name="split", *args, **kwargs):
+def train_test_split_union(expr, name=SPLIT_KEY, *args, **kwargs):
     splits = ls.expr.ml.train_test_splits(expr, *args, **kwargs)
     return ls.union(
         *(
@@ -93,7 +98,6 @@ def train_test_split_union(expr, name="split", *args, **kwargs):
 con = ls.connect()
 N = 10_000
 df = pd.DataFrame({"a": range(N), "b": range(N, 2 * N)})
-# BUG: ls.register is con.read_parquet !!!
 t = con.register(df, "t")
 expr = train_test_split_union(
     t, unique_key="a", test_sizes=(0.2, 0.3, 0.5), random_seed=0
