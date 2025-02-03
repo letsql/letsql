@@ -1,27 +1,36 @@
 import datetime
-import socket
 
 import pandas as pd
 import pyarrow as pa
 import pytest
 
 import letsql as ls
-from letsql.flight import FlightServer, make_con
+from letsql.flight import FlightServer, FlightUrl, make_con
 from letsql.flight.action import AddExchangeAction
 from letsql.flight.exchanger import UDFExchanger
 
 
-scheme = "grpc"
-host = "localhost"
-
-
-def port_in_use(port, host="localhost"):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind((host, port))
-            return False
-        except socket.error:
-            return True
+@pytest.mark.parametrize(
+    "connection,port",
+    [
+        pytest.param(ls.duckdb.connect, 5005, id="duckdb"),
+        pytest.param(ls.datafusion.connect, 5005, id="datafusion"),
+        pytest.param(ls.connect, 5005, id="letsql"),
+    ],
+)
+def test_port_in_use(connection, port):
+    flight_url = FlightUrl.from_defaults(port=port)
+    assert not flight_url.port_in_use(), f"Port {port} already in use"
+    with pytest.raises(ValueError):
+        with FlightServer(
+            flight_url=flight_url,
+            connection=connection,
+        ) as _:
+            with FlightServer(
+                flight_url=flight_url,
+                connection=connection,
+            ) as _:
+                pass
 
 
 @pytest.mark.parametrize(
@@ -33,10 +42,11 @@ def port_in_use(port, host="localhost"):
     ],
 )
 def test_register_and_list_tables(connection, port):
-    assert not port_in_use(port), f"Port {port} already in use"
+    flight_url = FlightUrl.from_defaults(port=port)
+    assert not flight_url.port_in_use(), f"Port {port} already in use"
 
     with FlightServer(
-        location="{}://{}:{}".format(scheme, host, port),
+        flight_url=flight_url,
         verify_client=False,
         connection=connection,
     ) as main:
@@ -52,7 +62,7 @@ def test_register_and_list_tables(connection, port):
         actual = ls.execute(t)
 
         assert t.schema() is not None
-        assert port_in_use(port)
+        assert main.flight_url.port_in_use()
         assert "users" in con.list_tables()
         assert isinstance(actual, pd.DataFrame)
 
@@ -66,10 +76,11 @@ def test_register_and_list_tables(connection, port):
     ],
 )
 def test_read_parquet(connection, port, parquet_dir):
-    assert not port_in_use(port), f"Port {port} already in use"
+    flight_url = FlightUrl.from_defaults(port=port)
+    assert not flight_url.port_in_use(), f"Port {port} already in use"
 
     with FlightServer(
-        location="{}://{}:{}".format(scheme, host, port),
+        flight_url=flight_url,
         verify_client=False,
         connection=connection,
     ) as main:
@@ -97,13 +108,14 @@ def instrument_reader(reader, prefix=""):
     ],
 )
 def test_exchange(connection, port):
-    assert not port_in_use(port), f"Port {port} already in use"
+    flight_url = FlightUrl.from_defaults(port=port)
+    assert not flight_url.port_in_use(), f"Port {port} already in use"
 
     def my_f(df):
         return df[["a", "b"]].sum(axis=1)
 
     with FlightServer(
-        location="{}://{}:{}".format(scheme, host, port),
+        flight_url=flight_url,
         verify_client=False,
         connection=connection,
     ) as main:

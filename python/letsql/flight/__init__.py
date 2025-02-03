@@ -1,3 +1,8 @@
+import socket
+
+import toolz
+from pydantic import AnyUrl, UrlConstraints
+
 import letsql as ls
 from letsql.flight.backend import Backend
 from letsql.flight.server import (
@@ -14,6 +19,41 @@ DEFAULT_AUTH_MIDDLEWARE = {
         }
     )
 }
+
+
+class FlightUrl(AnyUrl):
+    default_scheme = "grpc"
+    default_host = "localhost"
+    default_port = 5005
+    _constraints = UrlConstraints(
+        allowed_schemes=(default_scheme,),
+        default_host=default_host,
+        default_port=default_port,
+    )
+
+    def to_location(self):
+        return str(self)
+
+    def port_in_use(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((self.host, self.port))
+                return False
+            except socket.error:
+                return True
+
+    @classmethod
+    def from_defaults(cls, **kwargs):
+        (scheme, *_) = cls._constraints.allowed_schemes
+        _kwargs = toolz.merge(
+            dict(
+                scheme=scheme,
+                host=cls._constraints.default_host,
+                port=cls._constraints.default_port,
+            ),
+            kwargs,
+        )
+        return cls.build(**_kwargs)
 
 
 class BasicAuth:
@@ -37,7 +77,7 @@ def to_basic_auth_middleware(basic_auth: BasicAuth) -> dict:
 class FlightServer:
     def __init__(
         self,
-        location=None,
+        flight_url=FlightUrl.from_defaults(),
         certificate_path=None,
         key_path=None,
         verify_client=False,
@@ -45,10 +85,15 @@ class FlightServer:
         auth: BasicAuth = None,
         connection=ls.duckdb.connect,
     ):
-        self.location = location
+        self.flight_url = flight_url
         self.certificate_path = certificate_path
         self.key_path = key_path
         self.auth = auth
+
+        if self.flight_url.port_in_use():
+            raise ValueError(
+                f"Port {self.flight_url.port} already in use (flight_url={self.flight_url})"
+            )
 
         kwargs = {
             "verify_client": verify_client,
@@ -70,7 +115,7 @@ class FlightServer:
 
         self.server = FlightServerDelegate(
             connection,
-            location,
+            flight_url.to_location(),
             **kwargs,
         )
 
@@ -84,13 +129,9 @@ class FlightServer:
 def make_con(
     con: FlightServer,
 ) -> Backend:
-    from urllib.parse import urlparse
-
-    url = urlparse(con.location)
-
     kwargs = {
-        "host": url.hostname,
-        "port": url.port,
+        "host": con.flight_url.host,
+        "port": con.flight_url.port,
     }
 
     if con.auth is not None:
