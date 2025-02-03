@@ -1,8 +1,9 @@
 from typing import MutableMapping
 
-import ibis.common.exceptions as com
 import pandas as pd
-from ibis.backends.pandas import Backend as IbisPandasBackend
+
+import letsql.vendor.ibis.common.exceptions as com
+from letsql.vendor.ibis.backends.pandas import Backend as IbisPandasBackend
 
 
 class Backend(IbisPandasBackend):

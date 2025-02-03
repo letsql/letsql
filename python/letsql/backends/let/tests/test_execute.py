@@ -2,7 +2,6 @@ import itertools
 import random
 from pathlib import Path, PosixPath
 
-import ibis
 import numpy as np
 import pandas as pd
 import pytest
@@ -14,6 +13,7 @@ from letsql.expr.relations import into_backend
 from letsql.tests.util import (
     assert_frame_equal,
 )
+from letsql.vendor import ibis
 
 
 KEY_PREFIX = ls.config.options.cache.key_prefix

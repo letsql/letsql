@@ -7,20 +7,29 @@ import functools
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, Union, overload
 
-import ibis
-import ibis.expr.builders as bl
-import ibis.expr.datatypes as dt
-import ibis.expr.operations as ops
-import ibis.expr.schema as sch
-import ibis.expr.types as ir
 import pyarrow as pa
 import pyarrow.dataset as ds
-from ibis import api
-from ibis.backends.sql.dialects import DataFusion
-from ibis.common.deferred import Deferred, _, deferrable
-from ibis.expr.schema import Schema
-from ibis.expr.sql import SQLString
-from ibis.expr.types import (
+
+import letsql.vendor.ibis.expr.builders as bl
+import letsql.vendor.ibis.expr.datatypes as dt
+import letsql.vendor.ibis.expr.operations as ops
+import letsql.vendor.ibis.expr.schema as sch
+import letsql.vendor.ibis.expr.types as ir
+from letsql.common.utils.caching_utils import find_backend
+from letsql.common.utils.defer_utils import rbr_wrapper
+from letsql.common.utils.graph_utils import replace_fix
+from letsql.expr.ml import train_test_splits
+from letsql.expr.relations import (
+    CachedNode,
+    register_and_transform_remote_tables,
+)
+from letsql.vendor import ibis
+from letsql.vendor.ibis import api
+from letsql.vendor.ibis.backends.sql.dialects import DataFusion
+from letsql.vendor.ibis.common.deferred import Deferred, _, deferrable
+from letsql.vendor.ibis.expr.schema import Schema
+from letsql.vendor.ibis.expr.sql import SQLString
+from letsql.vendor.ibis.expr.types import (
     Column,
     DateValue,
     Scalar,
@@ -54,7 +63,8 @@ if TYPE_CHECKING:
 
     import pandas as pd
     import pyarrow as pa
-    from ibis.expr.schema import SchemaLike
+
+    from letsql.vendor.ibis.expr.schema import SchemaLike
 
 __all__ = (
     "Column",
@@ -540,7 +550,7 @@ def case() -> bl.SearchedCaseBuilder:
     Examples
     --------
     >>> import letsql
-    >>> from ibis import _
+    >>> from letsql.vendor.ibis import _
     >>> letsql.options.interactive = True
     >>> t = letsql.memtable(
     ...     {
