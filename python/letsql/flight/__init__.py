@@ -145,18 +145,6 @@ def make_con(
     if con.certificate_path is not None:
         kwargs["tls_roots"] = con.certificate_path
 
-    kwargs = {
-        "host": url.hostname,
-        "port": url.port,
-    }
-
-    if con.auth is not None:
-        kwargs["username"] = con.auth.username
-        kwargs["password"] = con.auth.password
-
-    if con.certificate_path is not None:
-        kwargs["tls_roots"] = con.certificate_path
-
     instance = Backend()
     instance.do_connect(**kwargs)
     return instance
