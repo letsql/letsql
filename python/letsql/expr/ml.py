@@ -20,6 +20,8 @@ from ibis.expr.operations.udf import InputType, ScalarUDF
 from ibis.expr.rules import ValueOf
 from ibis.util import Namespace
 
+from letsql.common.utils.name_utils import _clean_udf_name
+
 
 if TYPE_CHECKING:
     from quickgrove import PyGradientBoostedDecisionTrees
@@ -257,6 +259,8 @@ def _create_udf_node(
     extra_meta: dict = None,
 ) -> type:
     """Dynamically create a subclass of ScalarUDF for an quickgrove-based function."""
+
+    udf_name = _clean_udf_name(udf_name)
 
     meta = {
         "dtype": dt.float32,

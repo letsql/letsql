@@ -7,7 +7,7 @@ import pytest
 from ibis import memtable
 
 import letsql as ls
-from letsql.expr.ml import _calculate_bounds
+from letsql.expr.ml import _calculate_bounds, make_quickgrove_udf
 from letsql.tests.util import assert_frame_equal
 
 
@@ -284,7 +284,7 @@ def test_make_quickgrove_udf_mixed_features(mixed_model_path):
 
 def test_make_quickgrove_udf__repr(mixed_model_path):
     """quickgrove UDF repr should include model metadata"""
-    predict_fn = ls.expr.ml.make_quickgrove_udf(mixed_model_path)
+    predict_fn = make_quickgrove_udf(mixed_model_path)
     repr_str = repr(predict_fn)
 
     expected_info = [
@@ -298,3 +298,20 @@ def test_make_quickgrove_udf__repr(mixed_model_path):
 
     for info in expected_info:
         assert info in repr_str
+
+
+def test_quickgrove_hyphen_name():
+    from letsql.expr.relations import into_backend
+
+    model_name = "diamonds-model"
+    model_path = ls.options.pins.get_path(model_name)
+    pg = ls.postgres.connect_examples()
+
+    con = ls.connect()
+
+    model = make_quickgrove_udf(model_path)
+    t = into_backend(pg.tables["diamonds"], con, "diamonds").mutate(
+        predict=model.on_expr
+    )
+
+    assert ls.execute(t) is not None
