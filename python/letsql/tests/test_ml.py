@@ -257,7 +257,7 @@ def test_train_test_splits_intersections_parameterized_pass(connect_method):
 
 def test_make_quickgrove_udf_predictions(feature_table, float_model_path):
     """quickgrove UDF predictions should match expected values"""
-    predict_udf = ls.expr.ml.make_quickgrove_udf(float_model_path)
+    predict_udf = make_quickgrove_udf(float_model_path)
     result = feature_table.mutate(pred=predict_udf.on_expr).execute()
 
     np.testing.assert_almost_equal(
@@ -267,7 +267,7 @@ def test_make_quickgrove_udf_predictions(feature_table, float_model_path):
 
 def test_make_quickgrove_udf_signature(float_model_path):
     """quickgrove UDF should have correct signature with float64 inputs, float32 output"""
-    predict_fn = ls.expr.ml.make_quickgrove_udf(float_model_path)
+    predict_fn = make_quickgrove_udf(float_model_path)
 
     assert predict_fn.__signature__.return_annotation == dt.float32
     assert all(
@@ -278,7 +278,7 @@ def test_make_quickgrove_udf_signature(float_model_path):
 
 def test_make_quickgrove_udf_mixed_features(mixed_model_path):
     """quickgrove UDF should support int64 and boolean feature types"""
-    predict_fn = ls.expr.ml.make_quickgrove_udf(mixed_model_path)
+    predict_fn = make_quickgrove_udf(mixed_model_path)
     assert "i" in predict_fn.model.feature_types
 
 
@@ -300,18 +300,12 @@ def test_make_quickgrove_udf__repr(mixed_model_path):
         assert info in repr_str
 
 
-def test_quickgrove_hyphen_name():
-    from letsql.expr.relations import into_backend
+def test_quickgrove_hyphen_name(feature_table, hyphen_model_path):
+    assert "-" in hyphen_model_path.name
 
-    model_name = "diamonds-model"
-    model_path = ls.options.pins.get_path(model_name)
-    pg = ls.postgres.connect_examples()
+    predict_udf = make_quickgrove_udf(hyphen_model_path)
+    result = feature_table.mutate(pred=predict_udf.on_expr).execute()
 
-    con = ls.connect()
-
-    model = make_quickgrove_udf(model_path)
-    t = into_backend(pg.tables["diamonds"], con, "diamonds").mutate(
-        predict=model.on_expr
+    np.testing.assert_almost_equal(
+        result["pred"].values, result["expected_pred"].values, decimal=3
     )
-
-    assert ls.execute(t) is not None
