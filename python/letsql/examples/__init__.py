@@ -1,19 +1,7 @@
+import pathlib
 from functools import cache, partial
 
 import letsql as ls
-
-
-@cache
-def _download_penguins():
-    import pandas as pd
-
-    url = "https://raw.githubusercontent.com/mesejo/palmerpenguins/master/palmerpenguins/data/penguins.csv"
-    df = pd.read_csv(url)
-    return df
-
-
-def _cached_penguins(backend, table_name=None):
-    return backend.register(_download_penguins(), table_name=table_name)
 
 
 def get_table_from_parquet(name, backend, table_name):
@@ -37,13 +25,30 @@ class Example:
         return self.load(backend, table_name or self.name)
 
 
-penguins = Example("penguins", _cached_penguins)
-players = Example("players", partial(get_table_from_parquet, "awards_players"))
-batting = Example("batting", partial(get_table_from_parquet, "batting"))
-lending_club = Example("lending_club", partial(get_table_from_parquet, "lending-club"))
-iris = Example("iris", partial(get_table_from_csv, "iris"))
+@cache
+def get_name_to_suffix():
+    board = ls.options.pins.get_board()
+    dct = {
+        name: pathlib.Path(board.pin_meta(name).file).suffix
+        for name in board.pin_list()
+        if pathlib.Path(board.pin_meta(name).file).suffix not in (".json",)
+    }
+    return dct
 
-__all__ = ["penguins", "players", "batting", "lending_club", "iris"]
+
+def __dir__():
+    names = get_name_to_suffix().keys()
+    return list(names)
+
+
+def __getattr__(name):
+    lookup = get_name_to_suffix()
+
+    if name not in lookup:
+        raise AttributeError
+
+    read = get_table_from_csv if lookup[name] == ".csv" else get_table_from_parquet
+    return Example(name, partial(read, name))
 
 
 def __getattr__(name):

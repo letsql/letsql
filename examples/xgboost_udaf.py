@@ -47,7 +47,7 @@ curried_calc_best_features = toolz.curry(
 ibis_output_type = dt.infer(({"feature": "feature", "score": 0.0},))
 
 
-t = ls.examples.lending_club.fetch()
+t = ls.connect().read_parquet(ls.config.options.pins.get_path("lending-club"))
 agg_udf = udf.agg.pandas_df(
     curried_calc_best_features,
     t[cols].schema(),

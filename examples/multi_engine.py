@@ -7,7 +7,7 @@ db = ls.duckdb.connect()
 
 batting = pg.table("batting")
 
-awards_players = ls.examples.players.fetch(backend=db, table_name="awards_players")
+awards_players = ls.examples.awards_players.fetch(backend=db)
 left = batting.filter(batting.yearID == 2015)
 right = awards_players.filter(awards_players.lgID == "NL").drop("yearID", "lgID")
 expr = left.join(into_backend(right, pg), ["playerID"], how="semi")[["yearID", "stint"]]
