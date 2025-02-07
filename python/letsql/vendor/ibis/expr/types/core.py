@@ -563,7 +563,6 @@ class Expr(Immutable, Coercible):
     def to_parquet(
         self: ir.Expr,
         path: str | Path,
-        *,
         params: Mapping[ir.Scalar, Any] | None = None,
         **kwargs: Any,
     ):
