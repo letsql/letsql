@@ -17,7 +17,7 @@ from public import public
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor import ibis
 from letsql.vendor.ibis.common.annotations import ValidationError
-from letsql.vendor.ibis.common.exceptions import IbisError, TranslationError
+from letsql.vendor.ibis.common.exceptions import IbisError
 from letsql.vendor.ibis.common.grounds import Immutable
 from letsql.vendor.ibis.common.patterns import Coercible, CoercionError
 from letsql.vendor.ibis.common.typing import get_defining_scope
@@ -28,14 +28,10 @@ from letsql.vendor.ibis.util import deprecated, experimental
 
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping
+    from collections.abc import Mapping
     from pathlib import Path
 
-    import pandas as pd
-    import polars as pl
-    import pyarrow as pa
-    import torch
-    from rich.console import Console, RenderableType
+    from rich.console import RenderableType
 
     import letsql.vendor.ibis.expr.types as ir
     from letsql.vendor.ibis.backends import BaseBackend
@@ -89,43 +85,111 @@ class Expr(Immutable, Coercible):
             scope = None
         return pretty(self.op(), scope=scope)
 
-    def __repr__(self) -> str:
-        if ibis.options.interactive:
-            return _capture_rich_renderable(self)
-        else:
-            return self._noninteractive_repr()
+    # def __repr__(self) -> str:
+    #     if ibis.options.interactive:
+    #         return _capture_rich_renderable(self)
+    #     else:
+    #         return self._noninteractive_repr()
+    #
+    # def __rich_console__(self, console: Console, options):
+    #     from rich.text import Text
+    #
+    #     if console.is_jupyter:
+    #         # Rich infers a console width in jupyter notebooks, but since
+    #         # notebooks can use horizontal scroll bars we don't want to apply a
+    #         # limit here. Since rich requires an integer for max_width, we
+    #         # choose an arbitrarily large integer bound. Note that we need to
+    #         # handle this here rather than in `to_rich`, as this setting
+    #         # also needs to be forwarded to `console.render`.
+    #         options = options.update(max_width=1_000_000)
+    #         console_width = None
+    #     else:
+    #         console_width = options.max_width
+    #
+    #     try:
+    #         if opts.interactive:
+    #             from letsql.vendor.ibis.expr.types.pretty import to_rich
+    #
+    #             rich_object = to_rich(self, console_width=console_width)
+    #         else:
+    #             rich_object = Text(self._noninteractive_repr())
+    #     except TranslationError as e:
+    #         lines = [
+    #             "Translation to backend failed",
+    #             f"Error message: {e!r}",
+    #             "Expression repr follows:",
+    #             self._noninteractive_repr(),
+    #         ]
+    #         return Text("\n".join(lines))
+    #     return console.render(rich_object, options=options)
 
-    def __rich_console__(self, console: Console, options):
-        from rich.text import Text
+    def __repr__(self):
+        lines = [
+            "┌──── LetSQL Expression Plan ─────┐",
+            *self._ascii_plan_lines(),
+            "└─────────────────────────────────┘",
+        ]
+        return "\n".join(lines)
 
-        if console.is_jupyter:
-            # Rich infers a console width in jupyter notebooks, but since
-            # notebooks can use horizontal scroll bars we don't want to apply a
-            # limit here. Since rich requires an integer for max_width, we
-            # choose an arbitrarily large integer bound. Note that we need to
-            # handle this here rather than in `to_rich`, as this setting
-            # also needs to be forwarded to `console.render`.
-            options = options.update(max_width=1_000_000)
-            console_width = None
-        else:
-            console_width = options.max_width
+    def _ascii_plan_lines(self):
+        from letsql.expr.relations import CachedNode, RemoteTable
 
-        try:
-            if opts.interactive:
-                from letsql.vendor.ibis.expr.types.pretty import to_rich
+        op = self.op()
+        lines = []
 
-                rich_object = to_rich(self, console_width=console_width)
+        MAX_STEPS = 20
+        visited = set()
+        step = 0
+
+        def arrow_line(i):
+            if i == 0:
+                return ""
+            return "   ↓"
+
+        while op not in visited and step < MAX_STEPS:
+            visited.add(op)
+            step += 1
+
+            if isinstance(op, CachedNode):
+                lines.append(arrow_line(step - 1))
+                emoji = "🗃️"
+                lines.append(f"  [CachedNode {emoji}]")
+                lines.append(f"   source: {op.source}")
+                lines.append(f"   storage: {op.storage}")
+                op = op.parent.op()
+
+            elif isinstance(op, RemoteTable):
+                lines.append(arrow_line(step - 1))
+                emoji = "🚚"
+                lines.append(f"  [RemoteTable {emoji}]")
+                lines.append(f"   name: {op.name}, source: {op.source}")
+                if op.remote_expr is not None:
+                    op = op.remote_expr.op()
+                else:
+                    break
+
+            elif getattr(op, "__class__", None).__name__ == "InMemoryTable":
+                emoji = "📦"
+                lines.append(arrow_line(step - 1))
+                lines.append(f"  [InMemoryTable {emoji}]")
+                break
+
+            elif getattr(op, "__class__", None).__name__ == "UnboundTable":
+                emoji = "🗒️"
+                lines.append(arrow_line(step - 1))
+                lines.append(f"  [UnboundTable {emoji}] name={op.name}")
+                break
+
             else:
-                rich_object = Text(self._noninteractive_repr())
-        except TranslationError as e:
-            lines = [
-                "Translation to backend failed",
-                f"Error message: {e!r}",
-                "Expression repr follows:",
-                self._noninteractive_repr(),
-            ]
-            return Text("\n".join(lines))
-        return console.render(rich_object, options=options)
+                node_name = type(op).__name__
+                lines.append(arrow_line(step - 1))
+                lines.append(f"  [{node_name}] 🤷")
+                break
+
+        if step == MAX_STEPS:
+            lines.append("   ... (truncated)")
+
+        return lines
 
     def __init__(self, arg: ops.Node) -> None:
         object.__setattr__(self, "_arg", arg)
@@ -407,28 +471,6 @@ class Expr(Immutable, Coercible):
 
         return RemoteTable.from_expr(con=con, expr=self, name=name).to_expr()
 
-    def execute(
-        self,
-        limit: int | str | None = "default",
-        params: Mapping[ir.Value, Any] | None = None,
-        **kwargs: Any,
-    ):
-        """Execute an expression against its backend if one exists.
-
-        Parameters
-        ----------
-        limit
-            An integer to effect a specific row limit. A value of `None` means
-            "no limit". The default is in `ibis/config.py`.
-        params
-            Mapping of scalar parameter expressions to value
-        kwargs
-            Keyword arguments
-        """
-        return self._find_backend(use_default=True).execute(
-            self, limit=limit, params=params, **kwargs
-        )
-
     def compile(
         self,
         limit: int | None = None,
@@ -451,220 +493,106 @@ class Expr(Immutable, Coercible):
             self, limit=limit, params=params, pretty=pretty
         )
 
-    @experimental
+    def _register_and_transform_cache_tables(expr):
+        """This function will sequentially execute any cache node that is not already cached"""
+
+        from letsql.common.utils.graph_utils import replace_fix
+        from letsql.expr.relations import CachedNode
+
+        def fn(node, _, **kwargs):
+            node = node.__recreate__(kwargs)
+
+            if isinstance(node, CachedNode):
+                uncached, storage = node.parent, node.storage
+                node = storage.set_default(uncached, uncached.op())
+            return node
+
+        op = expr.op()
+        out = op.replace(replace_fix(fn))
+
+        return out.to_expr()
+
+    def _transform_deferred_reads(expr):
+        from letsql.common.utils.graph_utils import replace_fix
+
+        dt_to_read = {}
+
+        def replace_read(node, _, **_kwargs):
+            from letsql.expr.relations import Read
+
+            if isinstance(node, Read):
+                if node.source.name == "pandas":
+                    # FIXME: pandas read is not lazy, leave it to the pandas executor to do
+                    node = dt_to_read[node] = node.make_dt()
+                else:
+                    node = dt_to_read[node] = node.make_dt()
+            else:
+                node = node.__recreate__(_kwargs)
+            return node
+
+        expr = expr.op().replace(replace_fix(replace_read)).to_expr()
+        return expr, dt_to_read
+
+    def execute(self: ir.Expr, **kwargs: Any):
+        batch_reader = self.to_pyarrow_batches(**kwargs)
+        return self.__pandas_result__(
+            batch_reader.read_pandas(timestamp_as_object=True)
+        )
+
+    def _transform_expr(self):
+        from letsql.expr.api import (
+            _register_and_transform_cache_tables,
+            _transform_deferred_reads,
+        )
+        from letsql.expr.relations import register_and_transform_remote_tables
+
+        expr = _register_and_transform_cache_tables(self)
+        expr, created = register_and_transform_remote_tables(expr)
+        expr, dt_to_read = _transform_deferred_reads(expr)
+        return (expr, created)
+
     def to_pyarrow_batches(
-        self,
+        self: ir.Expr,
         *,
-        limit: int | str | None = None,
-        params: Mapping[ir.Value, Any] | None = None,
         chunk_size: int = 1_000_000,
         **kwargs: Any,
-    ) -> pa.ipc.RecordBatchReader:
-        """Execute expression and return a RecordBatchReader.
+    ):
+        from letsql.common.utils.caching_utils import find_backend
+        from letsql.common.utils.defer_utils import rbr_wrapper
 
-        This method is eager and will execute the associated expression
-        immediately.
+        (expr, created) = self._transform_expr()
+        con, _ = find_backend(expr.op(), use_default=True)
 
-        Parameters
-        ----------
-        limit
-            An integer to effect a specific row limit. A value of `None` means
-            "no limit". The default is in `ibis/config.py`.
-        params
-            Mapping of scalar parameter expressions to value.
-        chunk_size
-            Maximum number of rows in each returned record batch.
-        kwargs
-            Keyword arguments
+        reader = con.to_pyarrow_batches(expr, chunk_size=chunk_size, **kwargs)
 
-        Returns
-        -------
-        results
-            RecordBatchReader
-        """
-        return self._find_backend(use_default=True).to_pyarrow_batches(
-            self,
-            params=params,
-            limit=limit,
-            chunk_size=chunk_size,
-            **kwargs,
-        )
+        def clean_up():
+            for table_name, conn in created.items():
+                try:
+                    conn.drop_table(table_name)
+                except Exception:
+                    conn.drop_view(table_name)
 
-    @experimental
-    def to_pyarrow(
-        self,
-        *,
-        params: Mapping[ir.Scalar, Any] | None = None,
-        limit: int | str | None = None,
-        **kwargs: Any,
-    ) -> pa.Table:
-        """Execute expression and return results in as a pyarrow table.
+        return rbr_wrapper(reader, clean_up)
 
-        This method is eager and will execute the associated expression
-        immediately.
+    def to_pyarrow(self: ir.Expr, **kwargs: Any):
+        batch_reader = self.to_pyarrow_batches(**kwargs)
+        arrow_table = batch_reader.read_all()
+        return self.__pyarrow_result__(arrow_table)
 
-        Parameters
-        ----------
-        params
-            Mapping of scalar parameter expressions to value.
-        limit
-            An integer to effect a specific row limit. A value of `None` means
-            "no limit". The default is in `ibis/config.py`.
-        kwargs
-            Keyword arguments
-
-        Returns
-        -------
-        Table
-            A pyarrow table holding the results of the executed expression.
-        """
-        return self._find_backend(use_default=True).to_pyarrow(
-            self, params=params, limit=limit, **kwargs
-        )
-
-    @experimental
-    def to_polars(
-        self,
-        *,
-        params: Mapping[ir.Scalar, Any] | None = None,
-        limit: int | str | None = None,
-        **kwargs: Any,
-    ) -> pl.DataFrame:
-        """Execute expression and return results as a polars dataframe.
-
-        This method is eager and will execute the associated expression
-        immediately.
-
-        Parameters
-        ----------
-        params
-            Mapping of scalar parameter expressions to value.
-        limit
-            An integer to effect a specific row limit. A value of `None` means
-            "no limit". The default is in `ibis/config.py`.
-        kwargs
-            Keyword arguments
-
-        Returns
-        -------
-        DataFrame
-            A polars dataframe holding the results of the executed expression.
-        """
-        return self._find_backend(use_default=True).to_polars(
-            self, params=params, limit=limit, **kwargs
-        )
-
-    @experimental
-    def to_pandas_batches(
-        self,
-        *,
-        limit: int | str | None = None,
-        params: Mapping[ir.Value, Any] | None = None,
-        chunk_size: int = 1_000_000,
-        **kwargs: Any,
-    ) -> Iterator[pd.DataFrame | pd.Series | Any]:
-        """Execute expression and return an iterator of pandas DataFrames.
-
-        This method is eager and will execute the associated expression
-        immediately.
-
-        Parameters
-        ----------
-        limit
-            An integer to effect a specific row limit. A value of `None` means
-            "no limit". The default is in `ibis/config.py`.
-        params
-            Mapping of scalar parameter expressions to value.
-        chunk_size
-            Maximum number of rows in each returned `DataFrame`.
-        kwargs
-            Keyword arguments
-
-        Returns
-        -------
-        Iterator[pd.DataFrame]
-        """
-        return self._find_backend(use_default=True).to_pandas_batches(
-            self,
-            params=params,
-            limit=limit,
-            chunk_size=chunk_size,
-            **kwargs,
-        )
-
-    @experimental
     def to_parquet(
-        self,
+        self: ir.Expr,
         path: str | Path,
-        *,
         params: Mapping[ir.Scalar, Any] | None = None,
         **kwargs: Any,
-    ) -> None:
-        """Write the results of executing the given expression to a parquet file.
+    ):
+        import pyarrow  # noqa: ICN001, F401
+        import pyarrow.parquet as pq
+        import pyarrow_hotfix  # noqa: F401
 
-        This method is eager and will execute the associated expression
-        immediately.
-
-        Parameters
-        ----------
-        path
-            The data source. A string or Path to the parquet file.
-        params
-            Mapping of scalar parameter expressions to value.
-        **kwargs
-            Additional keyword arguments passed to pyarrow.parquet.ParquetWriter
-
-        https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetWriter.html
-
-        Examples
-        --------
-        Write out an expression to a single parquet file.
-
-        >>> import ibis
-        >>> import tempfile
-        >>> penguins = ibis.examples.penguins.fetch()
-        >>> penguins.to_parquet(tempfile.mktemp())
-
-        Partition on a single column.
-
-        >>> penguins.to_parquet(tempfile.mkdtemp(), partition_by="year")
-
-        Partition on multiple columns.
-
-        >>> penguins.to_parquet(tempfile.mkdtemp(), partition_by=("year", "island"))
-
-        ::: {.callout-note}
-        ## Hive-partitioned output is currently only supported when using DuckDB
-        :::
-        """
-        self._find_backend(use_default=True).to_parquet(self, path, **kwargs)
-
-    @experimental
-    def to_parquet_dir(
-        self,
-        directory: str | Path,
-        *,
-        params: Mapping[ir.Scalar, Any] | None = None,
-        **kwargs: Any,
-    ) -> None:
-        """Write the results of executing the given expression to a parquet file in a directory.
-
-        This method is eager and will execute the associated expression
-        immediately.
-
-        Parameters
-        ----------
-        directory
-            The data target. A string or Path to the directory where the parquet file will be written.
-        params
-            Mapping of scalar parameter expressions to value.
-        **kwargs
-            Additional keyword arguments passed to pyarrow.dataset.write_dataset
-
-        https://arrow.apache.org/docs/python/generated/pyarrow.dataset.write_dataset.html
-
-        """
-        self._find_backend(use_default=True).to_parquet_dir(self, directory, **kwargs)
+        with self.to_pyarrow_batches(params=params) as batch_reader:
+            with pq.ParquetWriter(path, batch_reader.schema, **kwargs) as writer:
+                for batch in batch_reader:
+                    writer.write_batch(batch)
 
     @experimental
     def to_csv(
@@ -691,58 +619,6 @@ class Expr(Immutable, Coercible):
         https://arrow.apache.org/docs/python/generated/pyarrow.csv.CSVWriter.html
         """
         self._find_backend(use_default=True).to_csv(self, path, **kwargs)
-
-    @experimental
-    def to_delta(
-        self,
-        path: str | Path,
-        *,
-        params: Mapping[ir.Scalar, Any] | None = None,
-        **kwargs: Any,
-    ) -> None:
-        """Write the results of executing the given expression to a Delta Lake table.
-
-        This method is eager and will execute the associated expression
-        immediately.
-
-        Parameters
-        ----------
-        path
-            The data source. A string or Path to the Delta Lake table directory.
-        params
-            Mapping of scalar parameter expressions to value.
-        **kwargs
-            Additional keyword arguments passed to deltalake.writer.write_deltalake method
-        """
-        self._find_backend(use_default=True).to_delta(self, path, **kwargs)
-
-    @experimental
-    def to_torch(
-        self,
-        *,
-        params: Mapping[ir.Scalar, Any] | None = None,
-        limit: int | str | None = None,
-        **kwargs: Any,
-    ) -> dict[str, torch.Tensor]:
-        """Execute an expression and return results as a dictionary of torch tensors.
-
-        Parameters
-        ----------
-        params
-            Parameters to substitute into the expression.
-        limit
-            An integer to effect a specific row limit. A value of `None` means no limit.
-        kwargs
-            Keyword arguments passed into the backend's `to_torch` implementation.
-
-        Returns
-        -------
-        dict[str, torch.Tensor]
-            A dictionary of torch tensors, keyed by column name.
-        """
-        return self._find_backend(use_default=True).to_torch(
-            self, params=params, limit=limit, **kwargs
-        )
 
     def unbind(self) -> ir.Table:
         """Return an expression built on `UnboundTable` instead of backend-specific objects."""

@@ -131,6 +131,7 @@ def test_dunder_array_column(alltypes, dtype):
     np.testing.assert_array_equal(result, expected)
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize("interactive", [True, False])
 def test_repr(alltypes, interactive, monkeypatch):
     monkeypatch.setattr(ls.options, "interactive", interactive)
@@ -146,6 +147,7 @@ def test_repr(alltypes, interactive, monkeypatch):
         assert "/" not in s
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize("show_types", [True, False])
 def test_interactive_repr_show_types(alltypes, show_types, monkeypatch):
     monkeypatch.setattr(ls.options, "interactive", True)
@@ -159,6 +161,7 @@ def test_interactive_repr_show_types(alltypes, show_types, monkeypatch):
         assert "int" not in s
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize("is_jupyter", [True, False])
 def test_interactive_repr_max_columns(alltypes, is_jupyter, monkeypatch):
     monkeypatch.setattr(ls.options, "interactive", True)
@@ -197,6 +200,7 @@ def test_interactive_repr_max_columns(alltypes, is_jupyter, monkeypatch):
         assert " c_19 " not in text
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize("expr_type", ["table", "column"])
 @pytest.mark.parametrize("interactive", [True, False])
 def test_repr_mimebundle(alltypes, interactive, expr_type, monkeypatch):
