@@ -1,13 +1,8 @@
 import pandas as pd
 import pyarrow as pa
-import sqlglot as sg
 import toolz
 
 import letsql as ls
-from letsql.common.utils.hotfix_utils import (
-    hotfix,
-    none_tokenized,
-)
 from letsql.common.utils.inspect_utils import (
     get_arguments,
 )
@@ -15,7 +10,6 @@ from letsql.expr.relations import (
     Read,
 )
 from letsql.vendor import ibis
-from letsql.vendor.ibis.backends.sql.compilers.base import SQLGlotCompiler
 from letsql.vendor.ibis.util import (
     gen_name,
 )
@@ -110,20 +104,6 @@ def deferred_read_parquet(con, path, table_name=None, **kwargs):
         source=con,
         read_kwargs=read_kwargs,
     ).to_expr()
-
-
-@hotfix(
-    SQLGlotCompiler,
-    "visit_Read",
-    none_tokenized,
-)
-def visit_Read(
-    self,
-    op,
-    **kwargs,
-) -> sg.table:
-    new_op = op.make_unbound_dt()
-    return self.visit_node(new_op, **dict(zip(new_op.argnames, new_op.args)))
 
 
 def rbr_wrapper(reader, clean_up):

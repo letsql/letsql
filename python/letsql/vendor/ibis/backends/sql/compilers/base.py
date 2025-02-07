@@ -1534,6 +1534,14 @@ class SQLGlotCompiler(abc.ABC):
         )
         return sg.select(*columns_to_keep).from_(parent)
 
+    def visit_Read(
+        self,
+        op,
+        **kwargs,
+    ) -> sg.table:
+        new_op = op.make_unbound_dt()
+        return self.visit_node(new_op, **dict(zip(new_op.argnames, new_op.args)))
+
     def add_query_to_expr(self, *, name: str, table: ir.Table, query: str) -> str:
         dialect = self.dialect
 
