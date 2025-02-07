@@ -10,8 +10,9 @@ def test_whitelist():
 
 
 def test_attributes():
-    example = ls.examples.astronauts
-    assert isinstance(example, Example)
+    for name in whitelist:
+        example = getattr(ls.examples, name)
+        assert isinstance(example, Example)
 
     with pytest.raises(AttributeError):
         ls.examples.missing

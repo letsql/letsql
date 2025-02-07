@@ -21,7 +21,7 @@ def get_name_to_suffix():
     dct = {
         name: pathlib.Path(board.pin_meta(name).file).suffix
         for name in board.pin_list()
-        if pathlib.Path(board.pin_meta(name).file).suffix not in (".json",)
+        if name in whitelist
     }
     return dct
 
