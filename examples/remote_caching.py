@@ -10,7 +10,7 @@ pg = ls.postgres.connect_env()
 name = "batting"
 
 right = (
-    ls.examples.batting.fetch(backend=ddb)
+    ls.examples.batting.fetch(backend=ddb, table_name=name)
     .filter(_.yearID == 2014)
     .pipe(con.register, table_name=f"ddb-{name}")
 )

@@ -26,11 +26,11 @@ def get_name_to_suffix():
     return dct
 
 
-def get_table_from_parquet(name, backend, table_name):
+def get_table_from_parquet(name, backend, table_name=None):
     parquet_file = ls.config.options.pins.get_path(name)
-    return backend.read_parquet(parquet_file, table_name=table_name)
+    return backend.read_parquet(parquet_file, table_name=table_name or name)
 
 
-def get_table_from_csv(name, backend, table_name):
+def get_table_from_csv(name, backend, table_name=None):
     parquet_file = ls.config.options.pins.get_path(name)
-    return backend.read_csv(parquet_file, table_name=table_name)
+    return backend.read_csv(parquet_file, table_name=table_name or name)
