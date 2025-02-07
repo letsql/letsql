@@ -3458,81 +3458,31 @@ class Table(Expr, _FixedTextJupyterMixin):
         """
         return self.execute(**kwargs)
 
-    def cache(self) -> Table:
-        """Cache the provided expression.
+    def cache(self, storage=None) -> Table:
+        from letsql.common.caching import (
+            SourceStorage,
+            maybe_prevent_cross_source_caching,
+        )
+        from letsql.common.utils.caching_utils import find_backend
+        from letsql.config import _backend_init
+        from letsql.expr.relations import CachedNode
 
-        All subsequent operations on the returned expression will be performed
-        on the cached data. The lifetime of the cached table is tied to its
-        python references (ie. it is released once the last reference to it is
-        garbage collected). Alternatively, use the
-        [`with`](https://docs.python.org/3/reference/compound_stmts.html#with)
-        statement or call the `.release()` method for more control.
-
-        This method is idempotent: calling it multiple times in succession will
-        return the same value as the first call.
-
-        ::: {.callout-note}
-        ## This method eagerly evaluates the expression prior to caching
-
-        Subsequent evaluations will not recompute the expression so method
-        chaining will not incur the overhead of caching more than once.
-        :::
-
-        Returns
-        -------
-        Table
-            Cached table
-
-        Examples
-        --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
-        >>> heavy_computation = ibis.literal("Heavy Computation")
-        >>> cached_penguins = t.mutate(computation=heavy_computation).cache()
-        >>> cached_penguins
-        ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
-        ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
-        ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
-        ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
-        │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
-        │ …       │ …         │              … │             … │                 … │ … │
-        └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
-
-        Explicit cache cleanup
-
-        >>> with t.mutate(computation=heavy_computation).cache() as cached_penguins:
-        ...     cached_penguins
-        ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
-        ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
-        ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
-        ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
-        │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
-        │ …       │ …         │              … │             … │                 … │ … │
-        └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
-        """
-        current_backend = self._find_backend(use_default=True)
-        return current_backend._cached_table(self)
+        try:
+            current_backend, _ = find_backend(self.op(), use_default=True)
+        except com.IbisError as e:
+            if "Multiple backends found" in e.args[0]:
+                current_backend = _backend_init()
+            else:
+                raise e
+        storage = storage or SourceStorage(source=current_backend)
+        expr = maybe_prevent_cross_source_caching(self, storage)
+        op = CachedNode(
+            schema=expr.schema(),
+            parent=expr,
+            source=current_backend,
+            storage=storage,
+        )
+        return op.to_expr()
 
     def pivot_longer(
         self,
