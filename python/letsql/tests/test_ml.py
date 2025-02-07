@@ -302,8 +302,18 @@ def test_make_quickgrove_udf__repr(mixed_model_path):
 
 def test_quickgrove_hyphen_name(feature_table, hyphen_model_path):
     assert "-" in hyphen_model_path.name
+    with pytest.raises(
+        ValueError,
+        match="The argument model_name was None and the name extracted from the path is not a valid Python identifier",
+    ):
+        make_quickgrove_udf(hyphen_model_path)
 
-    predict_udf = make_quickgrove_udf(hyphen_model_path)
+    with pytest.raises(
+        ValueError, match="The argument model_name is not a valid Python identifier"
+    ):
+        make_quickgrove_udf(hyphen_model_path, "diamonds-model")
+
+    predict_udf = make_quickgrove_udf(hyphen_model_path, model_name="diamonds_model")
     result = feature_table.mutate(pred=predict_udf.on_expr).execute()
 
     np.testing.assert_almost_equal(
