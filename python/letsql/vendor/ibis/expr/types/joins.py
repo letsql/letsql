@@ -12,9 +12,9 @@ from letsql.vendor.ibis.common.deferred import Deferred
 from letsql.vendor.ibis.common.egraph import DisjointSet
 from letsql.vendor.ibis.common.exceptions import (
     ExpressionError,
-    IbisInputError,
     InputTypeError,
     IntegrityError,
+    LetSQLInputError,
 )
 from letsql.vendor.ibis.expr.rewrites import flatten_predicates, peel_join_field
 from letsql.vendor.ibis.expr.types.generic import Value
@@ -260,7 +260,7 @@ class Join(Table):
         if how == "left_semi":
             how = "semi"
         elif how == "asof":
-            raise IbisInputError("use table.asof_join(...) instead")
+            raise LetSQLInputError("use table.asof_join(...) instead")
 
         chain = self.op()
         right = right.op()

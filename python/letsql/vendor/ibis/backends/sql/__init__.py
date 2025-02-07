@@ -588,7 +588,7 @@ class SQLBackend(BaseBackend, _DatabaseSchemaHandler):
             # table (this) -> database (db) and database (db) -> catalog
             table = sg.parse_one(database, into=sg.exp.Table, dialect=self.dialect)
             if table.args["catalog"] is not None:
-                raise exc.IbisInputError(
+                raise exc.LetSQLInputError(
                     f"Overspecified table hierarchy provided: `{table.sql(self.dialect)}`"
                 )
             catalog = table.args["db"]

@@ -124,7 +124,7 @@ def regex_split(s: str, pattern: str) -> list[str]:
     # is repeated to match the length of `s`
     patterns = pattern.unique()
     if len(patterns) != 1:
-        raise com.IbisError(
+        raise com.LetSQLError(
             "Only a single scalar pattern is supported for DataFusion re_split"
         )
     pattern = patterns[0].as_py()

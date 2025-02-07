@@ -597,7 +597,7 @@ class Backend(SQLBackend, CanCreateDatabase, CanCreateSchema):
         catalog = table_loc.args["catalog"]  # args access will return None, not ''
         if table.catalog:
             if table_loc.catalog:
-                raise com.IbisInputError(
+                raise com.LetSQLInputError(
                     "Cannot specify catalog both in the table name and as an argument"
                 )
             else:
@@ -607,7 +607,7 @@ class Backend(SQLBackend, CanCreateDatabase, CanCreateSchema):
         db = table_loc.args["db"]  # args access will return None, not ''
         if table.db:
             if table_loc.db:
-                raise com.IbisInputError(
+                raise com.LetSQLInputError(
                     "Cannot specify database both in the table name and as an argument"
                 )
             else:
@@ -992,13 +992,13 @@ class Backend(SQLBackend, CanCreateDatabase, CanCreateSchema):
 
         """
         if obj is None and schema is None:
-            raise com.IbisError("One of the `schema` or `obj` parameter is required")
+            raise com.LetSQLError("One of the `schema` or `obj` parameter is required")
         if schema is not None:
             schema = ibis.schema(schema)
 
         if isinstance(obj, ir.Table) and schema is not None:
             if not schema.equals(obj.schema()):
-                raise com.IbisTypeError(
+                raise com.LetSQLTypeError(
                     "Provided schema and Ibis table schema are incompatible. Please "
                     "align the two schemas, or provide only one of the two arguments."
                 )
@@ -1040,7 +1040,9 @@ class Backend(SQLBackend, CanCreateDatabase, CanCreateSchema):
         if temp:
             dataset = self._session_dataset.dataset_id
             if database is not None:
-                raise com.IbisInputError("Cannot specify database for temporary table")
+                raise com.LetSQLInputError(
+                    "Cannot specify database for temporary table"
+                )
             database = self._session_dataset.project
         else:
             dataset = database or self.current_database

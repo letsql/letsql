@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from public import public
 
 import letsql.vendor.ibis.expr.datatypes.core as dt
-from letsql.vendor.ibis.common.exceptions import IbisTypeError
+from letsql.vendor.ibis.common.exceptions import LetSQLTypeError
 
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ def cast(source: str | dt.DataType, target: str | dt.DataType, **kwargs) -> dt.D
     source, target = dt.dtype(source), dt.dtype(target)
 
     if not source.castable(target, **kwargs):
-        raise IbisTypeError(
+        raise LetSQLTypeError(
             f"Datatype {source} cannot be implicitly casted to {target}"
         )
     return target
@@ -134,7 +134,7 @@ def higher_precedence(left: dt.DataType, right: dt.DataType) -> dt.DataType:
     elif right.castable(left):
         return left.copy(nullable=nullable)
     else:
-        raise IbisTypeError(
+        raise LetSQLTypeError(
             f"Cannot compute precedence for `{left}` and `{right}` types"
         )
 

@@ -18,8 +18,8 @@ from letsql.vendor.ibis.common.collections import (
     FrozenOrderedDict,
 )
 from letsql.vendor.ibis.common.exceptions import (
-    IbisTypeError,
     IntegrityError,
+    LetSQLTypeError,
     RelationError,
 )
 from letsql.vendor.ibis.common.grounds import Concrete
@@ -98,7 +98,7 @@ class Field(Value):
     def __init__(self, rel, name):
         if name not in rel.schema:
             columns_formatted = ", ".join(map(repr, rel.schema.names))
-            raise IbisTypeError(
+            raise LetSQLTypeError(
                 f"Column {name!r} is not found in table. "
                 f"Existing columns: {columns_formatted}."
             )

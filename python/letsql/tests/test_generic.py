@@ -219,17 +219,17 @@ def test_case_where(alltypes, df):
 
 def test_table_fill_null_invalid(alltypes):
     with pytest.raises(
-        com.IbisTypeError, match=r"Column 'invalid_col' is not found in table"
+        com.LetSQLTypeError, match=r"Column 'invalid_col' is not found in table"
     ):
         alltypes.fill_null({"invalid_col": 0.0})
 
     with pytest.raises(
-        com.IbisTypeError, match="Cannot fill_null on column 'string_col' of type.*"
+        com.LetSQLTypeError, match="Cannot fill_null on column 'string_col' of type.*"
     ):
         alltypes[["int_col", "string_col"]].fill_null(0)
 
     with pytest.raises(
-        com.IbisTypeError, match="Cannot fill_null on column 'int_col' of type.*"
+        com.LetSQLTypeError, match="Cannot fill_null on column 'int_col' of type.*"
     ):
         alltypes.fill_null({"int_col": "oops"})
 
@@ -292,7 +292,7 @@ def test_mutate_rename(alltypes):
 
 def test_drop_null_invalid(alltypes):
     with pytest.raises(
-        com.IbisTypeError, match=r"Column 'invalid_col' is not found in table"
+        com.LetSQLTypeError, match=r"Column 'invalid_col' is not found in table"
     ):
         alltypes.drop_null(subset=["invalid_col"])
 

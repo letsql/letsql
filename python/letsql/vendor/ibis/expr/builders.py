@@ -11,7 +11,7 @@ from letsql.vendor import ibis
 from letsql.vendor.ibis import util
 from letsql.vendor.ibis.common.annotations import annotated, attribute
 from letsql.vendor.ibis.common.deferred import Deferred, Resolver, deferrable
-from letsql.vendor.ibis.common.exceptions import IbisInputError
+from letsql.vendor.ibis.common.exceptions import LetSQLInputError
 from letsql.vendor.ibis.common.grounds import Concrete
 from letsql.vendor.ibis.common.selectors import Selector  # noqa: TCH001
 from letsql.vendor.ibis.common.typing import VarTuple  # noqa: TCH001
@@ -160,7 +160,7 @@ class WindowBuilder(Builder):
             (table,) = relations
             return table
         else:
-            raise IbisInputError("Window frame can only depend on a single relation")
+            raise LetSQLInputError("Window frame can only depend on a single relation")
 
     def _maybe_cast_boundaries(self, start, end):
         if start and end:
@@ -186,7 +186,7 @@ class WindowBuilder(Builder):
             end_ = -lit.value if end.preceding else lit.value
 
         if start_ > end_:
-            raise IbisInputError(
+            raise LetSQLInputError(
                 "Window frame's start point must be greater than its end point"
             )
 
@@ -224,7 +224,7 @@ class WindowBuilder(Builder):
     def bind(self, table):
         if table is None:
             if self._table is None:
-                raise IbisInputError("Cannot bind window frame without a table")
+                raise LetSQLInputError("Cannot bind window frame without a table")
             else:
                 table = self._table.to_expr()
 
@@ -252,17 +252,17 @@ class LegacyWindowBuilder(WindowBuilder):
             has_following = True
 
         if (preceding_tuple and has_following) or (following_tuple and has_preceding):
-            raise IbisInputError(
+            raise LetSQLInputError(
                 "Can only specify one window side when you want an off-center window"
             )
         elif preceding_tuple:
             start, end = preceding
             if end is None:
-                raise IbisInputError("preceding end point cannot be None")
+                raise LetSQLInputError("preceding end point cannot be None")
             elif self._is_negative(end):
-                raise IbisInputError("preceding end point must be non-negative")
+                raise LetSQLInputError("preceding end point must be non-negative")
             elif self._is_negative(start):
-                raise IbisInputError("preceding start point must be non-negative")
+                raise LetSQLInputError("preceding start point must be non-negative")
             between = (
                 None if start is None else ops.WindowBoundary(start, preceding=True),
                 ops.WindowBoundary(end, preceding=True),
@@ -270,11 +270,11 @@ class LegacyWindowBuilder(WindowBuilder):
         elif following_tuple:
             start, end = following
             if start is None:
-                raise IbisInputError("following start point cannot be None")
+                raise LetSQLInputError("following start point cannot be None")
             elif self._is_negative(start):
-                raise IbisInputError("following start point must be non-negative")
+                raise LetSQLInputError("following start point must be non-negative")
             elif self._is_negative(end):
-                raise IbisInputError("following end point must be non-negative")
+                raise LetSQLInputError("following end point must be non-negative")
             between = (
                 ops.WindowBoundary(start, preceding=False),
                 None if end is None else ops.WindowBoundary(end, preceding=False),
@@ -286,11 +286,11 @@ class LegacyWindowBuilder(WindowBuilder):
             )
         elif has_preceding:
             if self._is_negative(preceding):
-                raise IbisInputError("preceding end point must be non-negative")
+                raise LetSQLInputError("preceding end point must be non-negative")
             between = (ops.WindowBoundary(preceding, preceding=True), None)
         elif has_following:
             if self._is_negative(following):
-                raise IbisInputError("following end point must be non-negative")
+                raise LetSQLInputError("following end point must be non-negative")
             between = (None, ops.WindowBoundary(following, preceding=False))
 
         if how is None:

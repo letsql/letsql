@@ -22,19 +22,19 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class IbisError(Exception):
-    """IbisError."""
+class LetSQLError(Exception):
+    """LetSQLError: All user-facing errors for LetSQL."""
 
 
-class InternalError(IbisError):
+class InternalError(LetSQLError):
     """InternalError."""
 
 
-class IntegrityError(IbisError):
+class IntegrityError(LetSQLError):
     """IntegrityError."""
 
 
-class ExpressionError(IbisError):
+class ExpressionError(LetSQLError):
     """ExpressionError."""
 
 
@@ -42,7 +42,7 @@ class RelationError(ExpressionError):
     """RelationError."""
 
 
-class TranslationError(IbisError):
+class TranslationError(LetSQLError):
     """TranslationError."""
 
 
@@ -58,31 +58,31 @@ class UnsupportedBackendType(TranslationError):
     """UnsupportedBackendType."""
 
 
-class UnboundExpressionError(ValueError, IbisError):
+class UnboundExpressionError(ValueError, LetSQLError):
     """UnboundExpressionError."""
 
 
-class IbisInputError(ValueError, IbisError):
+class LetSQLInputError(ValueError, LetSQLError):
     """IbisInputError."""
 
 
-class IbisTypeError(TypeError, IbisError):
+class LetSQLTypeError(TypeError, LetSQLError):
     """IbisTypeError."""
 
 
-class InputTypeError(IbisTypeError):
+class InputTypeError(LetSQLTypeError):
     """InputTypeError."""
 
 
-class UnsupportedArgumentError(IbisError):
+class UnsupportedArgumentError(LetSQLError):
     """UnsupportedArgumentError."""
 
 
-class BackendConversionError(IbisError):
+class BackendConversionError(LetSQLError):
     """A backend cannot convert an input to its native type."""
 
 
-class BackendConfigurationNotRegistered(IbisError):
+class BackendConfigurationNotRegistered(LetSQLError):
     """A backend has options but isn't registered in ibis/config.py."""
 
     def __init__(self, backend_name: str) -> None:
@@ -93,7 +93,7 @@ class BackendConfigurationNotRegistered(IbisError):
         return f"Please register options for the `{backend_name}` backend in ibis/config.py"
 
 
-class DuplicateUDFError(IbisError):
+class DuplicateUDFError(LetSQLError):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -102,7 +102,7 @@ class DuplicateUDFError(IbisError):
         return f"More than one function with `{name}` found."
 
 
-class MissingUDFError(IbisError):
+class MissingUDFError(LetSQLError):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -111,7 +111,7 @@ class MissingUDFError(IbisError):
         return f"No user-defined function found with name `{name}`"
 
 
-class AmbiguousUDFError(IbisError):
+class AmbiguousUDFError(LetSQLError):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -120,7 +120,7 @@ class AmbiguousUDFError(IbisError):
         return f"Multiple implementations of function `{name}`. Only one implementation is supported."
 
 
-class MissingReturnAnnotationError(IbisError):
+class MissingReturnAnnotationError(LetSQLError):
     def __init__(self, func_name: str):
         super().__init__(func_name)
 
@@ -129,7 +129,7 @@ class MissingReturnAnnotationError(IbisError):
         return f"function `{func_name}` has no return type annotation"
 
 
-class MissingParameterAnnotationError(IbisError):
+class MissingParameterAnnotationError(LetSQLError):
     def __init__(self, func_name: str, param_name: str):
         super().__init__(func_name, param_name)
 
@@ -138,7 +138,7 @@ class MissingParameterAnnotationError(IbisError):
         return f"parameter `{param_name}` in function `{func_name}` is missing a type annotation"
 
 
-class InvalidDecoratorError(IbisError):
+class InvalidDecoratorError(LetSQLError):
     def __init__(self, name: str, lines: str):
         super().__init__(name, lines)
 

@@ -135,7 +135,7 @@ def unwrap_aliases(values: Iterator[ir.Value]) -> Mapping[str, ir.Value]:
     for value in values:
         node = value.op()
         if node.name in result:
-            raise com.IbisInputError(
+            raise com.LetSQLInputError(
                 f"Duplicate column name {node.name!r} in result set"
             )
         result[node.name] = unwrap_alias(node)
@@ -251,7 +251,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         for key, arg in kwargs.items():
             bindings = tuple(bind(self, arg))
             if len(bindings) != 1:
-                raise com.IbisInputError(
+                raise com.LetSQLInputError(
                     "Keyword arguments cannot produce more than one value"
                 )
             (value,) = bindings
@@ -434,7 +434,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         >>> t.cast({"foo": "string"})  # quartodoc: +EXPECTED_FAILURE
         Traceback (most recent call last):
             ...
-        ibis.common.exceptions.IbisError: Cast schema has fields that are not in the table: ['foo']
+        letsql.vendor.ibis.common.exceptions.LetSQLError: Cast schema has fields that are not in the table: ['foo']
         """
         return self._cast(schema, cast_method="cast")
 
@@ -479,7 +479,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         columns = self.columns
         if missing_fields := frozenset(schema.names).difference(columns):
-            raise com.IbisError(
+            raise com.LetSQLError(
                 f"Cast schema has fields that are not in the table: {sorted(missing_fields)}"
             )
 
@@ -738,7 +738,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         """
         try:
             return ops.Field(self, key).to_expr()
-        except com.IbisTypeError:
+        except com.LetSQLTypeError:
             pass
 
         # A mapping of common attribute typos, mapping them to the proper name
@@ -895,7 +895,7 @@ class Table(Expr, _FixedTextJupyterMixin):
             An integer column
         """
         if not isinstance(self.op(), ops.PhysicalTable):
-            raise com.IbisTypeError(
+            raise com.LetSQLTypeError(
                 "rowid() is only valid for physical tables, not for generic "
                 "table expressions"
             )
@@ -1158,7 +1158,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         >>> t.distinct(on="species", keep="second")  # quartodoc: +EXPECTED_FAILURE
         Traceback (most recent call last):
           ...
-        ibis.common.exceptions.IbisError: Invalid value for keep: 'second' ...
+        letsql.vendor.ibis.common.exceptions.LetSQLError: Invalid value for keep: 'second' ...
         """
 
         import letsql.vendor.ibis.selectors as s
@@ -1166,7 +1166,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         if on is None:
             # dedup everything
             if keep != "first":
-                raise com.IbisError(
+                raise com.LetSQLError(
                     f"Only keep='first' (the default) makes sense when deduplicating all columns; got keep={keep!r}"
                 )
             return ops.Distinct(self).to_expr()
@@ -1180,7 +1180,7 @@ class Table(Expr, _FixedTextJupyterMixin):
             having = ()
             method = keep
         else:
-            raise com.IbisError(
+            raise com.LetSQLError(
                 f"Invalid value for `keep`: {keep!r}, must be 'first', 'last' or None"
             )
 
@@ -1573,7 +1573,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         keys = self.bind(*by)
         keys = unwrap_aliases(keys)
         if not keys:
-            raise com.IbisError("At least one sort key must be provided")
+            raise com.LetSQLError("At least one sort key must be provided")
 
         node = ops.Sort(self, keys.values())
         return node.to_expr()
@@ -2086,7 +2086,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         values = self.bind(*exprs, **named_exprs)
         values = unwrap_aliases(values)
         if not values:
-            raise com.IbisTypeError(
+            raise com.LetSQLTypeError(
                 "You must select at least one column for a valid projection"
             )
 
@@ -2465,7 +2465,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         preds = flatten_predicates(list(result))
         preds = list(map(rewrite_filter_input, preds))
         if not preds:
-            raise com.IbisInputError("You must pass at least one predicate to filter")
+            raise com.LetSQLInputError("You must pass at least one predicate to filter")
         return ops.Filter(self, preds).to_expr()
 
     def nunique(self, where: ir.BooleanValue | None = None) -> ir.IntegerScalar:
@@ -2687,7 +2687,7 @@ class Table(Expr, _FixedTextJupyterMixin):
             for col, val in replacements.items():
                 if col not in schema:
                     columns_formatted = ", ".join(map(repr, schema.names))
-                    raise com.IbisTypeError(
+                    raise com.LetSQLTypeError(
                         f"Column {col!r} is not found in table. "
                         f"Existing columns: {columns_formatted}."
                     ) from None
@@ -2695,7 +2695,7 @@ class Table(Expr, _FixedTextJupyterMixin):
                 col_type = schema[col]
                 val_type = val.type() if isinstance(val, Expr) else dt.infer(val)
                 if not val_type.castable(col_type):
-                    raise com.IbisTypeError(
+                    raise com.LetSQLTypeError(
                         f"Cannot fill_null on column {col!r} of type {col_type} with a "
                         f"value of type {val_type}"
                     )
@@ -2707,7 +2707,7 @@ class Table(Expr, _FixedTextJupyterMixin):
             )
             for col, col_type in schema.items():
                 if col_type.nullable and not val_type.castable(col_type):
-                    raise com.IbisTypeError(
+                    raise com.LetSQLTypeError(
                         f"Cannot fill_null on column {col!r} of type {col_type} with a "
                         f"value of type {val_type} - pass in an explicit mapping "
                         f"of fill values to `fill_null` instead."
@@ -3469,7 +3469,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         try:
             current_backend, _ = find_backend(self.op(), use_default=True)
-        except com.IbisError as e:
+        except com.LetSQLError as e:
             if "Multiple backends found" in e.args[0]:
                 current_backend = _backend_init()
             else:
@@ -3764,13 +3764,13 @@ class Table(Expr, _FixedTextJupyterMixin):
         pivot_cols = pivot_sel.expand(self)
         if not pivot_cols:
             # TODO: improve the repr of selectors
-            raise com.IbisInputError("Selector returned no columns to pivot on")
+            raise com.LetSQLInputError("Selector returned no columns to pivot on")
 
         names_to = util.promote_list(names_to)
 
         names_pattern = re.compile(names_pattern)
         if (ngroups := names_pattern.groups) != (nnames := len(names_to)):
-            raise com.IbisInputError(
+            raise com.LetSQLInputError(
                 f"Number of match groups in `names_pattern`"
                 f"{names_pattern.pattern!r} ({ngroups:d} groups) doesn't "
                 f"match the length of `names_to` {names_to} (length {nnames:d})"
@@ -3782,7 +3782,7 @@ class Table(Expr, _FixedTextJupyterMixin):
             if callable(names_transform):
                 names_transform = dict.fromkeys(names_to, names_transform)
             else:
-                raise com.IbisTypeError(
+                raise com.LetSQLTypeError(
                     f"`names_transform` must be a mapping or callable. Got {type(names_transform)}"
                 )
 
@@ -4231,7 +4231,7 @@ class Table(Expr, _FixedTextJupyterMixin):
             names = list(names.itertuples(index=False))
         else:
             if not (columns := [col.get_name() for col in names_from.expand(self)]):
-                raise com.IbisInputError(
+                raise com.LetSQLInputError(
                     f"No matching names columns in `names_from`: {orig_names_from}"
                 )
             names = list(map(tuple, map(util.promote_list, names)))
@@ -4435,12 +4435,12 @@ class Table(Expr, _FixedTextJupyterMixin):
         └────────┴────────┴───────┴───────┘
         """
         if not columns and before is None and after is None and not kwargs:
-            raise com.IbisInputError(
+            raise com.LetSQLInputError(
                 "At least one selector or `before` or `after` must be provided"
             )
 
         if before is not None and after is not None:
-            raise com.IbisInputError("Cannot specify both `before` and `after`")
+            raise com.LetSQLInputError("Cannot specify both `before` and `after`")
 
         sels = {}
 
@@ -4515,7 +4515,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         # validate time_col is a timestamp column
         if not isinstance(time_col, TimestampColumn):
-            raise com.IbisInputError(
+            raise com.LetSQLInputError(
                 f"`time_col` must be a timestamp column, got {time_col.type()}"
             )
 

@@ -952,7 +952,9 @@ class BaseBackend(abc.ABC, _FileIOHandler, CacheHandler):
         if self._can_reconnect:
             self.do_connect(*self._con_args, **self._con_kwargs)
         else:
-            raise exc.IbisError("Cannot reconnect to unconfigured {self.name} backend")
+            raise exc.LetSQLError(
+                "Cannot reconnect to unconfigured {self.name} backend"
+            )
 
     def do_connect(self, *args, **kwargs) -> None:
         """Connect to database specified by `args` and `kwargs`."""

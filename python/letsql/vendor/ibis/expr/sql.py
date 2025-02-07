@@ -473,7 +473,7 @@ def to_sql(
     if dialect is None:
         try:
             compiler_provider = expr._find_backend(use_default=True)
-        except com.IbisError:
+        except com.LetSQLError:
             # default to duckdb for SQL compilation because it supports the
             # widest array of ibis features for SQL backends
             compiler_provider = sc.duckdb

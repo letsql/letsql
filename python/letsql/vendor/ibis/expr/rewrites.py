@@ -9,7 +9,7 @@ import toolz
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor.ibis.common.collections import FrozenDict  # noqa: TCH001
 from letsql.vendor.ibis.common.deferred import Item, _, deferred, var
-from letsql.vendor.ibis.common.exceptions import ExpressionError, IbisInputError
+from letsql.vendor.ibis.common.exceptions import ExpressionError, LetSQLInputError
 from letsql.vendor.ibis.common.graph import Node as Traversable
 from letsql.vendor.ibis.common.graph import traverse
 from letsql.vendor.ibis.common.grounds import Concrete
@@ -151,7 +151,7 @@ class DerefMap(Concrete, Traversable):
         """
         ambigs = value.find(lambda x: x in self.ambigs, filter=ops.Value)
         if ambigs:
-            raise IbisInputError(
+            raise LetSQLInputError(
                 f"Ambiguous field reference {ambigs!r} in expression {value!r}"
             )
         return value.replace(self.subs, filter=ops.Value)

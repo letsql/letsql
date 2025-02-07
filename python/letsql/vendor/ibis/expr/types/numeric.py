@@ -8,7 +8,7 @@ from public import public
 
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor import ibis
-from letsql.vendor.ibis.common.exceptions import IbisTypeError
+from letsql.vendor.ibis.common.exceptions import LetSQLTypeError
 from letsql.vendor.ibis.expr.types.core import _binop
 from letsql.vendor.ibis.expr.types.generic import Column, Scalar, Value
 from letsql.vendor.ibis.util import deprecated
@@ -1184,7 +1184,7 @@ class IntegerValue(NumericValue):
         """
         try:
             node = ops.BitwiseNot(self)
-        except (IbisTypeError, NotImplementedError):
+        except (LetSQLTypeError, NotImplementedError):
             return NotImplemented
         else:
             return node.to_expr()

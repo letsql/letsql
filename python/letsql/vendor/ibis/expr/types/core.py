@@ -17,7 +17,7 @@ from public import public
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor import ibis
 from letsql.vendor.ibis.common.annotations import ValidationError
-from letsql.vendor.ibis.common.exceptions import IbisError
+from letsql.vendor.ibis.common.exceptions import LetSQLError
 from letsql.vendor.ibis.common.grounds import Immutable
 from letsql.vendor.ibis.common.patterns import Coercible, CoercionError
 from letsql.vendor.ibis.common.typing import get_defining_scope
@@ -432,7 +432,7 @@ class Expr(Immutable, Coercible):
 
         if not backends:
             if has_unbound:
-                raise IbisError(
+                raise LetSQLError(
                     "Expression contains unbound tables and therefore cannot "
                     "be executed. Use `<backend>.execute(expr)` to execute "
                     "against an explicit backend, or rebuild the expression "
@@ -440,13 +440,13 @@ class Expr(Immutable, Coercible):
                 )
             default = _default_backend() if use_default else None
             if default is None:
-                raise IbisError(
+                raise LetSQLError(
                     "Expression depends on no backends, and found no default"
                 )
             return default
 
         if len(backends) > 1:
-            raise IbisError("Multiple backends found for this expression")
+            raise LetSQLError("Multiple backends found for this expression")
 
         return backends[0]
 
@@ -459,7 +459,7 @@ class Expr(Immutable, Coercible):
                 current_backend = _backend_init()
             else:
                 current_backend = self._find_backend_original(use_default=use_default)
-        except IbisError as e:
+        except LetSQLError as e:
             if "Multiple backends found" in e.args[0]:
                 current_backend = _backend_init()
             else:
