@@ -1,17 +1,12 @@
-import pathlib
-from functools import cache, partial
+from functools import partial
 
 import letsql as ls
-
-
-def get_table_from_parquet(name, backend, table_name):
-    parquet_file = ls.config.options.pins.get_path(name)
-    return backend.read_parquet(parquet_file, table_name=table_name)
-
-
-def get_table_from_csv(name, backend, table_name):
-    parquet_file = ls.config.options.pins.get_path(name)
-    return backend.read_csv(parquet_file, table_name=table_name)
+from letsql.examples.core import (
+    get_name_to_suffix,
+    get_table_from_csv,
+    get_table_from_parquet,
+    whitelist,
+)
 
 
 class Example:
@@ -25,20 +20,8 @@ class Example:
         return self.load(backend, table_name or self.name)
 
 
-@cache
-def get_name_to_suffix():
-    board = ls.options.pins.get_board()
-    dct = {
-        name: pathlib.Path(board.pin_meta(name).file).suffix
-        for name in board.pin_list()
-        if pathlib.Path(board.pin_meta(name).file).suffix not in (".json",)
-    }
-    return dct
-
-
 def __dir__():
-    names = get_name_to_suffix().keys()
-    return list(names)
+    return list(whitelist)
 
 
 def __getattr__(name):
@@ -49,6 +32,9 @@ def __getattr__(name):
 
     read = get_table_from_csv if lookup[name] == ".csv" else get_table_from_parquet
     return Example(name, partial(read, name))
+
+
+__all__ = list(whitelist)
 
 
 def __getattr__(name):
