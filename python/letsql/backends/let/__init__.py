@@ -9,7 +9,6 @@ import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
 from sqlglot import exp, parse_one
 
-import letsql.backends.let.hotfix  # noqa: F401
 from letsql.backends.let.datafusion import Backend as DataFusionBackend
 from letsql.common.collections import SourceDict
 from letsql.common.utils.graph_utils import replace_fix
