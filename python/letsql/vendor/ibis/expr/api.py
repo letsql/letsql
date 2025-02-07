@@ -20,7 +20,7 @@ from letsql.vendor.ibis import selectors, util
 from letsql.vendor.ibis.backends import BaseBackend, connect
 from letsql.vendor.ibis.common.deferred import Deferred, _, deferrable
 from letsql.vendor.ibis.common.dispatch import lazy_singledispatch
-from letsql.vendor.ibis.common.exceptions import IbisInputError
+from letsql.vendor.ibis.common.exceptions import LetSQLInputError
 from letsql.vendor.ibis.common.grounds import Concrete
 from letsql.vendor.ibis.common.temporal import normalize_datetime, normalize_timezone
 from letsql.vendor.ibis.expr.decompile import decompile
@@ -503,7 +503,7 @@ def _memtable(
     cols = df.columns
     dupes = [name for name, count in Counter(cols).items() if count > 1]
     if dupes:
-        raise IbisInputError(
+        raise LetSQLInputError(
             f"Duplicate column names found in DataFrame when constructing memtable: {dupes}"
         )
 
@@ -1710,7 +1710,7 @@ def window(
     has_between = between is not None
     has_preceding_following = preceding is not None or following is not None
     if has_rows + has_range + has_between + has_preceding_following > 1:
-        raise IbisInputError(
+        raise LetSQLInputError(
             "Must only specify either `rows`, `range`, `between` or `preceding`/`following`"
         )
 

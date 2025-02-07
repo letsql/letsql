@@ -782,7 +782,7 @@ class Value(Expr):
                 order_by=order_by,
             )
         elif not isinstance(window, bl.WindowBuilder):
-            raise com.IbisTypeError("Unexpected window type: {window!r}")
+            raise com.LetSQLTypeError("Unexpected window type: {window!r}")
 
         node = self.op()
         if len(node.relations) == 0:
@@ -797,14 +797,14 @@ class Value(Expr):
         def bind(table):
             winfunc = rewrite_window_input(node, window.bind(table))
             if winfunc == node:
-                raise com.IbisTypeError(
+                raise com.LetSQLTypeError(
                     "No reduction or analytic function found to construct a window expression"
                 )
             return winfunc.to_expr()
 
         try:
             return bind(table)
-        except com.IbisInputError:
+        except com.LetSQLInputError:
             return bind(_)
 
     def isnull(self) -> ir.BooleanValue:
@@ -1136,7 +1136,7 @@ class Value(Expr):
         """
         try:
             return ops.IdenticalTo(self, other).to_expr()
-        except (com.IbisTypeError, NotImplementedError):
+        except (com.LetSQLTypeError, NotImplementedError):
             return NotImplemented
 
     def group_concat(
@@ -2077,7 +2077,7 @@ class Column(Value, _FixedTextJupyterMixin):
         try:
             (table,) = self.op().relations
         except ValueError:
-            raise com.IbisTypeError("TopK must depend on exactly one table.")
+            raise com.LetSQLTypeError("TopK must depend on exactly one table.")
 
         table = table.to_expr()
 

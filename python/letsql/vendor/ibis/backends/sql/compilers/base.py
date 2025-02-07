@@ -975,7 +975,7 @@ class SQLGlotCompiler(abc.ABC):
 
     def visit_Substring(self, op, *, arg, start, length):
         if isinstance(op.length, ops.Literal) and (value := op.length.value) < 0:
-            raise com.IbisInputError(
+            raise com.LetSQLInputError(
                 f"Length parameter must be a non-negative value; got {value}"
             )
         start += 1

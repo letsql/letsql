@@ -114,7 +114,7 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
 
         schema = op.schema
         if null_columns := [col for col, dtype in schema.items() if dtype.is_null()]:
-            raise exc.IbisTypeError(
+            raise exc.LetSQLTypeError(
                 f"{self.name} cannot yet reliably handle `null` typed columns; "
                 f"got null typed columns: {null_columns}"
             )
@@ -551,7 +551,7 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
             rows = cur.fetchall()
 
         if not rows:
-            raise com.IbisError(f"Table not found: {name!r}")
+            raise com.LetSQLError(f"Table not found: {name!r}")
 
         return sch.Schema(
             {

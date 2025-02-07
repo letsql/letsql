@@ -10,7 +10,7 @@ from typing import Any
 
 from letsql.vendor.ibis import examples, util
 from letsql.vendor.ibis.backends import BaseBackend
-from letsql.vendor.ibis.common.exceptions import IbisError
+from letsql.vendor.ibis.common.exceptions import LetSQLError
 from letsql.vendor.ibis.config import options
 from letsql.vendor.ibis.expr import api
 from letsql.vendor.ibis.expr import types as ir
@@ -25,7 +25,7 @@ __all__ = [  # noqa: PLE0604
     "udf",
     "util",
     "BaseBackend",
-    "IbisError",
+    "LetSQLError",
     "options",
     *api.__all__,
 ]

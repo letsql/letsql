@@ -32,7 +32,7 @@ class WindowedTable(Concrete):
 
     def __init__(self, time_col: ops.Column, **kwargs):
         if time_col is None:
-            raise com.IbisInputError(
+            raise com.LetSQLInputError(
                 "Window aggregations require `time_col` as an argument"
             )
         super().__init__(time_col=time_col, **kwargs)

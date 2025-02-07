@@ -245,7 +245,7 @@ class JSONValue(Value):
             a = self.array
             return a.cast(dtype) if a.type() != dtype else a
         else:
-            raise exc.IbisTypeError(
+            raise exc.LetSQLTypeError(
                 f"Data type {dtype} is unsupported for unwrapping JSON values. Supported "
                 "data types are strings, integers, floats, booleans, maps, and arrays."
             )

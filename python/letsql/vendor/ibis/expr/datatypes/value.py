@@ -18,7 +18,7 @@ from public import public
 import letsql.vendor.ibis.expr.datatypes as dt
 from letsql.vendor.ibis.common.collections import frozendict
 from letsql.vendor.ibis.common.dispatch import lazy_singledispatch
-from letsql.vendor.ibis.common.exceptions import IbisTypeError, InputTypeError
+from letsql.vendor.ibis.common.exceptions import InputTypeError, LetSQLTypeError
 from letsql.vendor.ibis.common.numeric import normalize_decimal
 from letsql.vendor.ibis.common.temporal import (
     IntervalUnit,
@@ -58,7 +58,7 @@ def infer_map(value: Mapping[Any, Any]) -> dt.Map:
             highest_precedence(map(infer, value.keys())),
             highest_precedence(map(infer, value.values())),
         )
-    except IbisTypeError:
+    except LetSQLTypeError:
         return dt.Struct(toolz.valmap(infer, value, factory=type(value)))
 
 
@@ -336,7 +336,7 @@ def normalize(typ, value):
             elif dtype.is_multipolygon():
                 return shp.MultiPolygon(map(partial(normalize, dt.polygon), value))
             else:
-                raise IbisTypeError(f"Unsupported geospatial type: {dtype}")
+                raise LetSQLTypeError(f"Unsupported geospatial type: {dtype}")
         elif isinstance(value, shp.geometry.base.BaseGeometry):
             return value
         else:

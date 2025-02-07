@@ -282,9 +282,9 @@ class SqlglotType(TypeMapper):
         elif isinstance(precision_or_span, sge.Var):
             return dt.Interval(unit=precision_or_span.this, nullable=nullable)
         elif precision_or_span is None:
-            raise com.IbisTypeError("Interval precision is None")
+            raise com.LetSQLTypeError("Interval precision is None")
         else:
-            raise com.IbisTypeError(precision_or_span)
+            raise com.LetSQLTypeError(precision_or_span)
 
     @classmethod
     def _from_sqlglot_DECIMAL(
@@ -380,7 +380,7 @@ class SqlglotType(TypeMapper):
 
         if scale is not None:
             if precision is None:
-                raise com.IbisTypeError(
+                raise com.LetSQLTypeError(
                     "Decimal scale cannot be specified without precision"
                 )
             expressions.append(sge.DataTypeParam(this=sge.Literal.number(scale)))
@@ -463,9 +463,9 @@ class PostgresType(SqlglotType):
     @classmethod
     def _from_ibis_Map(cls, dtype: dt.Map) -> sge.DataType:
         if not dtype.key_type.is_string():
-            raise com.IbisTypeError("Postgres only supports string keys in maps")
+            raise com.LetSQLTypeError("Postgres only supports string keys in maps")
         if not dtype.value_type.is_string():
-            raise com.IbisTypeError("Postgres only supports string values in maps")
+            raise com.LetSQLTypeError("Postgres only supports string values in maps")
         return sge.DataType(this=typecode.HSTORE)
 
     @classmethod
