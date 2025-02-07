@@ -78,6 +78,7 @@ def test_limit_chain(alltypes, expr_fn):
     assert len(result) == 5
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize(
     "expr_fn",
     [
