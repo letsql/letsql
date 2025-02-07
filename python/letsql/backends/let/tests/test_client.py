@@ -103,4 +103,8 @@ def test_register_record_batch_reader_sorted(batting_df, keys):
     expr = t.group_by("yearID").agg(max_tiny=t["stint"].max())
 
     physical_plan = ls.get_plans(expr)["physical_plan"]
-    assert not keys or "ordering_mode=Sorted" in physical_plan
+    ordering_string = "ordering_mode=Sorted"
+    if keys:
+        assert ordering_string in physical_plan
+    else:
+        assert ordering_string not in physical_plan
