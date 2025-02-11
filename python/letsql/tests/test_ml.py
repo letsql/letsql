@@ -9,7 +9,6 @@ import letsql.vendor.ibis.expr.datatypes as dt
 from letsql import memtable
 from letsql.expr.ml import _calculate_bounds, make_quickgrove_udf
 from letsql.tests.util import assert_frame_equal
-from letsql.vendor.ibis import memtable
 
 
 def test_train_test_splits_intersections():
@@ -61,7 +60,6 @@ def test_train_test_splits_intersections():
     )
 
 
-@pytest.mark.xfail
 def test_train_test_split():
     # This is testing the base case where a single float becomes ( 1-test_size , test_size ) proportion
     # Check counts and overlaps in train and test dataset
@@ -136,7 +134,6 @@ def test_train_test_split_multiple_keys():
     assert train_table.union(test_table).join(table, how="anti").count().execute() == 0
 
 
-@pytest.mark.xfail
 def test_train_test_splits_deterministic_with_seed():
     table = memtable({"key": range(100), "value": range(100)})
     test_sizes = [0.4, 0.6]
