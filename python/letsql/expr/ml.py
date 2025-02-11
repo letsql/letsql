@@ -283,8 +283,7 @@ def train_test_splits(
     Examples
     --------
     >>> import letsql as ls
-    >>> import ibis
-    >>> table = ibis.memtable({"key": range(100), "value": range(100,200)})
+    >>> table = ls.memtable({"key": range(100), "value": range(100,200)})
     >>> unique_key = "key"
     >>> test_sizes = [0.2, 0.3, 0.5]
     >>> splits = ls.train_test_splits(table, unique_key, test_sizes, num_buckets=10, random_seed=42)
