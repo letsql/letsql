@@ -227,12 +227,12 @@ class Expr(Immutable, Coercible):
 
         Examples
         --------
-        >>> import ibis
-        >>> t1 = ibis.table(dict(a="int"), name="t")
-        >>> t2 = ibis.table(dict(a="int"), name="t")
+        >>> import letsql as ls
+        >>> t1 = ls.table(dict(a="int"), name="t")
+        >>> t2 = ls.table(dict(a="int"), name="t")
         >>> t1.equals(t2)
         True
-        >>> v = ibis.table(dict(a="string"), name="v")
+        >>> v = ls.table(dict(a="string"), name="v")
         >>> t1.equals(v)
         False
         """
@@ -312,8 +312,8 @@ class Expr(Immutable, Coercible):
         --------
         Open the visualization of an expression in default browser:
 
-        >>> import ibis
-        >>> import ibis.expr.operations as ops
+        >>> import letsql as ls
+        >>> import letsql.vendor.ibis.expr.operations as ops
         >>> left = ibis.table(dict(a="int64", b="string"), name="left")
         >>> right = ibis.table(dict(b="string", c="int64", d="string"), name="right")
         >>> expr = left.inner_join(right, "b").select(left.a, b=right.c, c=right.d)
@@ -364,8 +364,8 @@ class Expr(Immutable, Coercible):
 
         Examples
         --------
-        >>> import ibis
-        >>> t = ibis.table([("a", "int64"), ("b", "string")], name="t")
+        >>> import letsql as ls
+        >>> t = ls.table([("a", "int64"), ("b", "string")], name="t")
         >>> f = lambda a: (a + 1).name("a")
         >>> g = lambda a: (a * 2).name("a")
         >>> result1 = t.a.pipe(f).pipe(g)
@@ -373,6 +373,7 @@ class Expr(Immutable, Coercible):
         r0 := UnboundTable: t
           a int64
           b string
+        <BLANKLINE>
         a: r0.a + 1 * 2
 
         >>> result2 = g(f(t.a))  # equivalent to the above
@@ -820,8 +821,8 @@ def _binop(op_class: type[ops.Binary], left: ir.Value, right: ir.Value) -> ir.Va
 
     Examples
     --------
-    >>> import ibis
-    >>> import ibis.expr.operations as ops
+    >>> import letsql as ls
+    >>> import letsql.vendor.ibis.expr.operations as ops
     >>> expr = _binop(ops.TimeAdd, ibis.time("01:00"), ibis.interval(hours=1))
     >>> expr
     TimeAdd(datetime.time(1, 0), 1h): datetime.time(1, 0) + 1 h
