@@ -17,7 +17,7 @@ from public import public
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor import ibis
 from letsql.vendor.ibis.common.annotations import ValidationError
-from letsql.vendor.ibis.common.exceptions import LetSQLError
+from letsql.vendor.ibis.common.exceptions import LetSQLError, TranslationError
 from letsql.vendor.ibis.common.grounds import Immutable
 from letsql.vendor.ibis.common.patterns import Coercible, CoercionError
 from letsql.vendor.ibis.common.typing import get_defining_scope
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
     from pathlib import Path
 
-    from rich.console import RenderableType
+    from rich.console import Console, RenderableType
 
     import letsql.vendor.ibis.expr.types as ir
     from letsql.vendor.ibis.backends import BaseBackend
@@ -85,51 +85,54 @@ class Expr(Immutable, Coercible):
             scope = None
         return pretty(self.op(), scope=scope)
 
-    # def __repr__(self) -> str:
-    #     if ibis.options.interactive:
-    #         return _capture_rich_renderable(self)
-    #     else:
-    #         return self._noninteractive_repr()
-    #
-    # def __rich_console__(self, console: Console, options):
-    #     from rich.text import Text
-    #
-    #     if console.is_jupyter:
-    #         # Rich infers a console width in jupyter notebooks, but since
-    #         # notebooks can use horizontal scroll bars we don't want to apply a
-    #         # limit here. Since rich requires an integer for max_width, we
-    #         # choose an arbitrarily large integer bound. Note that we need to
-    #         # handle this here rather than in `to_rich`, as this setting
-    #         # also needs to be forwarded to `console.render`.
-    #         options = options.update(max_width=1_000_000)
-    #         console_width = None
-    #     else:
-    #         console_width = options.max_width
-    #
-    #     try:
-    #         if opts.interactive:
-    #             from letsql.vendor.ibis.expr.types.pretty import to_rich
-    #
-    #             rich_object = to_rich(self, console_width=console_width)
-    #         else:
-    #             rich_object = Text(self._noninteractive_repr())
-    #     except TranslationError as e:
-    #         lines = [
-    #             "Translation to backend failed",
-    #             f"Error message: {e!r}",
-    #             "Expression repr follows:",
-    #             self._noninteractive_repr(),
-    #         ]
-    #         return Text("\n".join(lines))
-    #     return console.render(rich_object, options=options)
+    def __rich_console__(self, console: Console, options):
+        from rich.text import Text
+
+        if console.is_jupyter:
+            # Rich infers a console width in jupyter notebooks, but since
+            # notebooks can use horizontal scroll bars we don't want to apply a
+            # limit here. Since rich requires an integer for max_width, we
+            # choose an arbitrarily large integer bound. Note that we need to
+            # handle this here rather than in `to_rich`, as this setting
+            # also needs to be forwarded to `console.render`.
+            options = options.update(max_width=1_000_000)
+            console_width = None
+        else:
+            console_width = options.max_width
+
+        try:
+            if opts.interactive:
+                from letsql.vendor.ibis.expr.types.pretty import to_rich
+
+                rich_object = to_rich(self, console_width=console_width)
+            else:
+                rich_object = Text(self._noninteractive_repr())
+        except TranslationError as e:
+            lines = [
+                "Translation to backend failed",
+                f"Error message: {e!r}",
+                "Expression repr follows:",
+                self._noninteractive_repr(),
+            ]
+            return Text("\n".join(lines))
+        return console.render(rich_object, options=options)
 
     def __repr__(self):
-        lines = [
-            "┌──── LetSQL Expression Plan ─────┐",
-            *self._ascii_plan_lines(),
-            "└─────────────────────────────────┘",
-        ]
-        return "\n".join(lines)
+        import letsql as ls
+        from letsql.expr.relations import CachedNode, RemoteTable
+
+        if self.op().find((CachedNode, RemoteTable)):
+            lines = [
+                "┌──── LetSQL Expression Plan ─────┐",
+                *self._ascii_plan_lines(),
+                "└─────────────────────────────────┘",
+            ]
+            return "\n".join(lines)
+        else:
+            if ls.options.interactive:
+                return _capture_rich_renderable(self)
+            else:
+                return self._noninteractive_repr()
 
     def _ascii_plan_lines(self):
         from letsql.expr.relations import CachedNode, RemoteTable

@@ -149,7 +149,7 @@ class Table(Expr, _FixedTextJupyterMixin):
     Analogous to a SQL table or a pandas DataFrame. A table expression contains
     an [ordered set of named columns](./schemas.qmd#ibis.expr.schema.Schema),
     each with a single known type. Unless explicitly ordered with an
-    [`.order_by()`](./expression-tables.qmd#ibis.expr.types.relations.Table.order_by),
+    [`.order_by()`](./expression-tables.qmd#letsql.expr.types.relations.Table.order_by),
     the order of rows is undefined.
 
     Table immutability means that the data underlying an Ibis `Table` cannot be modified: every
@@ -164,17 +164,15 @@ class Table(Expr, _FixedTextJupyterMixin):
     You will not create Table objects directly. Instead, you will create one
 
     - from a pandas DataFrame, pyarrow table, Polars table, or raw python dicts/lists
-      with [`ibis.memtable(df)`](./expression-tables.qmd#ibis.memtable)
+      with [`letsql.memtable(df)`](./expression-tables.qmd#letsql.memtable)
     - from an existing table in a data platform with
-      [`connection.table("name")`](./expression-tables.qmd#ibis.backends.duckdb.Backend.table)
+      [`connection.table("name")`](./expression-tables.qmd#letsql.backends.duckdb.Backend.table)
     - from a file or URL, into a specific backend with
-      [`connection.read_csv/parquet/json("path/to/file")`](../backends/duckdb.qmd#ibis.backends.duckdb.Backend.read_csv)
+      [`connection.read_csv/parquet/json("path/to/file")`](../backends/duckdb.qmd#letsql.backends.duckdb.Backend.read_csv)
       (only some backends, typically local ones, support this)
     - from a file or URL, into the default backend with
        [`ibis.read_csv/read_json/read_parquet("path/to/file")`](./expression-tables.qmd#ibis.read_csv)
 
-    See the [user guide](https://ibis-project.org/how-to/input-output/basics) for more
-    info.
     """
 
     # Higher than numpy & dask objects
@@ -302,9 +300,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> heavy_gentoo = t.filter(t.species == "Gentoo", t.body_mass_g > 6200)
         >>> from_that_island = t.filter(t.island == heavy_gentoo.select("island").as_scalar())
         >>> from_that_island.species.value_counts().order_by("species")
@@ -331,7 +329,8 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> t = ibis.table(dict(a="int"), name="t")
+        >>> import letsql as ls
+        >>> t = ls.table(dict(a="int"), name="t")
         >>> s = t.as_table()
         >>> t is s
         True
@@ -353,7 +352,8 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> t = ibis.table(dict(a="string", b="float"), name="t")
+        >>> import letsql as ls
+        >>> t = ls.table(dict(a="string", b="float"), name="t")
         >>> "a" in t
         True
         >>> "c" in t
@@ -378,22 +378,22 @@ class Table(Expr, _FixedTextJupyterMixin):
         Returns
         -------
         Table
-            Casted table
+            Cast table
 
         Examples
         --------
-        >>> import ibis
-        >>> import ibis.selectors as s
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> import letsql.selectors as s
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t.schema()
         ibis.Schema {
           species            string
           island             string
           bill_length_mm     float64
           bill_depth_mm      float64
-          flipper_length_mm  int64
-          body_mass_g        int64
+          flipper_length_mm  float64
+          body_mass_g        float64
           sex                string
           year               int64
         }
@@ -402,13 +402,13 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┓
         ┃ body_mass_g ┃ bill_length_mm ┃
         ┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━┩
-        │ int64       │ float64        │
+        │ float64     │ float64        │
         ├─────────────┼────────────────┤
-        │        3750 │           39.1 │
-        │        3800 │           39.5 │
-        │        3250 │           40.3 │
+        │      3750.0 │           39.1 │
+        │      3800.0 │           39.5 │
+        │      3250.0 │           40.3 │
         │        NULL │           NULL │
-        │        3450 │           36.7 │
+        │      3450.0 │           36.7 │
         └─────────────┴────────────────┘
 
         Columns not present in the input schema will be passed through unchanged
@@ -423,10 +423,10 @@ class Table(Expr, _FixedTextJupyterMixin):
         │ float64     │ int64          │
         ├─────────────┼────────────────┤
         │      3750.0 │             39 │
-        │      3800.0 │             40 │
+        │      3800.0 │             39 │
         │      3250.0 │             40 │
         │        NULL │           NULL │
-        │      3450.0 │             37 │
+        │      3450.0 │             36 │
         └─────────────┴────────────────┘
 
         Columns that are in the input `schema` but not in the table raise an error
@@ -452,23 +452,10 @@ class Table(Expr, _FixedTextJupyterMixin):
         Returns
         -------
         Table
-            Casted table
+            Cast table
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable({"a": ["1", "2", "3"], "b": ["2.2", "3.3", "book"]})
-        >>> t.try_cast({"a": "int", "b": "float"})
-        ┏━━━━━━━┳━━━━━━━━━┓
-        ┃ a     ┃ b       ┃
-        ┡━━━━━━━╇━━━━━━━━━┩
-        │ int64 │ float64 │
-        ├───────┼─────────┤
-        │     1 │     2.2 │
-        │     2 │     3.3 │
-        │     3 │    NULL │
-        └───────┴─────────┘
         """
         return self._cast(schema, cast_method="try_cast")
 
@@ -526,8 +513,8 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> t = ls.examples.penguins.fetch()
 
         Because the console_width is too small, only 2 columns are shown even though
         we specified up to 3.
@@ -580,20 +567,20 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch().head()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch().head()
         >>> t
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
 
         Select a single column by name:
@@ -649,20 +636,20 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
-        >>> t[2:5]
+        >>> t[2:5] # doctest: +SKIP
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │              93.0 │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
         """
         from letsql.vendor.ibis.expr.types.logical import BooleanValue
@@ -714,9 +701,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t.island
         ┏━━━━━━━━━━━┓
         ┃ island    ┃
@@ -771,18 +758,11 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t.columns
-        ['species',
-         'island',
-         'bill_length_mm',
-         'bill_depth_mm',
-         'flipper_length_mm',
-         'body_mass_g',
-         'sex',
-         'year']
+        ['species', 'island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex', 'year']
         """
         return list(self.schema().names)
 
@@ -796,17 +776,17 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t.schema()
         ibis.Schema {
           species            string
           island             string
           bill_length_mm     float64
           bill_depth_mm      float64
-          flipper_length_mm  int64
-          body_mass_g        int64
+          flipper_length_mm  float64
+          body_mass_g        float64
           sex                string
           year               int64
         }
@@ -836,10 +816,10 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable(
+        >>> import letsql as ls
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable(
         ...     {
         ...         "fruit": ["apple", "apple", "banana", "orange"],
         ...         "price": [0.5, 0.5, 0.25, 0.33],
@@ -875,7 +855,6 @@ class Table(Expr, _FixedTextJupyterMixin):
         groups = self.bind(*by, **key_exprs)
         return GroupedTable(self, groups)
 
-    # TODO(kszucs): shouldn't this be ibis.rowid() instead not bound to a specific table?
     def rowid(self) -> ir.IntegerValue:
         """A unique integer per row.
 
@@ -950,10 +929,10 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable(
+        >>> import letsql as ls
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable(
         ...     {
         ...         "fruit": ["apple", "apple", "banana", "orange"],
         ...         "price": [0.5, 0.5, 0.25, 0.33],
@@ -1041,7 +1020,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         ----------
         on
             Only consider certain columns for identifying duplicates.
-            By default deduplicate all of the columns.
+            By default, deduplicate all of the columns.
         keep
             Determines which duplicates to keep.
 
@@ -1051,27 +1030,27 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> import ibis.examples as ex
-        >>> import ibis.selectors as s
-        >>> ibis.options.interactive = True
+        >>> import letsql as ls
+        >>> import letsql.examples as ex
+        >>> import letsql.selectors as s
+        >>> ls.options.interactive = True
         >>> t = ex.penguins.fetch()
         >>> t
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           39.3 │          20.6 │             190.0 │ … │
+        │ Adelie  │ Torgersen │           38.9 │          17.8 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.2 │          19.6 │             195.0 │ … │
+        │ Adelie  │ Torgersen │           34.1 │          18.1 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           42.0 │          20.2 │             190.0 │ … │
         │ …       │ …         │              … │             … │                 … │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
 
@@ -1096,13 +1075,13 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┏━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━┓
         ┃ species   ┃ island    ┃ bill_length_mm ┃ bill_depth_… ┃ flipper_length_mm ┃  ┃
         ┡━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━┩
-        │ string    │ string    │ float64        │ float64      │ int64             │  │
+        │ string    │ string    │ float64        │ float64      │ float64           │  │
         ├───────────┼───────────┼────────────────┼──────────────┼───────────────────┼──┤
-        │ Adelie    │ Biscoe    │           37.8 │         18.3 │               174 │  │
-        │ Adelie    │ Dream     │           39.5 │         16.7 │               178 │  │
-        │ Adelie    │ Torgersen │           39.1 │         18.7 │               181 │  │
-        │ Chinstrap │ Dream     │           46.5 │         17.9 │               192 │  │
-        │ Gentoo    │ Biscoe    │           46.1 │         13.2 │               211 │  │
+        │ Adelie    │ Biscoe    │           37.8 │         18.3 │             174.0 │  │
+        │ Adelie    │ Dream     │           39.5 │         16.7 │             178.0 │  │
+        │ Adelie    │ Torgersen │           39.1 │         18.7 │             181.0 │  │
+        │ Chinstrap │ Dream     │           46.5 │         17.9 │             192.0 │  │
+        │ Gentoo    │ Biscoe    │           46.1 │         13.2 │             211.0 │  │
         └───────────┴───────────┴────────────────┴──────────────┴───────────────────┴──┘
 
         Drop all duplicate rows except the last
@@ -1111,13 +1090,13 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┏━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━┓
         ┃ species   ┃ island    ┃ bill_length_mm ┃ bill_depth_… ┃ flipper_length_mm ┃  ┃
         ┡━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━┩
-        │ string    │ string    │ float64        │ float64      │ int64             │  │
+        │ string    │ string    │ float64        │ float64      │ float64           │  │
         ├───────────┼───────────┼────────────────┼──────────────┼───────────────────┼──┤
-        │ Adelie    │ Biscoe    │           42.7 │         18.3 │               196 │  │
-        │ Adelie    │ Dream     │           41.5 │         18.5 │               201 │  │
-        │ Adelie    │ Torgersen │           43.1 │         19.2 │               197 │  │
-        │ Chinstrap │ Dream     │           50.2 │         18.7 │               198 │  │
-        │ Gentoo    │ Biscoe    │           49.9 │         16.1 │               213 │  │
+        │ Adelie    │ Biscoe    │           42.7 │         18.3 │             196.0 │  │
+        │ Adelie    │ Dream     │           41.5 │         18.5 │             201.0 │  │
+        │ Adelie    │ Torgersen │           43.1 │         19.2 │             197.0 │  │
+        │ Chinstrap │ Dream     │           50.2 │         18.7 │             198.0 │  │
+        │ Gentoo    │ Biscoe    │           49.9 │         16.1 │             213.0 │  │
         └───────────┴───────────┴────────────────┴──────────────┴───────────────────┴──┘
 
         Drop all duplicated rows
@@ -1158,7 +1137,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         >>> t.distinct(on="species", keep="second")  # quartodoc: +EXPECTED_FAILURE
         Traceback (most recent call last):
           ...
-        letsql.vendor.ibis.common.exceptions.LetSQLError: Invalid value for keep: 'second' ...
+        letsql.vendor.ibis.common.exceptions.LetSQLError: Invalid value for `keep`: 'second', must be 'first', 'last' or None
         """
 
         import letsql.vendor.ibis.selectors as s
@@ -1244,9 +1223,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable({"x": [1, 2, 3, 4], "y": ["a", "b", "c", "d"]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable({"x": [1, 2, 3, 4], "y": ["a", "b", "c", "d"]})
         >>> t
         ┏━━━━━━━┳━━━━━━━━┓
         ┃ x     ┃ y      ┃
@@ -1262,7 +1241,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         Sample approximately half the rows, with a seed specified for
         reproducibility.
 
-        >>> t.sample(0.5, seed=1234)
+        >>> t.sample(0.5, seed=1234) # doctest: +SKIP
         ┏━━━━━━━┳━━━━━━━━┓
         ┃ x     ┃ y      ┃
         ┡━━━━━━━╇━━━━━━━━┩
@@ -1303,9 +1282,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable({"a": [1, 1, 2], "b": ["c", "a", "a"]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable({"a": [1, 1, 2], "b": ["c", "a", "a"]})
         >>> t
         ┏━━━━━━━┳━━━━━━━━┓
         ┃ a     ┃ b      ┃
@@ -1363,9 +1342,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable({"a": [1, 1, 2], "b": ["c", "a", "a"]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable({"a": [1, 1, 2], "b": ["c", "a", "a"]})
         >>> t
         ┏━━━━━━━┳━━━━━━━━┓
         ┃ a     ┃ b      ┃
@@ -1419,9 +1398,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable(
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable(
         ...     {
         ...         "a": [3, 2, 1, 3],
         ...         "b": ["a", "B", "c", "D"],
@@ -1456,7 +1435,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Sort in descending order
 
-        >>> t.order_by(ibis.desc("b"))
+        >>> t.order_by(ls.desc("b"))
         ┏━━━━━━━┳━━━━━━━━┳━━━━━━━┓
         ┃ a     ┃ b      ┃ c     ┃
         ┡━━━━━━━╇━━━━━━━━╇━━━━━━━┩
@@ -1470,7 +1449,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         You can also use the deferred API to get the same result
 
-        >>> from letsql.vendor.ibis import _
+        >>> from letsql import _
         >>> t.order_by(_.b.desc())
         ┏━━━━━━━┳━━━━━━━━┳━━━━━━━┓
         ┃ a     ┃ b      ┃ c     ┃
@@ -1514,7 +1493,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         This means that shuffling a Table is super simple
 
-        >>> t.order_by(ibis.random())  # doctest: +SKIP
+        >>> t.order_by(ls.random())  # doctest: +SKIP
         ┏━━━━━━━┳━━━━━━━━┳━━━━━━━┓
         ┃ a     ┃ b      ┃ c     ┃
         ┡━━━━━━━╇━━━━━━━━╇━━━━━━━┩
@@ -1529,8 +1508,8 @@ class Table(Expr, _FixedTextJupyterMixin):
         [Selectors](./selectors.qmd) are allowed as sort keys and are a concise way to sort by
         multiple columns matching some criteria
 
-        >>> import ibis.selectors as s
-        >>> penguins = ibis.examples.penguins.fetch()
+        >>> import letsql.selectors as s
+        >>> penguins = ls.examples.penguins.fetch()
         >>> penguins[["year", "island"]].value_counts().order_by(s.startswith("year"))
         ┏━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓
         ┃ year  ┃ island    ┃ year_island_count ┃
@@ -1583,7 +1562,7 @@ class Table(Expr, _FixedTextJupyterMixin):
     ) -> Table:
         """Assemble a set operation expression.
 
-        This exists to workaround an issue in sqlglot where codegen blows the
+        This exists to work around an issue in sqlglot where codegen blows the
         Python stack because of set operation nesting.
 
         The implementation here uses a queue to balance the operation tree.
@@ -1628,9 +1607,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t1 = ibis.memtable({"a": [1, 2]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t1 = ls.memtable({"a": [1, 2]})
         >>> t1
         ┏━━━━━━━┓
         ┃ a     ┃
@@ -1640,7 +1619,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │     1 │
         │     2 │
         └───────┘
-        >>> t2 = ibis.memtable({"a": [2, 3]})
+        >>> t2 = ls.memtable({"a": [2, 3]})
         >>> t2
         ┏━━━━━━━┓
         ┃ a     ┃
@@ -1650,16 +1629,16 @@ class Table(Expr, _FixedTextJupyterMixin):
         │     2 │
         │     3 │
         └───────┘
-        >>> t1.union(t2)  # union all by default
+        >>> t1.union(t2)  # union all by default doctest: +SKIP
         ┏━━━━━━━┓
         ┃ a     ┃
         ┡━━━━━━━┩
         │ int64 │
         ├───────┤
-        │     1 │
-        │     2 │
         │     2 │
         │     3 │
+        │     1 │
+        │     2 │
         └───────┘
         >>> t1.union(t2, distinct=True).order_by("a")
         ┏━━━━━━━┓
@@ -1699,9 +1678,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t1 = ibis.memtable({"a": [1, 2]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t1 = ls.memtable({"a": [1, 2]})
         >>> t1
         ┏━━━━━━━┓
         ┃ a     ┃
@@ -1711,7 +1690,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │     1 │
         │     2 │
         └───────┘
-        >>> t2 = ibis.memtable({"a": [2, 3]})
+        >>> t2 = ls.memtable({"a": [2, 3]})
         >>> t2
         ┏━━━━━━━┓
         ┃ a     ┃
@@ -1757,9 +1736,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t1 = ibis.memtable({"a": [1, 2]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t1 = ls.memtable({"a": [1, 2]})
         >>> t1
         ┏━━━━━━━┓
         ┃ a     ┃
@@ -1769,7 +1748,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │     1 │
         │     2 │
         └───────┘
-        >>> t2 = ibis.memtable({"a": [2, 3]})
+        >>> t2 = ls.memtable({"a": [2, 3]})
         >>> t2
         ┏━━━━━━━┓
         ┃ a     ┃
@@ -1826,11 +1805,11 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> import ibis.selectors as s
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch().select("species", "year", "bill_length_mm")
+        >>> import letsql as ls
+        >>> import letsql.selectors as s
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch().select("species", "year", "bill_length_mm")
         >>> t
         ┏━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━━━┓
         ┃ species ┃ year  ┃ bill_length_mm ┃
@@ -1935,25 +1914,25 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           39.3 │          20.6 │             190.0 │ … │
+        │ Adelie  │ Torgersen │           38.9 │          17.8 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.2 │          19.6 │             195.0 │ … │
+        │ Adelie  │ Torgersen │           34.1 │          18.1 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           42.0 │          20.2 │             190.0 │ … │
         │ …       │ …         │              … │             … │                 … │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
 
@@ -1993,13 +1972,13 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┏━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓
         ┃ species ┃ flipper_length_mm ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩
-        │ string  │ int64             │
+        │ string  │ float64           │
         ├─────────┼───────────────────┤
-        │ Adelie  │               181 │
-        │ Adelie  │               186 │
-        │ Adelie  │               195 │
+        │ Adelie  │             181.0 │
+        │ Adelie  │             186.0 │
+        │ Adelie  │             195.0 │
         │ Adelie  │              NULL │
-        │ Adelie  │               193 │
+        │ Adelie  │             193.0 │
         └─────────┴───────────────────┘
 
         Projection with renaming and compute in one call
@@ -2020,7 +1999,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         You can do the same thing with a named expression, and using the
         deferred API
 
-        >>> from letsql.vendor.ibis import _
+        >>> from letsql import _
         >>> t.select((_.year + 1).name("next_year")).head()
         ┏━━━━━━━━━━━┓
         ┃ next_year ┃
@@ -2051,23 +2030,23 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Projection with a selector
 
-        >>> import ibis.selectors as s
+        >>> import letsql.selectors as s
         >>> t.select(s.numeric() & ~s.cols("year")).head()
         ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
         ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ body_mass_g ┃
         ┡━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
-        │ float64        │ float64       │ int64             │ int64       │
+        │ float64        │ float64       │ float64           │ float64     │
         ├────────────────┼───────────────┼───────────────────┼─────────────┤
-        │           39.1 │          18.7 │               181 │        3750 │
-        │           39.5 │          17.4 │               186 │        3800 │
-        │           40.3 │          18.0 │               195 │        3250 │
+        │           39.1 │          18.7 │             181.0 │      3750.0 │
+        │           39.5 │          17.4 │             186.0 │      3800.0 │
+        │           40.3 │          18.0 │             195.0 │      3250.0 │
         │           NULL │          NULL │              NULL │        NULL │
-        │           36.7 │          19.3 │               193 │        3450 │
+        │           36.7 │          19.3 │             193.0 │      3450.0 │
         └────────────────┴───────────────┴───────────────────┴─────────────┘
 
         Projection + aggregation across multiple columns
 
-        >>> from letsql.vendor.ibis import _
+        >>> from letsql import _
         >>> t.select(s.across(s.numeric() & ~s.cols("year"), _.mean())).head()
         ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
         ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ body_mass_g ┃
@@ -2156,88 +2135,6 @@ class Table(Expr, _FixedTextJupyterMixin):
         -------
         Table
             A renamed table expression
-
-        Examples
-        --------
-        >>> import ibis
-        >>> import ibis.selectors as s
-        >>> ibis.options.interactive = True
-        >>> first3 = s.index[:3]  # first 3 columns
-        >>> t = ibis.examples.penguins_raw_raw.fetch().select(first3)
-        >>> t
-        ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ studyName ┃ Sample Number ┃ Species                             ┃
-        ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-        │ string    │ int64         │ string                              │
-        ├───────────┼───────────────┼─────────────────────────────────────┤
-        │ PAL0708   │             1 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             2 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             3 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             4 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             5 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             6 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             7 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             8 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │             9 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ PAL0708   │            10 │ Adelie Penguin (Pygoscelis adeliae) │
-        │ …         │             … │ …                                   │
-        └───────────┴───────────────┴─────────────────────────────────────┘
-
-        Rename specific columns by passing keyword arguments like
-        `new_name="old_name"``
-
-        >>> t.rename(study_name="studyName").head(1)
-        ┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ study_name ┃ Sample Number ┃ Species                             ┃
-        ┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-        │ string     │ int64         │ string                              │
-        ├────────────┼───────────────┼─────────────────────────────────────┤
-        │ PAL0708    │             1 │ Adelie Penguin (Pygoscelis adeliae) │
-        └────────────┴───────────────┴─────────────────────────────────────┘
-
-        Rename all columns using a format string
-
-        >>> t.rename("p_{name}").head(1)
-        ┏━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ p_studyName ┃ p_Sample Number ┃ p_Species                           ┃
-        ┡━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-        │ string      │ int64           │ string                              │
-        ├─────────────┼─────────────────┼─────────────────────────────────────┤
-        │ PAL0708     │               1 │ Adelie Penguin (Pygoscelis adeliae) │
-        └─────────────┴─────────────────┴─────────────────────────────────────┘
-
-        Rename all columns using a snake_case convention
-
-        >>> t.rename("snake_case").head(1)
-        ┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ study_name ┃ sample_number ┃ species                             ┃
-        ┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-        │ string     │ int64         │ string                              │
-        ├────────────┼───────────────┼─────────────────────────────────────┤
-        │ PAL0708    │             1 │ Adelie Penguin (Pygoscelis adeliae) │
-        └────────────┴───────────────┴─────────────────────────────────────┘
-
-        Rename all columns using an ALL_CAPS convention
-
-        >>> t.rename("ALL_CAPS").head(1)
-        ┏━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ STUDY_NAME ┃ SAMPLE_NUMBER ┃ SPECIES                             ┃
-        ┡━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-        │ string     │ int64         │ string                              │
-        ├────────────┼───────────────┼─────────────────────────────────────┤
-        │ PAL0708    │             1 │ Adelie Penguin (Pygoscelis adeliae) │
-        └────────────┴───────────────┴─────────────────────────────────────┘
-
-        Rename all columns using a callable
-
-        >>> t.rename(str.upper).head(1)
-        ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ STUDYNAME ┃ SAMPLE NUMBER ┃ SPECIES                             ┃
-        ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-        │ string    │ int64         │ string                              │
-        ├───────────┼───────────────┼─────────────────────────────────────┤
-        │ PAL0708   │             1 │ Adelie Penguin (Pygoscelis adeliae) │
-        └───────────┴───────────────┴─────────────────────────────────────┘
         """
         if isinstance(method, Mapping):
             substitutions.update(method)
@@ -2319,25 +2216,25 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           39.3 │          20.6 │             190.0 │ … │
+        │ Adelie  │ Torgersen │           38.9 │          17.8 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.2 │          19.6 │             195.0 │ … │
+        │ Adelie  │ Torgersen │           34.1 │          18.1 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           42.0 │          20.2 │             190.0 │ … │
         │ …       │ …         │              … │             … │                 … │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
 
@@ -2347,41 +2244,41 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string    │ float64        │ float64       │ int64             │ … │
+        │ string    │ float64        │ float64       │ float64           │ … │
         ├───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Torgersen │           36.7 │          19.3 │               193 │ … │
+        │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
         └───────────┴────────────────┴───────────────┴───────────────────┴───┘
         >>> t.drop("species", "bill_length_mm").head()
         ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━┓
         ┃ island    ┃ bill_depth_mm ┃ flipper_length_mm ┃ body_mass_g ┃ sex    ┃ … ┃
         ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━┩
-        │ string    │ float64       │ int64             │ int64       │ string │ … │
+        │ string    │ float64       │ float64           │ float64     │ string │ … │
         ├───────────┼───────────────┼───────────────────┼─────────────┼────────┼───┤
-        │ Torgersen │          18.7 │               181 │        3750 │ male   │ … │
-        │ Torgersen │          17.4 │               186 │        3800 │ female │ … │
-        │ Torgersen │          18.0 │               195 │        3250 │ female │ … │
+        │ Torgersen │          18.7 │             181.0 │      3750.0 │ male   │ … │
+        │ Torgersen │          17.4 │             186.0 │      3800.0 │ female │ … │
+        │ Torgersen │          18.0 │             195.0 │      3250.0 │ female │ … │
         │ Torgersen │          NULL │              NULL │        NULL │ NULL   │ … │
-        │ Torgersen │          19.3 │               193 │        3450 │ female │ … │
+        │ Torgersen │          19.3 │             193.0 │      3450.0 │ female │ … │
         └───────────┴───────────────┴───────────────────┴─────────────┴────────┴───┘
 
         Drop with selectors, mix and match
 
-        >>> import ibis.selectors as s
+        >>> import letsql.selectors as s
         >>> t.drop("species", s.startswith("bill_")).head()
         ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
         ┃ island    ┃ flipper_length_mm ┃ body_mass_g ┃ sex    ┃ year  ┃
         ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━┩
-        │ string    │ int64             │ int64       │ string │ int64 │
+        │ string    │ float64           │ float64     │ string │ int64 │
         ├───────────┼───────────────────┼─────────────┼────────┼───────┤
-        │ Torgersen │               181 │        3750 │ male   │  2007 │
-        │ Torgersen │               186 │        3800 │ female │  2007 │
-        │ Torgersen │               195 │        3250 │ female │  2007 │
+        │ Torgersen │             181.0 │      3750.0 │ male   │  2007 │
+        │ Torgersen │             186.0 │      3800.0 │ female │  2007 │
+        │ Torgersen │             195.0 │      3250.0 │ female │  2007 │
         │ Torgersen │              NULL │        NULL │ NULL   │  2007 │
-        │ Torgersen │               193 │        3450 │ female │  2007 │
+        │ Torgersen │             193.0 │      3450.0 │ female │  2007 │
         └───────────┴───────────────────┴─────────────┴────────┴───────┘
         """
         if not fields:
@@ -2409,25 +2306,25 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           39.3 │          20.6 │             190.0 │ … │
+        │ Adelie  │ Torgersen │           38.9 │          17.8 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.2 │          19.6 │             195.0 │ … │
+        │ Adelie  │ Torgersen │           34.1 │          18.1 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           42.0 │          20.2 │             190.0 │ … │
         │ …       │ …         │              … │             … │                 … │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
         >>> t.filter([t.species == "Adelie", t.body_mass_g > 3500]).sex.value_counts().drop_null(
@@ -2483,9 +2380,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable({"a": ["foo", "bar", "bar"]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable({"a": ["foo", "bar", "bar"]})
         >>> t
         ┏━━━━━━━━┓
         ┃ a      ┃
@@ -2496,11 +2393,11 @@ class Table(Expr, _FixedTextJupyterMixin):
         │ bar    │
         │ bar    │
         └────────┘
-        >>> t.nunique()
+        >>> t.nunique() # doctest: +SKIP
         ┌───┐
         │ 2 │
         └───┘
-        >>> t.nunique(t.a != "foo")
+        >>> t.nunique(t.a != "foo") # doctest: +SKIP
         ┌───┐
         │ 1 │
         └───┘
@@ -2524,9 +2421,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.memtable({"a": ["foo", "bar", "baz"]})
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.memtable({"a": ["foo", "bar", "baz"]})
         >>> t
         ┏━━━━━━━━┓
         ┃ a      ┃
@@ -2546,7 +2443,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │ 2 │
         └───┘
         >>> type(t.count())
-        <class 'ibis.expr.types.numeric.IntegerScalar'>
+        <class 'letsql.vendor.ibis.expr.types.numeric.IntegerScalar'>
         """
         if where is not None:
             (where,) = bind(self, where)
@@ -2576,25 +2473,25 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           39.3 │          20.6 │             190.0 │ … │
+        │ Adelie  │ Torgersen │           38.9 │          17.8 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.2 │          19.6 │             195.0 │ … │
+        │ Adelie  │ Torgersen │           34.1 │          18.1 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           42.0 │          20.2 │             190.0 │ … │
         │ …       │ …         │              … │             … │                 … │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
         >>> t.count()
@@ -2641,9 +2538,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t.sex
         ┏━━━━━━━━┓
         ┃ sex    ┃
@@ -2748,39 +2645,6 @@ class Table(Expr, _FixedTextJupyterMixin):
         Table
             The child table with struct fields of each of `columns` projected.
 
-        Examples
-        --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> lines = '''
-        ...     {"name": "a", "pos": {"lat": 10.1, "lon": 30.3}}
-        ...     {"name": "b", "pos": {"lat": 10.2, "lon": 30.2}}
-        ...     {"name": "c", "pos": {"lat": 10.3, "lon": 30.1}}
-        ... '''
-        >>> with open("/tmp/lines.json", "w") as f:
-        ...     nbytes = f.write(lines)  # nbytes is unused
-        >>> t = ibis.read_json("/tmp/lines.json")
-        >>> t
-        ┏━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ name   ┃ pos                                ┃
-        ┡━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-        │ string │ struct<lat: float64, lon: float64> │
-        ├────────┼────────────────────────────────────┤
-        │ a      │ {'lat': 10.1, 'lon': 30.3}         │
-        │ b      │ {'lat': 10.2, 'lon': 30.2}         │
-        │ c      │ {'lat': 10.3, 'lon': 30.1}         │
-        └────────┴────────────────────────────────────┘
-        >>> t.unpack("pos")
-        ┏━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┓
-        ┃ name   ┃ lat     ┃ lon     ┃
-        ┡━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━┩
-        │ string │ float64 │ float64 │
-        ├────────┼─────────┼─────────┤
-        │ a      │    10.1 │    30.3 │
-        │ b      │    10.2 │    30.2 │
-        │ c      │    10.3 │    30.1 │
-        └────────┴─────────┴─────────┘
-
         See Also
         --------
         [`StructValue.lift`](./expression-collections.qmd#ibis.expr.types.structs.StructValue.lift)
@@ -2805,9 +2669,9 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t.info()
         ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━┓
         ┃ name              ┃ type    ┃ nullable ┃ nulls ┃ non_nulls ┃ null_frac ┃ … ┃
@@ -2818,8 +2682,8 @@ class Table(Expr, _FixedTextJupyterMixin):
         │ island            │ string  │ True     │     0 │       344 │  0.000000 │ … │
         │ bill_length_mm    │ float64 │ True     │     2 │       342 │  0.005814 │ … │
         │ bill_depth_mm     │ float64 │ True     │     2 │       342 │  0.005814 │ … │
-        │ flipper_length_mm │ int64   │ True     │     2 │       342 │  0.005814 │ … │
-        │ body_mass_g       │ int64   │ True     │     2 │       342 │  0.005814 │ … │
+        │ flipper_length_mm │ float64 │ True     │     2 │       342 │  0.005814 │ … │
+        │ body_mass_g       │ float64 │ True     │     2 │       342 │  0.005814 │ … │
         │ sex               │ string  │ True     │    11 │       333 │  0.031977 │ … │
         │ year              │ int64   │ True     │     0 │       344 │  0.000000 │ … │
         └───────────────────┴─────────┴──────────┴───────┴───────────┴───────────┴───┘
@@ -2869,11 +2733,11 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> import ibis.selectors as s
-        >>> ibis.options.interactive = True
-        >>> p = ibis.examples.penguins.fetch()
-        >>> p.describe()
+        >>> import letsql as ls
+        >>> import letsql.selectors as s
+        >>> ls.options.interactive = True
+        >>> p = ls.examples.penguins.fetch()
+        >>> p.describe() # doctest: +SKIP
         ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━┓
         ┃ name              ┃ pos   ┃ type    ┃ count ┃ nulls ┃ unique ┃ mode   ┃ … ┃
         ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━╇━━━┩
@@ -2888,7 +2752,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │ sex               │     6 │ string  │   344 │    11 │      2 │ male   │ … │
         │ year              │     7 │ int64   │   344 │     0 │      3 │ NULL   │ … │
         └───────────────────┴───────┴─────────┴───────┴───────┴────────┴────────┴───┘
-        >>> p.select(s.of_type("numeric")).describe()
+        >>> p.select(s.of_type("numeric")).describe() # doctest: +SKIP
         ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━┓
         ┃ name              ┃ pos   ┃ type    ┃ count ┃ nulls ┃ unique ┃ … ┃
         ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━┩
@@ -2900,7 +2764,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │ bill_length_mm    │     0 │ float64 │   344 │     2 │    164 │ … │
         │ bill_depth_mm     │     1 │ float64 │   344 │     2 │     80 │ … │
         └───────────────────┴───────┴─────────┴───────┴───────┴────────┴───┘
-        >>> p.select(s.of_type("string")).describe()
+        >>> p.select(s.of_type("string")).describe() # doctest: +SKIP
         ┏━━━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
         ┃ name    ┃ pos   ┃ type   ┃ count ┃ nulls ┃ unique ┃ mode   ┃
         ┡━━━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━━╇━━━━━━━━┩
@@ -3023,10 +2887,10 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-        >>> movies = ibis.examples.ml_latest_small_movies.fetch()
+        >>> import letsql as ls
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> movies = ls.examples.ml_latest_small_movies.fetch()
         >>> movies.head()
         ┏━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
         ┃ movieId ┃ title                            ┃ genres                          ┃
@@ -3039,7 +2903,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │       4 │ Waiting to Exhale (1995)         │ Comedy|Drama|Romance            │
         │       5 │ Father of the Bride Part II (19… │ Comedy                          │
         └─────────┴──────────────────────────────────┴─────────────────────────────────┘
-        >>> ratings = ibis.examples.ml_latest_small_ratings.fetch().drop("timestamp")
+        >>> ratings = ls.examples.ml_latest_small_ratings.fetch().drop("timestamp")
         >>> ratings.head()
         ┏━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┓
         ┃ userId ┃ movieId ┃ rating  ┃
@@ -3089,7 +2953,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │      1 │      50 │     5.0 │ Usual Suspects, The (… │ Crime|Mystery|Thriller │
         └────────┴─────────┴─────────┴────────────────────────┴────────────────────────┘
 
-        >>> tags = ibis.examples.ml_latest_small_tags.fetch()
+        >>> tags = ls.examples.ml_latest_small_tags.fetch()
         >>> tags.head()
         ┏━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
         ┃ userId ┃ movieId ┃ tag             ┃ timestamp  ┃
@@ -3113,11 +2977,11 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┡━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━┩
         │ int64  │ int64   │ string         │ int64      │ float64 │
         ├────────┼─────────┼────────────────┼────────────┼─────────┤
-        │     62 │       2 │ Robin Williams │ 1528843907 │     4.0 │
+        │     62 │    2953 │ sequel         │ 1525636887 │     3.5 │
         │     62 │     110 │ sword fight    │ 1528152535 │     4.5 │
-        │     62 │     410 │ gothic         │ 1525636609 │     4.5 │
-        │     62 │    2023 │ mafia          │ 1525636733 │     5.0 │
+        │     62 │    3114 │ Tom Hanks      │ 1525636925 │     3.0 │
         │     62 │    2124 │ quirky         │ 1525636846 │     5.0 │
+        │     62 │       2 │ Robin Williams │ 1528843907 │     4.0 │
         └────────┴─────────┴────────────────┴────────────┴─────────┘
 
         To self-join a table with itself, you need to call
@@ -3238,11 +3102,11 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> import ibis.selectors as s
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> import letsql.selectors as s
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> t.count()
         ┌─────┐
         │ 344 │
@@ -3253,33 +3117,22 @@ class Table(Expr, _FixedTextJupyterMixin):
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
-        │ Adelie  │ Torgersen │           39.3 │          20.6 │               190 │ … │
-        │ Adelie  │ Torgersen │           38.9 │          17.8 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.2 │          19.6 │               195 │ … │
-        │ Adelie  │ Torgersen │           34.1 │          18.1 │               193 │ … │
-        │ Adelie  │ Torgersen │           42.0 │          20.2 │               190 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           39.3 │          20.6 │             190.0 │ … │
+        │ Adelie  │ Torgersen │           38.9 │          17.8 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.2 │          19.6 │             195.0 │ … │
+        │ Adelie  │ Torgersen │           34.1 │          18.1 │             193.0 │ … │
+        │ Adelie  │ Torgersen │           42.0 │          20.2 │             190.0 │ … │
         │ …       │ …         │              … │             … │                 … │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
         >>> expr.columns
-        ['species',
-         'island',
-         'bill_length_mm',
-         'bill_depth_mm',
-         'flipper_length_mm',
-         'body_mass_g',
-         'sex',
-         'year',
-         'bill_length_mm_right',
-         'bill_depth_mm_right',
-         'flipper_length_mm_right',
-         'body_mass_g_right']
+        ['species', 'island', 'bill_length_mm', 'bill_depth_mm', 'flipper_length_mm', 'body_mass_g', 'sex', 'year', 'bill_length_mm_right', 'bill_depth_mm_right', 'flipper_length_mm_right', 'body_mass_g_right']
         >>> expr.count()
         ┌─────┐
         │ 344 │
@@ -3326,21 +3179,21 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch()
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch()
         >>> expr = t.alias("pingüinos").sql('SELECT * FROM "pingüinos" LIMIT 5')
         >>> expr
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
         """
         return ops.View(child=self, name=alias).to_expr()
@@ -3363,10 +3216,10 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-        >>> t = ibis.examples.penguins.fetch(table_name="penguins")
+        >>> import letsql as ls
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> t = ls.examples.penguins.fetch(table_name="penguins")
         >>> expr = t.sql(
         ...     """
         ...     SELECT island, mean(bill_length_mm) AS avg_bill_length
@@ -3388,7 +3241,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Mix and match ibis expressions with SQL queries
 
-        >>> t = ibis.examples.penguins.fetch(table_name="penguins")
+        >>> t = ls.examples.penguins.fetch(table_name="penguins")
         >>> expr = t.sql(
         ...     """
         ...     SELECT island, mean(bill_length_mm) AS avg_bill_length
@@ -3401,22 +3254,22 @@ class Table(Expr, _FixedTextJupyterMixin):
         ...     island=_.island.lower(),
         ...     avg_bill_length=_.avg_bill_length.round(1),
         ... )
-        >>> expr
+        >>> expr # doctest: +SKIP
         ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
         ┃ island    ┃ avg_bill_length ┃
         ┡━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
         │ string    │ float64         │
         ├───────────┼─────────────────┤
         │ biscoe    │            45.3 │
-        │ dream     │            44.2 │
         │ torgersen │            39.0 │
+        │ dream     │            44.2 │
         └───────────┴─────────────────┘
 
         Because ibis expressions aren't named, they aren't visible to
         subsequent `.sql` calls. Use the [`alias`](#ibis.expr.types.relations.Table.alias) method
         to assign a name to an expression.
 
-        >>> expr.alias("b").sql("SELECT * FROM b WHERE avg_bill_length > 40")
+        >>> expr.alias("b").sql("SELECT * FROM b WHERE avg_bill_length > 40") # doctest: +SKIP
         ┏━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
         ┃ island ┃ avg_bill_length ┃
         ┡━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
@@ -3526,11 +3379,11 @@ class Table(Expr, _FixedTextJupyterMixin):
         --------
         Basic usage
 
-        >>> import ibis
-        >>> import ibis.selectors as s
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-        >>> relig_income = ibis.examples.relig_income_raw.fetch()
+        >>> import letsql as ls
+        >>> import letsql.selectors as s
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> relig_income = ls.examples.relig_income_raw.fetch()
         >>> relig_income
         ┏━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━┳━━━┓
         ┃ religion                ┃ <$10k ┃ $10-20k ┃ $20-30k ┃ $30-40k ┃ $40-50k ┃ … ┃
@@ -3575,7 +3428,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         Similarly for a different example dataset, we convert names to values
         but using a different selector and the default `values_to` value.
 
-        >>> world_bank_pop = ibis.examples.world_bank_pop_raw.fetch()
+        >>> world_bank_pop = ls.examples.world_bank_pop_raw.fetch()
         >>> world_bank_pop.head()
         ┏━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━┓
         ┃ country ┃ indicator   ┃ 2000         ┃ 2001         ┃ 2002         ┃ … ┃
@@ -3604,7 +3457,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         `pivot_longer` has some preprocessing capabilities like stripping a prefix and applying
         a function to column names
 
-        >>> billboard = ibis.examples.billboard.fetch()
+        >>> billboard = ls.examples.billboard.fetch()
         >>> billboard
         ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━┓
         ┃ artist         ┃ track                   ┃ date_entered ┃ wk1   ┃ wk2   ┃ … ┃
@@ -3652,7 +3505,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         You can use regular expression capture groups to extract multiple
         variables stored in column names
 
-        >>> who = ibis.examples.who.fetch()
+        >>> who = ls.examples.who.fetch()
         >>> who
         ┏━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━┓
         ┃ country     ┃ iso2   ┃ iso3   ┃ year  ┃ new_sp_m014 ┃ new_sp_m1524 ┃ … ┃
@@ -3743,10 +3596,10 @@ class Table(Expr, _FixedTextJupyterMixin):
         ...     s.index["new_sp_m014":"newrel_f65"],
         ...     names_to=["diagnosis", "gender", "age"],
         ...     names_pattern="new_?(.*)_.(.*)",
-        ... )
+        ... ) # doctest: +SKIP
         Traceback (most recent call last):
           ...
-        ibis.common.exceptions.IbisInputError: Number of match groups in `names_pattern` ...
+        letsql.vendor.ibis.common.exceptions.LetSQLInputError: Number of match groups in `names_pattern` ...
 
         `names_transform` must be a mapping or callable
 
@@ -3755,7 +3608,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         ... )  # quartodoc: +EXPECTED_FAILURE
         Traceback (most recent call last):
           ...
-        ibis.common.exceptions.IbisTypeError: ... Got <class 'str'>
+        letsql.vendor.ibis.common.exceptions.LetSQLTypeError: `names_transform` must be a mapping or callable. Got <class 'str'>
         """  # noqa: RUF002
         import letsql.vendor.ibis.selectors as s
 
@@ -3871,10 +3724,10 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> import ibis.selectors as s
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
+        >>> import letsql as ls
+        >>> import letsql.selectors as s
+        >>> from letsql import _
+        >>> ls.options.interactive = True
 
         Basic usage
 
@@ -3918,7 +3771,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         You can do simple transpose-like operations using `pivot_wider`
 
-        >>> t = ibis.memtable(dict(outcome=["yes", "no"], counted=[3, 4]))
+        >>> t = ls.memtable(dict(outcome=["yes", "no"], counted=[3, 4]))
         >>> t
         ┏━━━━━━━━━┳━━━━━━━━━┓
         ┃ outcome ┃ counted ┃
@@ -3962,7 +3815,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Compute multiple values columns
 
-        >>> us_rent_income = ibis.examples.us_rent_income.fetch()
+        >>> us_rent_income = ls.examples.us_rent_income.fetch()
         >>> us_rent_income
         ┏━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━┓
         ┃ geoid  ┃ name       ┃ variable ┃ estimate ┃ moe   ┃
@@ -4029,7 +3882,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Supply an alternative function to summarize values
 
-        >>> warpbreaks = ibis.examples.warpbreaks.fetch().select("wool", "tension", "breaks")
+        >>> warpbreaks = ls.examples.warpbreaks.fetch().select("wool", "tension", "breaks")
         >>> warpbreaks
         ┏━━━━━━━━┳━━━━━━━━━┳━━━━━━━━┓
         ┃ wool   ┃ tension ┃ breaks ┃
@@ -4098,7 +3951,7 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         >>> import random
         >>> random.seed(0)
-        >>> raw = ibis.memtable(
+        >>> raw = ls.memtable(
         ...     [
         ...         dict(
         ...             product=product,
@@ -4310,10 +4163,10 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> ibis.options.interactive = True
-        >>> import ibis.selectors as s
-        >>> t = ibis.memtable(dict(a=[1], b=[1], c=[1], d=["a"], e=["a"], f=["a"]))
+        >>> import letsql as ls
+        >>> ls.options.interactive = True
+        >>> import letsql.selectors as s
+        >>> t = ls.memtable(dict(a=[1], b=[1], c=[1], d=["a"], e=["a"], f=["a"]))
         >>> t
         ┏━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━━┳━━━━━━━━┳━━━━━━━━┓
         ┃ a     ┃ b     ┃ c     ┃ d      ┃ e      ┃ f      ┃
@@ -4389,7 +4242,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         When multiple columns are selected with `before` or `after`, those
         selected columns are moved before and after the `selectors` input
 
-        >>> t = ibis.memtable(dict(a=[1], b=["a"], c=[1], d=["a"]))
+        >>> t = ls.memtable(dict(a=[1], b=["a"], c=[1], d=["a"]))
         >>> t.relocate(s.numeric(), after=s.of_type("string"))
         ┏━━━━━━━━┳━━━━━━━━┳━━━━━━━┳━━━━━━━┓
         ┃ b      ┃ d      ┃ a     ┃ c     ┃
@@ -4531,20 +4384,21 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> from letsql.vendor.ibis import examples
-        >>> ibis.options.interactive = True
+        >>> import letsql as ls
+        >>> from letsql import examples
+        >>> ls.options.interactive = True
         >>> t = examples.penguins.fetch()
         >>> t.head()
         ┏━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━┓
         ┃ species ┃ island    ┃ bill_length_mm ┃ bill_depth_mm ┃ flipper_length_mm ┃ … ┃
         ┡━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━┩
-        │ string  │ string    │ float64        │ float64       │ int64             │ … │
+        │ string  │ string    │ float64        │ float64       │ float64           │ … │
         ├─────────┼───────────┼────────────────┼───────────────┼───────────────────┼───┤
-        │ Adelie  │ Torgersen │           39.1 │          18.7 │               181 │ … │
-        │ Adelie  │ Torgersen │           39.5 │          17.4 │               186 │ … │
-        │ Adelie  │ Torgersen │           40.3 │          18.0 │               195 │ … │
+        │ Adelie  │ Torgersen │           39.1 │          18.7 │             181.0 │ … │
+        │ Adelie  │ Torgersen │           39.5 │          17.4 │             186.0 │ … │
+        │ Adelie  │ Torgersen │           40.3 │          18.0 │             195.0 │ … │
         │ Adelie  │ Torgersen │           NULL │          NULL │              NULL │ … │
-        │ Adelie  │ Torgersen │           36.7 │          19.3 │               193 │ … │
+        │ Adelie  │ Torgersen │           36.7 │          19.3 │             193.0 │ … │
         └─────────┴───────────┴────────────────┴───────────────┴───────────────────┴───┘
         >>> t.year.value_counts().order_by("year")
         ┏━━━━━━━┳━━━━━━━━━━━━┓
@@ -4607,114 +4461,6 @@ class Table(Expr, _FixedTextJupyterMixin):
 
         Examples
         --------
-        >>> import ibis
-        >>> from letsql.vendor.ibis import _
-        >>> ibis.options.interactive = True
-
-        Construct a table expression with an array column.
-
-        >>> t = ibis.memtable({"x": [[1, 2], [], None, [3, 4, 5]], "y": [1, 2, 3, 4]})
-        >>> t
-        ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-        ┃ x                    ┃ y     ┃
-        ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-        │ array<int64>         │ int64 │
-        ├──────────────────────┼───────┤
-        │ [1, 2]               │     1 │
-        │ []                   │     2 │
-        │ NULL                 │     3 │
-        │ [3, 4, ... +1]       │     4 │
-        └──────────────────────┴───────┘
-
-        Unnest the array column `x`, replacing the **existing** `x` column.
-
-        >>> t.unnest("x")
-        ┏━━━━━━━┳━━━━━━━┓
-        ┃ x     ┃ y     ┃
-        ┡━━━━━━━╇━━━━━━━┩
-        │ int64 │ int64 │
-        ├───────┼───────┤
-        │     1 │     1 │
-        │     2 │     1 │
-        │     3 │     4 │
-        │     4 │     4 │
-        │     5 │     4 │
-        └───────┴───────┘
-
-        Unnest the array column `x` with an offset. The `offset` parameter is
-        the name of the resulting index column.
-
-        >>> t.unnest(t.x, offset="idx")
-        ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
-        ┃ x     ┃ y     ┃ idx   ┃
-        ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
-        │ int64 │ int64 │ int64 │
-        ├───────┼───────┼───────┤
-        │     1 │     1 │     0 │
-        │     2 │     1 │     1 │
-        │     3 │     4 │     0 │
-        │     4 │     4 │     1 │
-        │     5 │     4 │     2 │
-        └───────┴───────┴───────┘
-
-        Unnest the array column `x` keep empty array values as `NULL` in the
-        output table.
-
-        >>> t.unnest(_.x, offset="idx", keep_empty=True)
-        ┏━━━━━━━┳━━━━━━━┳━━━━━━━┓
-        ┃ x     ┃ y     ┃ idx   ┃
-        ┡━━━━━━━╇━━━━━━━╇━━━━━━━┩
-        │ int64 │ int64 │ int64 │
-        ├───────┼───────┼───────┤
-        │     1 │     1 │     0 │
-        │     2 │     1 │     1 │
-        │     3 │     4 │     0 │
-        │     4 │     4 │     1 │
-        │     5 │     4 │     2 │
-        │  NULL │     2 │  NULL │
-        │  NULL │     3 │  NULL │
-        └───────┴───────┴───────┘
-
-        If you need to preserve the row order of the preserved empty arrays or
-        null values use
-        [`row_number`](./expression-tables.qmd#ibis.row_number) to
-        create an index column before calling `unnest`.
-
-        >>> (
-        ...     t.mutate(original_row=ibis.row_number())
-        ...     .unnest("x", offset="idx", keep_empty=True)
-        ...     .relocate("original_row")
-        ...     .order_by("original_row")
-        ... )
-        ┏━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━┳━━━━━━━┓
-        ┃ original_row ┃ x     ┃ y     ┃ idx   ┃
-        ┡━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━╇━━━━━━━┩
-        │ int64        │ int64 │ int64 │ int64 │
-        ├──────────────┼───────┼───────┼───────┤
-        │            0 │     1 │     1 │     0 │
-        │            0 │     2 │     1 │     1 │
-        │            1 │  NULL │     2 │  NULL │
-        │            2 │  NULL │     3 │  NULL │
-        │            3 │     3 │     4 │     0 │
-        │            3 │     4 │     4 │     1 │
-        │            3 │     5 │     4 │     2 │
-        └──────────────┴───────┴───────┴───────┘
-
-        You can also unnest more complex expressions, and the resulting column
-        will be projected as the last expression in the result.
-
-        >>> t.unnest(_.x.map(lambda v: v + 1).name("plus_one"))
-        ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━┓
-        ┃ x                    ┃ y     ┃ plus_one ┃
-        ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━┩
-        │ array<int64>         │ int64 │ int64    │
-        ├──────────────────────┼───────┼──────────┤
-        │ [1, 2]               │     1 │        2 │
-        │ [1, 2]               │     1 │        3 │
-        │ [3, 4, ... +1]       │     4 │        4 │
-        │ [3, 4, ... +1]       │     4 │        5 │
-        │ [3, 4, ... +1]       │     4 │        6 │
-        └──────────────────────┴───────┴──────────┘
         """
         (column,) = self.bind(column)
         return ops.TableUnnest(
