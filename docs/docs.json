@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "quill",
+  "theme": "mint",
   "name": "LETSQL Documentation",
   "colors": {
     "primary": "#16A34A",
