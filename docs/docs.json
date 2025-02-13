@@ -27,13 +27,20 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "API Documentation",
+            "group": "Expression API",
             "pages": [
               "api-reference/expression-generic",
               "api-reference/expression-numeric",
               "api-reference/expression-relations",
               "api-reference/expression-strings",
               "api-reference/expression-temporal"
+            ]
+          },
+          {
+            "group": "Functions API",
+            "pages": [
+              "api-reference/toplevel-api",
+              "api-reference/ml-api"
             ]
           }
         ]

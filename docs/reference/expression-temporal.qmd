@@ -1,8 +1,3 @@
----
-title: "Generic expressions"
-format: docusaurus-md
----
-
 # Temporal expressions
 
 Dates, times, timestamps and intervals.
