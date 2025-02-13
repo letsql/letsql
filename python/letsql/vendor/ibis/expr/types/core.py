@@ -121,7 +121,9 @@ class Expr(Immutable, Coercible):
         import letsql as ls
         from letsql.expr.relations import CachedNode, RemoteTable
 
-        if self.op().find((CachedNode, RemoteTable)):
+        if ls.options.interactive:
+            return _capture_rich_renderable(self)
+        elif self.op().find((CachedNode, RemoteTable)):
             lines = [
                 "┌──── LetSQL Expression Plan ─────┐",
                 *self._ascii_plan_lines(),
@@ -129,10 +131,7 @@ class Expr(Immutable, Coercible):
             ]
             return "\n".join(lines)
         else:
-            if ls.options.interactive:
-                return _capture_rich_renderable(self)
-            else:
-                return self._noninteractive_repr()
+            return self._noninteractive_repr()
 
     def _ascii_plan_lines(self):
         from letsql.expr.relations import CachedNode, RemoteTable
@@ -471,6 +470,53 @@ class Expr(Immutable, Coercible):
         return current_backend
 
     def into_backend(self, con, name=None):
+        """
+        Converts the Expr to a table in the given backend `con` with an optional table name `name`.
+
+        The table is backed by a PyArrow RecordBatchReader, the RecordBatchReader is teed
+        so it can safely be reaused without spilling to disk.
+
+        Parameters
+        ----------
+        con
+            The backend where the table should be created
+        name
+            The name of the table
+
+        Examples
+        -------
+        >>> import letsql as ls
+        >>> from letsql import _
+        >>> ls.options.interactive = True
+        >>> ls_con = ls.connect()
+        >>> pg_con = ls.postgres.connect_examples()
+        >>> t = pg_con.table("batting").into_backend(ls_con, "ls_batting")
+        >>> expr = (
+        ...     t.join(t, "playerID")
+        ...     .order_by("playerID", "yearID")
+        ...     .limit(15)
+        ...     .select(player_id="playerID", year_id="yearID_right")
+        ... )
+        >>> expr
+        ┏━━━━━━━━━━━┳━━━━━━━━━┓
+        ┃ player_id ┃ year_id ┃
+        ┡━━━━━━━━━━━╇━━━━━━━━━┩
+        │ string    │ int64   │
+        ├───────────┼─────────┤
+        │ aardsda01 │    2015 │
+        │ aardsda01 │    2007 │
+        │ aardsda01 │    2006 │
+        │ aardsda01 │    2009 │
+        │ aardsda01 │    2008 │
+        │ aardsda01 │    2010 │
+        │ aardsda01 │    2004 │
+        │ aardsda01 │    2013 │
+        │ aardsda01 │    2012 │
+        │ aardsda01 │    2006 │
+        │ …         │       … │
+        └───────────┴─────────┘
+        """
+
         from letsql.expr.relations import RemoteTable
 
         return RemoteTable.from_expr(con=con, expr=self, name=name).to_expr()
