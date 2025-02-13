@@ -8,6 +8,8 @@ website:
       - reference/expression-numeric.qmd
       - reference/expression-strings.qmd
       - reference/expression-temporal.qmd
+      - reference/toplevel-api.qmd
+      - reference/ml-api.qmd
       section: Expression API
     id: reference
   - id: dummy-sidebar

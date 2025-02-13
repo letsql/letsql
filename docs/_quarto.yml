@@ -110,6 +110,7 @@ quartodoc:
                 - union
                 - view
                 - cache
+                - into_backend
 
         - kind: page
           path: expression-generic
@@ -282,3 +283,62 @@ quartodoc:
             - name: IntervalValue
               members:
                 - to_unit
+
+        - kind: page
+          path: toplevel-api
+          package: letsql.expr.api
+          summary:
+            name: Top Level API functions
+          contents:
+            - param
+            - schema
+            - table
+            - memtable
+            - desc
+            - asc
+            - preceding
+            - following
+            - and_
+            - or_
+            - random
+            - uuid
+            - case
+            - now
+            - today
+            - rank
+            - dense_rank
+            - percent_rank
+            - cume_dist
+            - ntile
+            - row_number
+            - read_csv
+            - read_parquet
+            - register
+            - read_postgres
+            - read_sqlite
+            - union
+            - intersect
+            - difference
+            - ifelse
+            - coalesce
+            - greatest
+            - least
+            - range
+            - timestamp
+            - date
+            - time
+            - interval
+            - to_sql
+            - execute
+            - to_pyarrow_batches
+            - to_pyarrow
+            - to_parquet
+            - get_plans
+
+        - kind: page
+          path: ml-api
+          package: letsql.expr.ml
+          summary:
+            name: ML API functions
+          contents:
+            - train_test_splits
