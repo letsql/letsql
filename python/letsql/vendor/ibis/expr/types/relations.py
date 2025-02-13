@@ -954,7 +954,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         ...     total_cost=_.price.sum(),
         ...     avg_cost=_.price.mean(),
         ...     having=_.price.sum() < 0.5,
-        ... )
+        ... ) # doctest: +SKIP
         ┏━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━┓
         ┃ fruit  ┃ total_cost ┃ avg_cost ┃
         ┡━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━┩
@@ -3312,6 +3312,85 @@ class Table(Expr, _FixedTextJupyterMixin):
         return self.execute(**kwargs)
 
     def cache(self, storage=None) -> Table:
+        """Cache the results of a computation to improve performance on subsequent executions.
+        This method allows you to cache the results of a computation either in memory, on disk
+        using Parquet files, or in a database table. The caching strategy and storage location
+        are determined by the storage parameter.
+
+        Parameters
+        ----------
+        storage : CacheStorage, optional
+            The storage strategy to use for caching. Can be one of:
+            - ParquetCacheStorage: Caches results as Parquet files on disk
+            - SourceStorage: Caches results in the source database
+            - ParquetSnapshot: Creates a snapshot of data in Parquet format
+            - SnapshotStorage: Creates a snapshot in the source database
+            If None, uses the default storage configuration.
+
+        Returns
+        -------
+        Expr
+            A new expression that represents the cached computation.
+
+        Notes
+        -----
+        The cache method supports two main strategies:
+        1. ModificationTimeStrategy: Tracks changes based on modification time
+        2. SnapshotStrategy: Creates point-in-time snapshots of the data
+
+        Each strategy can be combined with either Parquet or database storage.
+
+        Examples
+        --------
+        Using ParquetCacheStorage:
+        >>> import letsql as ls
+        >>> from letsql.common.caching import ParquetCacheStorage
+        >>> from pathlib import Path
+        >>> pg = ls.postgres.connect_examples()
+        >>> con = ls.connect()
+        >>> storage = ParquetCacheStorage(source=con, path=Path.cwd())
+        >>> alltypes = pg.table("functional_alltypes")
+        >>> cached = (alltypes
+        ...     .select(alltypes.smallint_col, alltypes.int_col, alltypes.float_col)
+        ...     .cache(storage=storage)) # doctest: +SKIP
+
+        Using SourceStorage with PostgreSQL:
+        >>> from letsql.common.caching import SourceStorage
+        >>> from letsql import _
+        >>> ddb = ls.duckdb.connect()
+        >>> path = ls.config.options.pins.get_path("batting")
+        >>> right = (ddb.read_parquet(path, table_name="batting")
+        ...          .filter(_.yearID == 2014)
+        ...          .pipe(con.register, table_name="ddb-batting"))
+        >>> left = (pg.table("batting")
+        ...         .filter(_.yearID == 2015)
+        ...         .pipe(con.register, table_name="pg-batting"))
+        >>> # Cache the joined result
+        >>> expr = left.join(right, "playerID").cache(SourceStorage(source=pg)) # doctest: +SKIP
+
+        Using cache with filtering:
+        >>> cached = alltypes.cache(storage=storage)
+        >>> expr = cached.filter([
+        ...     cached.float_col > 0,
+        ...     cached.smallint_col > 4,
+        ...     cached.int_col < cached.float_col * 2
+        ... ]) # doctest: +SKIP
+
+        See Also
+        --------
+        ParquetCacheStorage : Storage implementation for Parquet files
+        SourceStorage : Storage implementation for database tables
+        ModificationTimeStrategy : Strategy for tracking changes by modification time
+        SnapshotStrategy : Strategy for creating data snapshots
+
+        Notes
+        -----
+        - The cache is identified by a unique key based on the computation and strategy
+        - Cache invalidation is handled automatically based on the chosen strategy
+        - Cross-source caching (e.g., from PostgreSQL to DuckDB) is supported
+        - Cache locations can be configured globally through letsql.config.options
+        """
+
         from letsql.common.caching import (
             SourceStorage,
             maybe_prevent_cross_source_caching,
