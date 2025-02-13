@@ -1,11 +1,8 @@
 ---
 title: 'Table expressions'
-description: 'Example section for showcasing API endpoints'
 ---
 
-# Table expressions
-
-Tables are one of the core data structures in LetSQL.
+Tables are one of the core data structures in Ibis.
 
 # Table
 
@@ -47,25 +44,26 @@ You will not create Table objects directly. Instead, you will create one
 
 ## Methods
 
-| Name                                                                    | Description                                                          |
+| Name                                                                        | Description                                                                                 |
 |------------------------------------|------------------------------------|
-| [alias](#letsql.vendor.ibis.expr.types.relations.Table.alias)           | Create a table expression with a specific name `alias`.              |
-| [as_scalar](#letsql.vendor.ibis.expr.types.relations.Table.as_scalar)   | Inform ibis that the table expression should be treated as a scalar. |
-| [count](#letsql.vendor.ibis.expr.types.relations.Table.count)           | Compute the number of rows in the table.                             |
-| [difference](#letsql.vendor.ibis.expr.types.relations.Table.difference) | Compute the set difference of multiple table expressions.            |
-| [distinct](#letsql.vendor.ibis.expr.types.relations.Table.distinct)     | Return a Table with duplicate rows removed.                          |
-| [dropna](#letsql.vendor.ibis.expr.types.relations.Table.dropna)         | Deprecated - use `drop_null` instead.                                |
-| [fillna](#letsql.vendor.ibis.expr.types.relations.Table.fillna)         | Deprecated - use `fill_null` instead.                                |
-| [filter](#letsql.vendor.ibis.expr.types.relations.Table.filter)         | Select rows from `table` based on `predicates`.                      |
-| [intersect](#letsql.vendor.ibis.expr.types.relations.Table.intersect)   | Compute the set intersection of multiple table expressions.          |
-| [limit](#letsql.vendor.ibis.expr.types.relations.Table.limit)           | Select `n` rows from `self` starting at `offset`.                    |
-| [order_by](#letsql.vendor.ibis.expr.types.relations.Table.order_by)     | Sort a table by one or more expressions.                             |
-| [sample](#letsql.vendor.ibis.expr.types.relations.Table.sample)         | Sample a fraction of rows from a table.                              |
-| [select](#letsql.vendor.ibis.expr.types.relations.Table.select)         | Compute a new table expression using `exprs` and `named_exprs`.      |
-| [sql](#letsql.vendor.ibis.expr.types.relations.Table.sql)               | Run a SQL query against a table expression.                          |
-| [union](#letsql.vendor.ibis.expr.types.relations.Table.union)           | Compute the set union of multiple table expressions.                 |
-| [view](#letsql.vendor.ibis.expr.types.relations.Table.view)             | Create a new table expression distinct from the current one.         |
-| [cache](#letsql.vendor.ibis.expr.types.relations.Table.cache)           |                                                                      |
+| [alias](#letsql.vendor.ibis.expr.types.relations.Table.alias)               | Create a table expression with a specific name `alias`.                                     |
+| [as_scalar](#letsql.vendor.ibis.expr.types.relations.Table.as_scalar)       | Inform ibis that the table expression should be treated as a scalar.                        |
+| [count](#letsql.vendor.ibis.expr.types.relations.Table.count)               | Compute the number of rows in the table.                                                    |
+| [difference](#letsql.vendor.ibis.expr.types.relations.Table.difference)     | Compute the set difference of multiple table expressions.                                   |
+| [distinct](#letsql.vendor.ibis.expr.types.relations.Table.distinct)         | Return a Table with duplicate rows removed.                                                 |
+| [dropna](#letsql.vendor.ibis.expr.types.relations.Table.dropna)             | Deprecated - use `drop_null` instead.                                                       |
+| [fillna](#letsql.vendor.ibis.expr.types.relations.Table.fillna)             | Deprecated - use `fill_null` instead.                                                       |
+| [filter](#letsql.vendor.ibis.expr.types.relations.Table.filter)             | Select rows from `table` based on `predicates`.                                             |
+| [intersect](#letsql.vendor.ibis.expr.types.relations.Table.intersect)       | Compute the set intersection of multiple table expressions.                                 |
+| [limit](#letsql.vendor.ibis.expr.types.relations.Table.limit)               | Select `n` rows from `self` starting at `offset`.                                           |
+| [order_by](#letsql.vendor.ibis.expr.types.relations.Table.order_by)         | Sort a table by one or more expressions.                                                    |
+| [sample](#letsql.vendor.ibis.expr.types.relations.Table.sample)             | Sample a fraction of rows from a table.                                                     |
+| [select](#letsql.vendor.ibis.expr.types.relations.Table.select)             | Compute a new table expression using `exprs` and `named_exprs`.                             |
+| [sql](#letsql.vendor.ibis.expr.types.relations.Table.sql)                   | Run a SQL query against a table expression.                                                 |
+| [union](#letsql.vendor.ibis.expr.types.relations.Table.union)               | Compute the set union of multiple table expressions.                                        |
+| [view](#letsql.vendor.ibis.expr.types.relations.Table.view)                 | Create a new table expression distinct from the current one.                                |
+| [cache](#letsql.vendor.ibis.expr.types.relations.Table.cache)               | Cache the results of a computation to improve performance on subsequent executions.         |
+| [into_backend](#letsql.vendor.ibis.expr.types.relations.Table.into_backend) | Converts the Expr to a table in the given backend `con` with an optional table name `name`. |
 
 ### alias
 
@@ -1276,4 +1274,147 @@ Use this API for any self-referencing operations like a self-join.
 
 ```python
 cache(storage=None)
+```
+
+Cache the results of a computation to improve performance on subsequent
+executions. This method allows you to cache the results of a computation
+either in memory, on disk using Parquet files, or in a database table.
+The caching strategy and storage location are determined by the storage
+parameter.
+
+#### Parameters
+
+| Name    | Type                               | Description                                                                                                                                                                                                                                                                                                                                                 | Default |
+|---|-------|------------------------------------------------------------|---|
+| storage | [CacheStorage](%60CacheStorage%60) | The storage strategy to use for caching. Can be one of: - ParquetCacheStorage: Caches results as Parquet files on disk - SourceStorage: Caches results in the source database - ParquetSnapshot: Creates a snapshot of data in Parquet format - SnapshotStorage: Creates a snapshot in the source database If None, uses the default storage configuration. | `None`  |
+
+#### Returns
+
+| Name | Type                                                  | Description                                              |
+|------|-------------------------------|-----------------------------------|
+|      | [Expr](%60letsql.vendor.ibis.expr.types.core.Expr%60) | A new expression that represents the cached computation. |
+
+#### Notes
+
+The cache method supports two main strategies: 1.
+ModificationTimeStrategy: Tracks changes based on modification time 2.
+SnapshotStrategy: Creates point-in-time snapshots of the data
+
+Each strategy can be combined with either Parquet or database storage.
+
+#### Examples
+
+Using ParquetCacheStorage:
+
+```python
+>>> import letsql as ls
+>>> from letsql.common.caching import ParquetCacheStorage
+>>> from pathlib import Path
+>>> pg = ls.postgres.connect_examples()
+>>> con = ls.connect()
+>>> storage = ParquetCacheStorage(source=con, path=Path.cwd())
+>>> alltypes = pg.table("functional_alltypes")
+>>> cached = (alltypes
+...     .select(alltypes.smallint_col, alltypes.int_col, alltypes.float_col)
+...     .cache(storage=storage))
+```
+
+Using SourceStorage with PostgreSQL:
+
+```python
+>>> from letsql.common.caching import SourceStorage
+>>> from letsql import _
+>>> ddb = ls.duckdb.connect()
+>>> path = ls.config.options.pins.get_path("batting")
+>>> right = (ddb.read_parquet(path, table_name="batting")
+...          .filter(_.yearID == 2014)
+...          .pipe(con.register, table_name="ddb-batting"))
+>>> left = (pg.table("batting")
+...         .filter(_.yearID == 2015)
+...         .pipe(con.register, table_name="pg-batting"))
+>>> # Cache the joined result
+>>> expr = left.join(right, "playerID").cache(SourceStorage(source=pg))
+```
+
+Using cache with filtering:
+
+```python
+>>> cached = alltypes.cache(storage=storage)
+>>> expr = cached.filter([
+...     cached.float_col > 0,
+...     cached.smallint_col > 4,
+...     cached.int_col < cached.float_col * 2
+... ])
+```
+
+#### See Also
+
+ParquetCacheStorage : Storage implementation for Parquet files
+SourceStorage : Storage implementation for database tables
+ModificationTimeStrategy : Strategy for tracking changes by modification
+time SnapshotStrategy : Strategy for creating data snapshots
+
+#### Notes
+
+-   The cache is identified by a unique key based on the computation and
+    strategy
+-   Cache invalidation is handled automatically based on the chosen
+    strategy
+-   Cross-source caching (e.g., from PostgreSQL to DuckDB) is supported
+-   Cache locations can be configured globally through
+    letsql.config.options
+
+### into_backend
+
+```python
+into_backend(con, name=None)
+```
+
+Converts the Expr to a table in the given backend `con` with an optional
+table name `name`.
+
+The table is backed by a PyArrow RecordBatchReader, the
+RecordBatchReader is teed so it can safely be reaused without spilling
+to disk.
+
+#### Parameters
+
+| Name | Type | Description                                   | Default    |
+|------|------|-----------------------------------------------|------------|
+| con  |      | The backend where the table should be created | *required* |
+| name |      | The name of the table                         | `None`     |
+
+#### Examples
+
+```python
+>>> import letsql as ls
+>>> from letsql import _
+>>> ls.options.interactive = True
+>>> ls_con = ls.connect()
+>>> pg_con = ls.postgres.connect_examples()
+>>> t = pg_con.table("batting").into_backend(ls_con, "ls_batting")
+>>> expr = (
+...     t.join(t, "playerID")
+...     .order_by("playerID", "yearID")
+...     .limit(15)
+...     .select(player_id="playerID", year_id="yearID_right")
+... )
+>>> expr
+┏━━━━━━━━━━━┳━━━━━━━━━┓
+┃ player_id ┃ year_id ┃
+┡━━━━━━━━━━━╇━━━━━━━━━┩
+│ string    │ int64   │
+├───────────┼─────────┤
+│ aardsda01 │    2015 │
+│ aardsda01 │    2007 │
+│ aardsda01 │    2006 │
+│ aardsda01 │    2009 │
+│ aardsda01 │    2008 │
+│ aardsda01 │    2010 │
+│ aardsda01 │    2004 │
+│ aardsda01 │    2013 │
+│ aardsda01 │    2012 │
+│ aardsda01 │    2006 │
+│ …         │       … │
+└───────────┴─────────┘
 ```
