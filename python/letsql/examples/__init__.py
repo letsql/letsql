@@ -21,7 +21,11 @@ class Example:
 
 
 def __dir__():
-    return list(whitelist)
+    return (
+        "get_table_from_csv",
+        "get_table_from_parquet",
+        *whitelist,
+    )
 
 
 def __getattr__(name):
@@ -34,7 +38,11 @@ def __getattr__(name):
     return Example(name, partial(read, name))
 
 
-__all__ = list(whitelist)
+__all__ = (
+    "get_table_from_csv",
+    "get_table_from_parquet",
+    *whitelist,
+)
 
 
 def __getattr__(name):
