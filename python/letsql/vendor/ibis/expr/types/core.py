@@ -119,79 +119,11 @@ class Expr(Immutable, Coercible):
 
     def __repr__(self):
         import letsql as ls
-        from letsql.expr.relations import CachedNode, RemoteTable
 
         if ls.options.interactive:
             return _capture_rich_renderable(self)
-        elif self.op().find((CachedNode, RemoteTable)):
-            lines = [
-                "┌──── LetSQL Expression Plan ─────┐",
-                *self._ascii_plan_lines(),
-                "└─────────────────────────────────┘",
-            ]
-            return "\n".join(lines)
         else:
             return self._noninteractive_repr()
-
-    def _ascii_plan_lines(self):
-        from letsql.expr.relations import CachedNode, RemoteTable
-
-        op = self.op()
-        lines = []
-
-        MAX_STEPS = 20
-        visited = set()
-        step = 0
-
-        def arrow_line(i):
-            if i == 0:
-                return ""
-            return "   ↓"
-
-        while op not in visited and step < MAX_STEPS:
-            visited.add(op)
-            step += 1
-
-            if isinstance(op, CachedNode):
-                lines.append(arrow_line(step - 1))
-                emoji = "🗃️"
-                lines.append(f"  [CachedNode {emoji}]")
-                lines.append(f"   source: {op.source}")
-                lines.append(f"   storage: {op.storage}")
-                op = op.parent.op()
-
-            elif isinstance(op, RemoteTable):
-                lines.append(arrow_line(step - 1))
-                emoji = "🚚"
-                lines.append(f"  [RemoteTable {emoji}]")
-                lines.append(f"   name: {op.name}, source: {op.source}")
-                if op.remote_expr is not None:
-                    op = op.remote_expr.op()
-                else:
-                    break
-
-            elif getattr(op, "__class__", None).__name__ == "InMemoryTable":
-                emoji = "📦"
-                lines.append(arrow_line(step - 1))
-                lines.append(f"  [InMemoryTable {emoji}]")
-                break
-
-            elif getattr(op, "__class__", None).__name__ == "UnboundTable":
-                emoji = "🗒️"
-                lines.append(arrow_line(step - 1))
-                lines.append(f"  [UnboundTable {emoji}] name={op.name}")
-                break
-
-            else:
-                node_name = type(op).__name__
-                lines.append(arrow_line(step - 1))
-                lines.append(f"  [{node_name}] 🤷")
-                break
-
-        if step == MAX_STEPS:
-            lines.append("   ... (truncated)")
-
-        return lines
 
     def __init__(self, arg: ops.Node) -> None:
         object.__setattr__(self, "_arg", arg)
