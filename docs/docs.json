@@ -1,11 +1,11 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "palm",
+  "theme": "maple",
   "name": "LETSQL Documentation",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#7DF8FE",
+    "light": "#7DF8FE",
+    "dark": "#5CDBF7"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -67,8 +67,8 @@
     }
   },
   "logo": {
-    "light": "/logo/light.png",
-    "dark": "/logo/dark.png"
+    "light": "/logo/xorq_light.png",
+    "dark": "/logo/xorq_dark.png"
   },
   "navbar": {
     "links": [
