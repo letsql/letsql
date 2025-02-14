@@ -13,7 +13,7 @@ from letsql.vendor.ibis.expr.types.generic import Column, Scalar, Value
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
-    import letsql.vendor.ibis.common.exceptions as com
+    import letsql.common.exceptions as com
     import letsql.vendor.ibis.expr.types as ir
     from letsql.vendor.ibis.expr.types.typing import V
 

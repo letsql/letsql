@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from public import public
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.builders as bl
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops

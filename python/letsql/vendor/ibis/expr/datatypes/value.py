@@ -16,9 +16,9 @@ import toolz
 from public import public
 
 import letsql.vendor.ibis.expr.datatypes as dt
+from letsql.common.exceptions import InputTypeError, LetSQLTypeError
 from letsql.vendor.ibis.common.collections import frozendict
 from letsql.vendor.ibis.common.dispatch import lazy_singledispatch
-from letsql.vendor.ibis.common.exceptions import InputTypeError, LetSQLTypeError
 from letsql.vendor.ibis.common.numeric import normalize_decimal
 from letsql.vendor.ibis.common.temporal import (
     IntervalUnit,

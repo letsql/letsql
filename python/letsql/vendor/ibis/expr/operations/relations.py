@@ -11,16 +11,16 @@ from public import public
 
 import letsql.vendor.ibis.expr.datashape as ds
 import letsql.vendor.ibis.expr.datatypes as dt
+from letsql.common.exceptions import (
+    IntegrityError,
+    LetSQLTypeError,
+    RelationError,
+)
 from letsql.vendor.ibis.common.annotations import attribute
 from letsql.vendor.ibis.common.collections import (
     ConflictingValuesError,
     FrozenDict,
     FrozenOrderedDict,
-)
-from letsql.vendor.ibis.common.exceptions import (
-    IntegrityError,
-    LetSQLTypeError,
-    RelationError,
 )
 from letsql.vendor.ibis.common.grounds import Concrete
 from letsql.vendor.ibis.common.patterns import Between, InstanceOf

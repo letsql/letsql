@@ -7,8 +7,8 @@ from public import public
 import letsql.vendor.ibis.expr.datashape as ds
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.rules as rlz
+from letsql.common.exceptions import IntegrityError
 from letsql.vendor.ibis.common.annotations import attribute
-from letsql.vendor.ibis.common.exceptions import IntegrityError
 from letsql.vendor.ibis.expr.operations.core import Value
 from letsql.vendor.ibis.expr.operations.relations import Relation  # noqa: TCH001
 

@@ -4,7 +4,7 @@ import sqlglot as sg
 import sqlglot.expressions as sge
 import toolz
 
-import letsql.vendor.ibis.common.exceptions as exc
+import letsql.common.exceptions as exc
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor.ibis.backends.sql.compilers.base import NULL, AggGen, SQLGlotCompiler

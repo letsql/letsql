@@ -8,9 +8,9 @@ __version__ = "9.5.0"
 import warnings
 from typing import Any
 
+from letsql.common.exceptions import LetSQLError
 from letsql.vendor.ibis import examples, util
 from letsql.vendor.ibis.backends import BaseBackend
-from letsql.vendor.ibis.common.exceptions import LetSQLError
 from letsql.vendor.ibis.config import options
 from letsql.vendor.ibis.expr import api
 from letsql.vendor.ibis.expr import types as ir

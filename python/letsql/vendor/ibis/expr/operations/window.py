@@ -8,7 +8,7 @@ from typing import Optional
 from public import public
 from typing_extensions import TypeVar
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datashape as ds
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.rules as rlz

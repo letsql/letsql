@@ -9,7 +9,7 @@ from typing import Optional
 
 import graphviz as gv
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor import ibis
 from letsql.vendor.ibis.common.graph import Graph

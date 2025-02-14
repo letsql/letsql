@@ -8,7 +8,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow_hotfix  # noqa: F401
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.config
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.schema as sch

@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from public import public
 
 import letsql.vendor.ibis.expr.datatypes.core as dt
-from letsql.vendor.ibis.common.exceptions import LetSQLTypeError
+from letsql.common.exceptions import LetSQLTypeError
 
 
 if TYPE_CHECKING:

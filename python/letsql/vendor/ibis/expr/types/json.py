@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from public import public
 
-import letsql.vendor.ibis.common.exceptions as exc
+import letsql.common.exceptions as exc
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor.ibis.expr.types import Column, Scalar, Value

@@ -59,7 +59,8 @@ __all__ = (
     "to_pyarrow",
     "to_pyarrow_batches",
     "to_sql",
-    "get_plans" * api.__all__,
+    "get_plans",
+    *api.__all__,
 )
 
 

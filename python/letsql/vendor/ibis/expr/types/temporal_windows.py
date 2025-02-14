@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Literal
 
 from public import public
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.types as ir
 from letsql.vendor.ibis.common.collections import FrozenOrderedDict  # noqa: TCH001

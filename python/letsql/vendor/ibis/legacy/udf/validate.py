@@ -10,7 +10,7 @@ from __future__ import annotations
 from inspect import Parameter, Signature, signature
 from typing import TYPE_CHECKING, Any
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 
 

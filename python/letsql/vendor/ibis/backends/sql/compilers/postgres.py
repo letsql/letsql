@@ -10,10 +10,11 @@ from typing import TYPE_CHECKING, Any
 import sqlglot as sg
 import sqlglot.expressions as sge
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.rules as rlz
+from letsql.common.exceptions import InvalidDecoratorError
 from letsql.vendor.ibis.backends.sql.compilers.base import (
     NULL,
     STAR,
@@ -23,7 +24,6 @@ from letsql.vendor.ibis.backends.sql.compilers.base import (
 from letsql.vendor.ibis.backends.sql.datatypes import PostgresType
 from letsql.vendor.ibis.backends.sql.dialects import Postgres
 from letsql.vendor.ibis.backends.sql.rewrites import split_select_distinct_with_order_by
-from letsql.vendor.ibis.common.exceptions import InvalidDecoratorError
 from letsql.vendor.ibis.util import gen_name
 
 

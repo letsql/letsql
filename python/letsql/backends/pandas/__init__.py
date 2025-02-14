@@ -2,7 +2,7 @@ from typing import MutableMapping
 
 import pandas as pd
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 from letsql.vendor.ibis.backends.pandas import Backend as IbisPandasBackend
 
 

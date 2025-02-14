@@ -15,9 +15,9 @@ from attr.validators import (
 from public import public
 
 import letsql.vendor.ibis.expr.operations as ops
+from letsql.common.exceptions import LetSQLError, TranslationError
 from letsql.vendor import ibis
 from letsql.vendor.ibis.common.annotations import ValidationError
-from letsql.vendor.ibis.common.exceptions import LetSQLError, TranslationError
 from letsql.vendor.ibis.common.grounds import Immutable
 from letsql.vendor.ibis.common.patterns import Coercible, CoercionError
 from letsql.vendor.ibis.common.typing import get_defining_scope

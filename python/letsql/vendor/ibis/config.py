@@ -6,7 +6,7 @@ from typing import Annotated, Any, Optional
 
 from public import public
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 from letsql.vendor.ibis.common.grounds import Annotable
 from letsql.vendor.ibis.common.patterns import Between
 

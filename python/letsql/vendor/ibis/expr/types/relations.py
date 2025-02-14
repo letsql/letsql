@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import toolz
 from public import public
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.schema as sch

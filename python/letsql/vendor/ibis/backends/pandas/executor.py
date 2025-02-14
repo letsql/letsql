@@ -9,6 +9,11 @@ from packaging.version import parse as vparse
 
 import letsql.vendor.ibis.backends.pandas.kernels as pandas_kernels
 import letsql.vendor.ibis.expr.operations as ops
+from letsql.common.exceptions import (
+    OperationNotDefinedError,
+    UnboundExpressionError,
+    UnsupportedOperationError,
+)
 from letsql.vendor.ibis.backends.pandas.convert import PandasConverter
 from letsql.vendor.ibis.backends.pandas.helpers import (
     GroupedFrame,
@@ -30,11 +35,6 @@ from letsql.vendor.ibis.backends.pandas.rewrites import (
     plan,
 )
 from letsql.vendor.ibis.common.dispatch import Dispatched
-from letsql.vendor.ibis.common.exceptions import (
-    OperationNotDefinedError,
-    UnboundExpressionError,
-    UnsupportedOperationError,
-)
 from letsql.vendor.ibis.formats.pandas import PandasData, PandasType
 from letsql.vendor.ibis.util import any_of, gen_name
 

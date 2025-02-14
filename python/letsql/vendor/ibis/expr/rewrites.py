@@ -7,9 +7,9 @@ from collections import defaultdict
 import toolz
 
 import letsql.vendor.ibis.expr.operations as ops
+from letsql.common.exceptions import ExpressionError, LetSQLInputError
 from letsql.vendor.ibis.common.collections import FrozenDict  # noqa: TCH001
 from letsql.vendor.ibis.common.deferred import Item, _, deferred, var
-from letsql.vendor.ibis.common.exceptions import ExpressionError, LetSQLInputError
 from letsql.vendor.ibis.common.graph import Node as Traversable
 from letsql.vendor.ibis.common.graph import traverse
 from letsql.vendor.ibis.common.grounds import Concrete

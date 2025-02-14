@@ -6,7 +6,7 @@ from typing import NoReturn
 import sqlglot as sg
 import sqlglot.expressions as sge
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 from letsql.vendor.ibis.common.collections import FrozenDict
 from letsql.vendor.ibis.formats import TypeMapper

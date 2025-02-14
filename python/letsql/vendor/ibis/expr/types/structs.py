@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 from public import public
 
 import letsql.vendor.ibis.expr.operations as ops
+from letsql.common.exceptions import LetSQLError
 from letsql.vendor.ibis import util
 from letsql.vendor.ibis.common.deferred import deferrable
-from letsql.vendor.ibis.common.exceptions import LetSQLError
 from letsql.vendor.ibis.expr.types.generic import Column, Scalar, Value, literal
 
 

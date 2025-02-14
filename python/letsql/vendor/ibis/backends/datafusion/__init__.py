@@ -14,8 +14,8 @@ import pyarrow_hotfix  # noqa: F401
 import sqlglot as sg
 import sqlglot.expressions as sge
 
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.backends.sql.compilers as sc
-import letsql.vendor.ibis.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.schema as sch

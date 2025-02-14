@@ -6,7 +6,7 @@ from functools import partial, reduce
 import sqlglot as sg
 import sqlglot.expressions as sge
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.vendor.ibis.backends.sql.compilers.base import NULL, STAR, SQLGlotCompiler

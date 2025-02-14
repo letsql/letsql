@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Literal
 from public import public
 
 import letsql.vendor.ibis.expr.operations as ops
+from letsql.common.exceptions import LetSQLTypeError
 from letsql.vendor import ibis
-from letsql.vendor.ibis.common.exceptions import LetSQLTypeError
 from letsql.vendor.ibis.expr.types.core import _binop
 from letsql.vendor.ibis.expr.types.generic import Column, Scalar, Value
 from letsql.vendor.ibis.util import deprecated

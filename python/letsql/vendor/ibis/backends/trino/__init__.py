@@ -14,8 +14,8 @@ import sqlglot.expressions as sge
 import trino
 from trino.auth import BasicAuthentication
 
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.backends.sql.compilers as sc
-import letsql.vendor.ibis.common.exceptions as com
 import letsql.vendor.ibis.expr.schema as sch
 import letsql.vendor.ibis.expr.types as ir
 from letsql.vendor import ibis

@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from public import public
 
+from letsql.common.exceptions import ConflictingValuesError
 from letsql.vendor.ibis.common.bases import Abstract, Hashable
-from letsql.vendor.ibis.common.exceptions import ConflictingValuesError
 
 
 if TYPE_CHECKING:

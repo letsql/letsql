@@ -6,7 +6,7 @@ import pytest
 from pytest import param
 
 import letsql as ls
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 from letsql.tests.util import assert_frame_equal, reduction_tolerance
 from letsql.vendor import ibis

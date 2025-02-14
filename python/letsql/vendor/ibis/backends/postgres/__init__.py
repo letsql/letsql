@@ -12,9 +12,9 @@ import sqlglot as sg
 import sqlglot.expressions as sge
 from pandas.api.types import is_float_dtype
 
+import letsql.common.exceptions as com
+import letsql.common.exceptions as exc
 import letsql.vendor.ibis.backends.sql.compilers as sc
-import letsql.vendor.ibis.common.exceptions as com
-import letsql.vendor.ibis.common.exceptions as exc
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.schema as sch
@@ -253,7 +253,6 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
           year            int32
           month           int32
         """
-        import psycopg2
         import psycopg2.extras
 
         psycopg2.extras.register_default_json(loads=lambda x: x)
@@ -737,7 +736,6 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
             yield result
 
     def raw_sql(self, query: str | sg.Expression, **kwargs: Any) -> Any:
-        import psycopg2
         import psycopg2.extras
 
         with contextlib.suppress(AttributeError):

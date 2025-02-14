@@ -7,11 +7,11 @@ import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.rules as rlz
 import letsql.vendor.ibis.expr.types as ir
+from letsql.common.exceptions import LetSQLInputError
 from letsql.vendor import ibis
 from letsql.vendor.ibis import util
 from letsql.vendor.ibis.common.annotations import annotated, attribute
 from letsql.vendor.ibis.common.deferred import Deferred, Resolver, deferrable
-from letsql.vendor.ibis.common.exceptions import LetSQLInputError
 from letsql.vendor.ibis.common.grounds import Concrete
 from letsql.vendor.ibis.common.selectors import Selector  # noqa: TCH001
 from letsql.vendor.ibis.common.typing import VarTuple  # noqa: TCH001

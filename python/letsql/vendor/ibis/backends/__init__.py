@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 import letsql as ls
-import letsql.vendor.ibis.common.exceptions as exc
+import letsql.common.exceptions as exc
 import letsql.vendor.ibis.config
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.types as ir

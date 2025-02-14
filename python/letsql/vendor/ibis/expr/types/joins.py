@@ -6,16 +6,16 @@ from typing import TYPE_CHECKING, Any
 from public import public
 
 import letsql.vendor.ibis.expr.operations as ops
-from letsql.vendor import ibis
-from letsql.vendor.ibis import util
-from letsql.vendor.ibis.common.deferred import Deferred
-from letsql.vendor.ibis.common.egraph import DisjointSet
-from letsql.vendor.ibis.common.exceptions import (
+from letsql.common.exceptions import (
     ExpressionError,
     InputTypeError,
     IntegrityError,
     LetSQLInputError,
 )
+from letsql.vendor import ibis
+from letsql.vendor.ibis import util
+from letsql.vendor.ibis.common.deferred import Deferred
+from letsql.vendor.ibis.common.egraph import DisjointSet
 from letsql.vendor.ibis.expr.rewrites import flatten_predicates, peel_join_field
 from letsql.vendor.ibis.expr.types.generic import Value
 from letsql.vendor.ibis.expr.types.relations import (

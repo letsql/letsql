@@ -6,8 +6,8 @@ from public import public
 
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.rules as rlz
+from letsql.common.exceptions import LetSQLTypeError
 from letsql.vendor.ibis.common.annotations import ValidationError, attribute
-from letsql.vendor.ibis.common.exceptions import LetSQLTypeError
 from letsql.vendor.ibis.common.typing import VarTuple  # noqa: TCH001
 from letsql.vendor.ibis.expr.operations.core import Binary, Unary, Value
 

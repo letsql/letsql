@@ -5,10 +5,10 @@ from collections.abc import Iterable, Iterator, Mapping
 from typing import TYPE_CHECKING, Any, Union
 
 import letsql.vendor.ibis.expr.datatypes as dt
+from letsql.common.exceptions import InputTypeError, IntegrityError
 from letsql.vendor.ibis.common.annotations import attribute
 from letsql.vendor.ibis.common.collections import FrozenOrderedDict, MapSet
 from letsql.vendor.ibis.common.dispatch import lazy_singledispatch
-from letsql.vendor.ibis.common.exceptions import InputTypeError, IntegrityError
 from letsql.vendor.ibis.common.grounds import Concrete
 from letsql.vendor.ibis.common.patterns import Coercible
 from letsql.vendor.ibis.util import indent

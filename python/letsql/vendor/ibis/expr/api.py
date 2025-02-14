@@ -16,11 +16,11 @@ import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.schema as sch
 import letsql.vendor.ibis.expr.types as ir
+from letsql.common.exceptions import LetSQLInputError
 from letsql.vendor.ibis import selectors, util
 from letsql.vendor.ibis.backends import BaseBackend, connect
 from letsql.vendor.ibis.common.deferred import Deferred, _, deferrable
 from letsql.vendor.ibis.common.dispatch import lazy_singledispatch
-from letsql.vendor.ibis.common.exceptions import LetSQLInputError
 from letsql.vendor.ibis.common.grounds import Concrete
 from letsql.vendor.ibis.common.temporal import normalize_datetime, normalize_timezone
 from letsql.vendor.ibis.expr.decompile import decompile
