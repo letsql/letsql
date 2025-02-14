@@ -1,91 +1,86 @@
 ---
-title: Overview
-description: "Overview of LetSQL"
+title: Welcome to xorq!
+sidebarTitle: Welcome
+description:  "Welcome"
 ---
 
-# What is LetSQL?
+## Overview
 
-LetSQL simplifies ML pipeline development through multi-engine composition and deferred execution. Built on Apache Arrow, DataFusion, and Ibis.
+**xorq** is a Python-based machine learning processing tool designed to
+simplify and accelerate your ML workflows. xorq brings together diverse data
+engines like DuckDB, DataFusion, and Snowflake under one unified interface.
 
-```bash
-pip install letsql
-```
+Whether you're a data scientist or ML engineer, xorq empowers you to focus on
+innovation rather than infrastructure.
 
-## Core Capabilities
+<img className="block dark:hidden w-full" src="/images/hero-light.png" alt="Hero Light" />
 
-### 1. Multi-Engine Composition
+<img className="hidden dark:block w-full" src="/images/hero-dark.png" alt="Hero Dark" />
 
-- Switch engines mid-pipeline using `into_backend`
-- Use specialized capabilities across DuckDB, DataFusion, pandas, Trino, Snowflake, and BigQuery
-- Expression segmentation across engines
+### Features
 
-### 2. Local Caching
+- **Expr (Ibis-Powered):** Define transformations using a familiar, Pythonic
+  API that is both expressive and backend-agnostic.
+- **Cache:** Avoid redundant computations by materializing intermediate results
+  as Arrow RecordBatches, ensuring minimal re-computation.
+- **Portable Python UDFs:** Write and serve Python UDFs seamlessly –
+  whether they’re used for aggregation, windowing, or transformation tasks.
 
-- Automatic caching of intermediate results
-- Hashes the query and schema for easy invalidation
-- Remote caching support (coming soon)
+> **Mission Statement:**  
+> “Make data processing ergonomic, performant and reproducible.”
 
-### 3. User-Defined Everything (UDX)
+## Getting Started
 
-- Write pure functions instead of DAGs
-- Stream data with stateful UDAFs and UDWFs
-- Deploy models as UDFs
+The first step towards building declarative pipelines is to set-up your project.
+<CardGroup cols={2}>
+  <Card
+    title="Quickstart"
+    icon="pen-to-square"
+    href=""
+  >
+    Get your docs set up locally for easy development
+  </Card>
+  <Card
+    title="Using the CLI"
+    icon="image"
+    href="https://mintlify.com/docs/development"
+  >
+    Set-up your project, build and run
 
-Additionally, LetSQL provides a command-line interface for building, running, and serving pipelines (coming soon!).
+  </Card>
+</CardGroup>
 
-# Stateless Execution
+## Tutorials
 
-LetSQL promotes a stateless execution model that brings several advantages:
+Dive in to learn more about how to use xorq.
 
-- **Reproducibility**: Pipeline results are deterministic and reproducible
-- **Scalability**: Easy horizontal scaling without state synchronization
-- **Fault Tolerance**: Quick recovery from failures without state restoration
-
- This style of execution features:
-
-1. All transformations are pure functions
-2. State is explicitly passed between pipeline stages
-3. Intermediate results are automatically cached
-4. Pipeline segments can be executed independently
-
-## Example
-
-Here's how these features work together in a typical ML pipeline:
-
-```python
-
-```
-
-# Target Users
-
-## Data Scientists and ML Engineers
-
-LetSQL is designed to seamlessly integrate into the modern data scientist's workflow while providing the robustness needed for production ML systems:
-
-### For Experimentation
-
-- Interactive development with cached intermediate results
-- Easy switching between different query engines for specialized operations (e.g., DuckDB for AsOf joins)
-- Familiar pandas-like API through Ibis integration
-- Native integration with popular ML frameworks like PyTorch
-- Reproducible train/test splits with built-in data versioning
-
-### For Production
-
-- Scalable pipeline deployment with minimal code changes
-- Enterprise security integration through existing query engines
-- Efficient resource utilization with stateless execution
-- Built-in monitoring and observability
-
-# Common Use Cases
-
-1. Extend data warehouse capabilities with custom UDFs
-2. Build production ML pipelines on enterprise data platforms
-3. Deploy models through standardized Flight endpoints
-4. Optimize batch inference for tree-based models
-
-# Supported Backends
-
-1. **In-Process**: DuckDB, DataFusion, Pandas
-2. **Distributed**: Trino, Snowflake, BigQuery
-3. **Object Stores**: TBD
+<CardGroup cols={2}>
+  <Card
+    title="10 minutes to xorq"
+    icon="palette"
+    href=""
+  >
+    Learn key concpets in a brief tutorial 
+  </Card>
+  <Card
+    title="Pipelines as Exprs"
+    icon="code"
+    href=""
+  >
+    Declarative, multi-engine expressions for ML
+  </Card>
+  <Card
+    title="Build & Run"
+    icon="screwdriver-wrench"
+    href=""
+  >
+    Build your expr pipeline into executable and introspectable artifacts
+  </Card>
+  <Card
+    title="UD(X)F"
+    icon="stars"
+    href="https://mintlify.com/customers"
+  >
+    Check out how to make it your own with extensible UDFs
+  </Card>
+</CardGroup>
