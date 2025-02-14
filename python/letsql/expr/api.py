@@ -13,7 +13,10 @@ import letsql.vendor.ibis.expr.types as ir
 from letsql.common.utils.caching_utils import find_backend
 from letsql.common.utils.defer_utils import rbr_wrapper
 from letsql.common.utils.graph_utils import replace_fix
-from letsql.expr.ml import train_test_splits
+from letsql.expr.ml import (
+    calc_split_column,
+    train_test_splits,
+)
 from letsql.expr.relations import (
     CachedNode,
     register_and_transform_remote_tables,
@@ -23,18 +26,6 @@ from letsql.vendor.ibis.expr import api
 from letsql.vendor.ibis.expr.api import *  # noqa: F403
 from letsql.vendor.ibis.expr.sql import SQLString
 from letsql.vendor.ibis.expr.types import Table
-
-from letsql.common.utils.caching_utils import find_backend
-from letsql.common.utils.defer_utils import rbr_wrapper
-from letsql.common.utils.graph_utils import replace_fix
-from letsql.expr.ml import (
-    calc_split_column,
-    train_test_splits,
-)
-from letsql.expr.relations import (
-    CachedNode,
-    register_and_transform_remote_tables,
-)
 
 
 if TYPE_CHECKING:
@@ -49,6 +40,7 @@ if TYPE_CHECKING:
 
 __all__ = (
     "execute",
+    "calc_split_column",
     "get_plans",
     "read_csv",
     "read_parquet",

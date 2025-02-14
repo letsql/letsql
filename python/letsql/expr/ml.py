@@ -8,6 +8,10 @@ from pathlib import Path
 from random import Random
 from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Tuple, Union
 
+import pandas as pd
+import toolz
+
+import letsql as ls
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 
@@ -20,8 +24,6 @@ from letsql.vendor.ibis.common.patterns import pattern, replace
 from letsql.vendor.ibis.expr.operations.udf import InputType, ScalarUDF
 from letsql.vendor.ibis.expr.rules import ValueOf
 from letsql.vendor.ibis.util import Namespace
-
-import letsql as ls
 
 
 if TYPE_CHECKING:
