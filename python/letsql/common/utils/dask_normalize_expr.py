@@ -204,7 +204,7 @@ def normalize_module(module):
 
 @dask.base.normalize_token.register(dat.DataType)
 def normalize_ibis_datatype(datatype):
-    return dask.tokenize._normalize_seq_func((datatype.nullable, datatype.name.lower()))
+    return dask.tokenize._normalize_seq_func((datatype.name.lower(), *datatype.args))
 
 
 @dask.base.normalize_token.register(Read)
