@@ -108,5 +108,15 @@ class ManageProfiles:
         """Write all changes made to the profiles object to the profiles.yaml file."""
         with open(self.config_path, "w") as file:
             yaml.dump(self.profiles, file)
-   
+
+    def load_profiles(self):
+        """Load profiles from the YAML file.
+        """
+        if not self.config_path.exists():
+            raise FileNotFoundError(f"Profile file not found at {self.config_path}")
+            
+        with open(self.config_path, "r") as file:
+            self.profiles = yaml.safe_load(file)
+        return self.profiles["profiles"]
+    
         
