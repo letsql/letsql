@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 
 
-from jinja2 import Template # noqa: F401
+
 from letsql import examples
 from letsql.config import options
 from letsql.expr import api
