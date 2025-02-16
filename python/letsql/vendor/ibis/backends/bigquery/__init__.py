@@ -20,7 +20,6 @@ from pydata_google_auth import cache
 
 import letsql.common.exceptions as com
 import letsql.vendor.ibis.backends.sql.compilers as sc
-import letsql.vendor.ibis.common.exceptions as com
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.schema as sch
 import letsql.vendor.ibis.expr.types as ir

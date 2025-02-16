@@ -253,7 +253,6 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
           year            int32
           month           int32
         """
-        import psycopg2
         import psycopg2.extras
 
         psycopg2.extras.register_default_json(loads=lambda x: x)
@@ -737,7 +736,6 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
             yield result
 
     def raw_sql(self, query: str | sg.Expression, **kwargs: Any) -> Any:
-        import psycopg2
         import psycopg2.extras
 
         with contextlib.suppress(AttributeError):

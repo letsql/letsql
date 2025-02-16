@@ -35,11 +35,6 @@ from letsql.vendor.ibis.backends.pandas.rewrites import (
     plan,
 )
 from letsql.vendor.ibis.common.dispatch import Dispatched
-from letsql.vendor.ibis.common.exceptions import (
-    OperationNotDefinedError,
-    UnboundExpressionError,
-    UnsupportedOperationError,
-)
 from letsql.vendor.ibis.formats.pandas import PandasData, PandasType
 from letsql.vendor.ibis.util import any_of, gen_name
 

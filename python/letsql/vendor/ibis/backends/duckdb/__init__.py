@@ -20,7 +20,6 @@ from packaging.version import parse as vparse
 
 import letsql.common.exceptions as exc
 import letsql.vendor.ibis.backends.sql.compilers as sc
-import letsql.vendor.ibis.common.exceptions as exc
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 import letsql.vendor.ibis.expr.schema as sch
