@@ -15,6 +15,7 @@ from letsql.expr.relations import (
     make_native_op,
 )
 from letsql.vendor import ibis
+import letsql.vendor.ibis.expr.datatypes as dat
 from letsql.vendor.ibis.expr.operations.udf import (
     AggUDF,
     ScalarUDF,
@@ -186,6 +187,11 @@ def normalize_letsql_databasetable(dt):
     return dask.base.normalize_token(new_dt)
 
 
+@dask.base.normalize_token.register(object)
+def raise_generic_object(o):
+    raise ValueError(f"Object {o!r} cannot be deterministically hashed")
+
+
 @dask.base.normalize_token.register(types.ModuleType)
 def normalize_module(module):
     return dask.tokenize._normalize_seq_func(
@@ -194,6 +200,11 @@ def normalize_module(module):
             module.__package__,
         )
     )
+
+
+@dask.base.normalize_token.register(dat.DataType)
+def normalize_ibis_datatype(datatype):
+    return dask.tokenize._normalize_seq_func((datatype.name.lower(), *datatype.args))
 
 
 @dask.base.normalize_token.register(Read)
