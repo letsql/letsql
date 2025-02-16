@@ -6,6 +6,7 @@ import dask
 import sqlglot as sg
 
 import letsql as ls
+import letsql.vendor.ibis.expr.datatypes as dat
 import letsql.vendor.ibis.expr.operations.relations as ir
 from letsql.common.utils.defer_utils import (
     Read,
@@ -15,7 +16,6 @@ from letsql.expr.relations import (
     make_native_op,
 )
 from letsql.vendor import ibis
-import letsql.vendor.ibis.expr.datatypes as dat
 from letsql.vendor.ibis.expr.operations.udf import (
     AggUDF,
     ScalarUDF,
