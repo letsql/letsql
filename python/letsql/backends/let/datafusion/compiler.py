@@ -12,7 +12,7 @@ from sqlglot import exp, transforms
 from sqlglot.dialects import Postgres
 from sqlglot.dialects.dialect import rename_func
 
-import letsql.vendor.ibis.common.exceptions as com
+import letsql.common.exceptions as com
 import letsql.vendor.ibis.expr.datatypes as dt
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.expr.datatypes import LargeString

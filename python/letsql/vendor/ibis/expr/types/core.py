@@ -85,12 +85,6 @@ class Expr(Immutable, Coercible):
             scope = None
         return pretty(self.op(), scope=scope)
 
-    def __repr__(self) -> str:
-        if ibis.options.interactive:
-            return _capture_rich_renderable(self)
-        else:
-            return self._noninteractive_repr()
-
     def __rich_console__(self, console: Console, options):
         from rich.text import Text
 
@@ -122,6 +116,14 @@ class Expr(Immutable, Coercible):
             ]
             return Text("\n".join(lines))
         return console.render(rich_object, options=options)
+
+    def __repr__(self):
+        import letsql as ls
+
+        if ls.options.interactive:
+            return _capture_rich_renderable(self)
+        else:
+            return self._noninteractive_repr()
 
     def __init__(self, arg: ops.Node) -> None:
         object.__setattr__(self, "_arg", arg)
@@ -559,7 +561,6 @@ class Expr(Immutable, Coercible):
         arrow_table = batch_reader.read_all()
         return self.__pyarrow_result__(arrow_table)
 
-    @experimental
     def to_parquet(
         self: ir.Expr,
         path: str | Path,
