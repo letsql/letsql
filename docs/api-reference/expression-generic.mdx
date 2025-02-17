@@ -12,19 +12,19 @@ Base class for a data generating expression having a known type.
 
 ## Methods
 
-| Name                                                                      | Description                                                 |
-|------------------------------------|------------------------------------|
-| [asc](#letsql.vendor.ibis.expr.types.generic.Value.asc)                   | Sort an expression ascending.                               |
-| [cast](#letsql.vendor.ibis.expr.types.generic.Value.cast)                 | Cast expression to indicated data type.                     |
-| [coalesce](#letsql.vendor.ibis.expr.types.generic.Value.coalesce)         | Return the first non-null value from `args`.                |
-| [collect](#letsql.vendor.ibis.expr.types.generic.Value.collect)           | Aggregate this expression’s elements into an array.         |
-| [identical_to](#letsql.vendor.ibis.expr.types.generic.Value.identical_to) | Return whether this expression is identical to other.       |
-| [isin](#letsql.vendor.ibis.expr.types.generic.Value.isin)                 | Check whether this expression’s values are in `values`.     |
-| [isnull](#letsql.vendor.ibis.expr.types.generic.Value.isnull)             | Return whether this expression is NULL.                     |
-| [name](#letsql.vendor.ibis.expr.types.generic.Value.name)                 | Rename an expression to `name`.                             |
-| [notnull](#letsql.vendor.ibis.expr.types.generic.Value.notnull)           | Return whether this expression is not NULL.                 |
-| [nullif](#letsql.vendor.ibis.expr.types.generic.Value.nullif)             | Set values to null if they equal the values `null_if_expr`. |
-| [try_cast](#letsql.vendor.ibis.expr.types.generic.Value.try_cast)         | Try cast expression to indicated data type.                 |
+| Name                                                                       | Description                                                 |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [asc](#letsql.vendor.ibis.expr.types.generic.Value.asc)                    | Sort an expression ascending.                               |
+| [cast](#letsql.vendor.ibis.expr.types.generic.Value.cast)                  | Cast expression to indicated data type.                     |
+| [coalesce](#letsql.vendor.ibis.expr.types.generic.Value.coalesce)          | Return the first non-null value from `args`.                |
+| [collect](#letsql.vendor.ibis.expr.types.generic.Value.collect)            | Aggregate this expression’s elements into an array.         |
+| [identical\_to](#letsql.vendor.ibis.expr.types.generic.Value.identical_to) | Return whether this expression is identical to other.       |
+| [isin](#letsql.vendor.ibis.expr.types.generic.Value.isin)                  | Check whether this expression’s values are in `values`.     |
+| [isnull](#letsql.vendor.ibis.expr.types.generic.Value.isnull)              | Return whether this expression is NULL.                     |
+| [name](#letsql.vendor.ibis.expr.types.generic.Value.name)                  | Rename an expression to `name`.                             |
+| [notnull](#letsql.vendor.ibis.expr.types.generic.Value.notnull)            | Return whether this expression is not NULL.                 |
+| [nullif](#letsql.vendor.ibis.expr.types.generic.Value.nullif)              | Set values to null if they equal the values `null_if_expr`. |
+| [try\_cast](#letsql.vendor.ibis.expr.types.generic.Value.try_cast)         | Try cast expression to indicated data type.                 |
 
 ### asc
 
@@ -46,14 +46,14 @@ Similar to `pandas.Series.astype`.
 
 #### Parameters
 
-| Name        | Type                    | Description                                                                        | Default    |
-|--------|------------|---------------------------------------------|--------|
-| target_type | [Any](%60typing.Any%60) | Type to cast to. Anything accepted by [`ibis.dtype()`](./datatypes.qmd#ibis.dtype) | *required* |
+| Name         | Type                    | Description                                                                        | Default    |
+| ------------ | ----------------------- | ---------------------------------------------------------------------------------- | ---------- |
+| target\_type | [Any](%60typing.Any%60) | Type to cast to. Anything accepted by [`ibis.dtype()`](./datatypes.qmd#ibis.dtype) | *required* |
 
 #### Returns
 
 | Name | Type                                                       | Description       |
-|--------|-----------------------------------------------|-----------------|
+| ---- | ---------------------------------------------------------- | ----------------- |
 |      | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Casted expression |
 
 #### See Also
@@ -153,13 +153,13 @@ Return the first non-null value from `args`.
 #### Parameters
 
 | Name | Type                                                       | Description                                             | Default |
-|------|------------------------------|------------------------------|-------|
+| ---- | ---------------------------------------------------------- | ------------------------------------------------------- | ------- |
 | args | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Arguments from which to choose the first non-null value | `()`    |
 
 #### Returns
 
 | Name | Type                                                       | Description          |
-|--------|----------------------------------------------|-------------------|
+| ---- | ---------------------------------------------------------- | -------------------- |
 |      | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Coalesced expression |
 
 #### See Also
@@ -188,16 +188,16 @@ systems.
 
 #### Parameters
 
-| Name         | Type                                                                                                               | Description                                                                                                                                                     | Default |
-|-----|--------------------------|--------------------------------------|----|
-| where        | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | An optional filter expression. If provided, only rows where `where` is `True` will be included in the aggregate.                                                | `None`  |
-| order_by     | [Any](%60typing.Any%60)                                                                                            | An ordering key (or keys) to use to order the rows before aggregating. If not provided, the order of the items in the result is undefined and backend specific. | `None`  |
-| include_null | [bool](%60bool%60)                                                                                                 | Whether to include null values when performing this aggregation. Set to `True` to include nulls in the result.                                                  | `False` |
+| Name          | Type                                                                                                               | Description                                                                                                                                                     | Default |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| where         | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | An optional filter expression. If provided, only rows where `where` is `True` will be included in the aggregate.                                                | `None`  |
+| order\_by     | [Any](%60typing.Any%60)                                                                                            | An ordering key (or keys) to use to order the rows before aggregating. If not provided, the order of the items in the result is undefined and backend specific. | `None`  |
+| include\_null | [bool](%60bool%60)                                                                                                 | Whether to include null values when performing this aggregation. Set to `True` to include nulls in the result.                                                  | `False` |
 
 #### Returns
 
 | Name | Type                                                                  | Description     |
-|-------|---------------------------------------------------|--------------|
+| ---- | --------------------------------------------------------------------- | --------------- |
 |      | [ArrayScalar](%60letsql.vendor.ibis.expr.types.arrays.ArrayScalar%60) | Collected array |
 
 #### Examples
@@ -256,7 +256,7 @@ Collect elements per group using a filter
 └────────┴──────────────────────┘
 ```
 
-### identical_to
+### identical\_to
 
 ```python
 identical_to(other)
@@ -269,13 +269,13 @@ Corresponds to `IS NOT DISTINCT FROM` in SQL.
 #### Parameters
 
 | Name  | Type                                                       | Description              | Default    |
-|-------|--------------------------------------|-------------------|---------|
+| ----- | ---------------------------------------------------------- | ------------------------ | ---------- |
 | other | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Expression to compare to | *required* |
 
 #### Returns
 
 | Name | Type                                                                     | Description                                          |
-|------|--------------------------------------|-----------------------------|
+| ---- | ------------------------------------------------------------------------ | ---------------------------------------------------- |
 |      | [BooleanValue](%60letsql.vendor.ibis.expr.types.logical.BooleanValue%60) | Whether this expression is not distinct from `other` |
 
 #### Examples
@@ -303,14 +303,14 @@ Check whether this expression’s values are in `values`.
 
 #### Parameters
 
-| Name   | Type                                                                                                                                                                   | Description                                  | Default    |
-|----|-------------------------------------------------|---------------|-----|
-| values | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) \| [Sequence](%60collections.abc.Sequence%60)\[[Value](%60letsql.vendor.ibis.expr.types.generic.Value%60)\] | Values or expression to check for membership | *required* |
+| Name   | Type                                                                                                                                                                  | Description                                  | Default    |
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | ---------- |
+| values | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) \| [Sequence](%60collections.abc.Sequence%60)\[[Value](%60letsql.vendor.ibis.expr.types.generic.Value%60)] | Values or expression to check for membership | *required* |
 
 #### Returns
 
 | Name | Type                                                                     | Description                      |
-|------|--------------------------------------------|----------------------|
+| ---- | ------------------------------------------------------------------------ | -------------------------------- |
 |      | [BooleanValue](%60letsql.vendor.ibis.expr.types.logical.BooleanValue%60) | Expression indicating membership |
 
 #### See Also
@@ -468,13 +468,13 @@ Rename an expression to `name`.
 #### Parameters
 
 | Name | Type | Description                    | Default    |
-|------|------|--------------------------------|------------|
+| ---- | ---- | ------------------------------ | ---------- |
 | name |      | The new name of the expression | *required* |
 
 #### Returns
 
 | Name | Type                                                       | Description             |
-|--------|--------------------------------------------|---------------------|
+| ---- | ---------------------------------------------------------- | ----------------------- |
 |      | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | `self` with name `name` |
 
 #### Examples
@@ -558,14 +558,14 @@ Equivalent to `(self == null_if_expr).ifelse(ibis.null(), self)`.
 
 #### Parameters
 
-| Name         | Type                                                       | Description                                      | Default    |
-|---------|------------------------------|---------------------------|--------|
-| null_if_expr | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Expression indicating what values should be NULL | *required* |
+| Name           | Type                                                       | Description                                      | Default    |
+| -------------- | ---------------------------------------------------------- | ------------------------------------------------ | ---------- |
+| null\_if\_expr | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Expression indicating what values should be NULL | *required* |
 
 #### Returns
 
 | Name | Type                                                       | Description      |
-|--------|------------------------------------------------|----------------|
+| ---- | ---------------------------------------------------------- | ---------------- |
 |      | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Value expression |
 
 #### Examples
@@ -600,7 +600,7 @@ Equivalent to `(self == null_if_expr).ifelse(ibis.null(), self)`.
 └─────────────────────┘
 ```
 
-### try_cast
+### try\_cast
 
 ```python
 try_cast(target_type)
@@ -609,18 +609,18 @@ try_cast(target_type)
 Try cast expression to indicated data type.
 
 If the cast fails for a row, the value is returned as null or NaN
-depending on target_type and backend behavior.
+depending on target\_type and backend behavior.
 
 #### Parameters
 
-| Name        | Type                    | Description                                                                            | Default    |
-|--------|------------|----------------------------------------------|--------|
-| target_type | [Any](%60typing.Any%60) | Type to try cast to. Anything accepted by [`ibis.dtype()`](./datatypes.qmd#ibis.dtype) | *required* |
+| Name         | Type                    | Description                                                                            | Default    |
+| ------------ | ----------------------- | -------------------------------------------------------------------------------------- | ---------- |
+| target\_type | [Any](%60typing.Any%60) | Type to try cast to. Anything accepted by [`ibis.dtype()`](./datatypes.qmd#ibis.dtype) | *required* |
 
 #### Returns
 
 | Name | Type                                                       | Description       |
-|--------|-----------------------------------------------|-----------------|
+| ---- | ---------------------------------------------------------- | ----------------- |
 |      | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) | Casted expression |
 
 #### See Also
@@ -669,11 +669,11 @@ Scalar(self, arg)
 
 ## Methods
 
-| Name                                                               | Description                               |
-|------------------------------------|------------------------------------|
-| [as_table](#letsql.vendor.ibis.expr.types.generic.Scalar.as_table) | Promote the scalar expression to a table. |
+| Name                                                                | Description                               |
+| ------------------------------------------------------------------- | ----------------------------------------- |
+| [as\_table](#letsql.vendor.ibis.expr.types.generic.Scalar.as_table) | Promote the scalar expression to a table. |
 
-### as_table
+### as\_table
 
 ```python
 as_table()
@@ -684,7 +684,7 @@ Promote the scalar expression to a table.
 #### Returns
 
 | Name | Type                                                     | Description        |
-|--------|----------------------------------------------|------------------|
+| ---- | -------------------------------------------------------- | ------------------ |
 |      | [Table](%60letsql.vendor.ibis.expr.types.joins.Table%60) | A table expression |
 
 #### Examples
@@ -717,23 +717,23 @@ Column(self, arg)
 
 ## Methods
 
-| Name                                                                           | Description                                                         |
-|------------------------------------|------------------------------------|
-| [approx_median](#letsql.vendor.ibis.expr.types.generic.Column.approx_median)   | Return an approximate of the median of `self`.                      |
-| [approx_nunique](#letsql.vendor.ibis.expr.types.generic.Column.approx_nunique) | Return the approximate number of distinct elements in `self`.       |
-| [arbitrary](#letsql.vendor.ibis.expr.types.generic.Column.arbitrary)           | Select an arbitrary value in a column.                              |
-| [count](#letsql.vendor.ibis.expr.types.generic.Column.count)                   | Compute the number of rows in an expression.                        |
-| [first](#letsql.vendor.ibis.expr.types.generic.Column.first)                   | Return the first value of a column.                                 |
-| [lag](#letsql.vendor.ibis.expr.types.generic.Column.lag)                       | Return the row located at `offset` rows **before** the current row. |
-| [last](#letsql.vendor.ibis.expr.types.generic.Column.last)                     | Return the last value of a column.                                  |
-| [lead](#letsql.vendor.ibis.expr.types.generic.Column.lead)                     | Return the row located at `offset` rows **after** the current row.  |
-| [max](#letsql.vendor.ibis.expr.types.generic.Column.max)                       | Return the maximum of a column.                                     |
-| [median](#letsql.vendor.ibis.expr.types.generic.Column.median)                 | Return the median of the column.                                    |
-| [min](#letsql.vendor.ibis.expr.types.generic.Column.min)                       | Return the minimum of a column.                                     |
-| [nth](#letsql.vendor.ibis.expr.types.generic.Column.nth)                       | Return the `n`th value (0-indexed) over a window.                   |
-| [nunique](#letsql.vendor.ibis.expr.types.generic.Column.nunique)               | Compute the number of distinct rows in an expression.               |
+| Name                                                                            | Description                                                         |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [approx\_median](#letsql.vendor.ibis.expr.types.generic.Column.approx_median)   | Return an approximate of the median of `self`.                      |
+| [approx\_nunique](#letsql.vendor.ibis.expr.types.generic.Column.approx_nunique) | Return the approximate number of distinct elements in `self`.       |
+| [arbitrary](#letsql.vendor.ibis.expr.types.generic.Column.arbitrary)            | Select an arbitrary value in a column.                              |
+| [count](#letsql.vendor.ibis.expr.types.generic.Column.count)                    | Compute the number of rows in an expression.                        |
+| [first](#letsql.vendor.ibis.expr.types.generic.Column.first)                    | Return the first value of a column.                                 |
+| [lag](#letsql.vendor.ibis.expr.types.generic.Column.lag)                        | Return the row located at `offset` rows **before** the current row. |
+| [last](#letsql.vendor.ibis.expr.types.generic.Column.last)                      | Return the last value of a column.                                  |
+| [lead](#letsql.vendor.ibis.expr.types.generic.Column.lead)                      | Return the row located at `offset` rows **after** the current row.  |
+| [max](#letsql.vendor.ibis.expr.types.generic.Column.max)                        | Return the maximum of a column.                                     |
+| [median](#letsql.vendor.ibis.expr.types.generic.Column.median)                  | Return the median of the column.                                    |
+| [min](#letsql.vendor.ibis.expr.types.generic.Column.min)                        | Return the minimum of a column.                                     |
+| [nth](#letsql.vendor.ibis.expr.types.generic.Column.nth)                        | Return the `n`th value (0-indexed) over a window.                   |
+| [nunique](#letsql.vendor.ibis.expr.types.generic.Column.nunique)                | Compute the number of distinct rows in an expression.               |
 
-### approx_median
+### approx\_median
 
 ```python
 approx_median(where=None)
@@ -741,26 +741,26 @@ approx_median(where=None)
 
 Return an approximate of the median of `self`.
 
-:::note[The result may or may not be exact]
+<Note>
+  The result may or may not be exact
+</Note>
 
 Whether the result is an approximation depends on the backend.
 
-:::warning[Do not depend on the results being exact]
-
-:::
-
-:::
+<Warning>
+  Do not depend on the results being exact
+</Warning>
 
 #### Parameters
 
 | Name  | Type                                                                                                               | Description                             | Default |
-|-----|---------------------------------------------|------------------|------|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | Filter in values when `where` is `True` | `None`  |
 
 #### Returns
 
 | Name | Type                                                         | Description                              |
-|-------|--------------------------------------|----------------------------|
+| ---- | ------------------------------------------------------------ | ---------------------------------------- |
 |      | [Scalar](%60letsql.vendor.ibis.expr.types.generic.Scalar%60) | An approximation of the median of `self` |
 
 #### Examples
@@ -779,7 +779,7 @@ Whether the result is an approximation depends on the backend.
 └────────┘
 ```
 
-### approx_nunique
+### approx\_nunique
 
 ```python
 approx_nunique(where=None)
@@ -787,11 +787,11 @@ approx_nunique(where=None)
 
 Return the approximate number of distinct elements in `self`.
 
-:::note[The result may or may not be exact]
+:::note\[The result may or may not be exact]
 
 Whether the result is an approximation depends on the backend.
 
-:::warning[Do not depend on the results being exact]
+:::warning\[Do not depend on the results being exact]
 
 :::
 
@@ -800,13 +800,13 @@ Whether the result is an approximation depends on the backend.
 #### Parameters
 
 | Name  | Type                                                                                                               | Description                             | Default |
-|-----|---------------------------------------------|------------------|------|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | Filter in values when `where` is `True` | `None`  |
 
 #### Returns
 
 | Name | Type                                                         | Description                                             |
-|------|----------------------------------|---------------------------------|
+| ---- | ------------------------------------------------------------ | ------------------------------------------------------- |
 |      | [Scalar](%60letsql.vendor.ibis.expr.types.generic.Scalar%60) | An approximate count of the distinct elements of `self` |
 
 #### Examples
@@ -840,14 +840,14 @@ values are NULL.
 #### Parameters
 
 | Name  | Type                                                                                                               | Description         | Default |
-|-----|--------------------------------------------------|-----------|------|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | ------------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | A filter expression | `None`  |
 | how   | [Any](%60typing.Any%60)                                                                                            | DEPRECATED          | `None`  |
 
 #### Returns
 
 | Name | Type                                                         | Description   |
-|--------|--------------------------------------------------|--------------|
+| ---- | ------------------------------------------------------------ | ------------- |
 |      | [Scalar](%60letsql.vendor.ibis.expr.types.generic.Scalar%60) | An expression |
 
 #### Examples
@@ -888,13 +888,13 @@ Compute the number of rows in an expression.
 #### Parameters
 
 | Name  | Type                                                                                                               | Description       | Default |
-|-----|---------------------------------------------------|----------|-------|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | Filter expression | `None`  |
 
 #### Returns
 
 | Name | Type                                                                       | Description                         |
-|------|-------------------------------------------|-----------------------|
+| ---- | -------------------------------------------------------------------------- | ----------------------------------- |
 |      | [IntegerScalar](%60letsql.vendor.ibis.expr.types.numeric.IntegerScalar%60) | Number of elements in an expression |
 
 ### first
@@ -907,11 +907,11 @@ Return the first value of a column.
 
 #### Parameters
 
-| Name         | Type                                                                                                               | Description                                                                                                                                               | Default |
-|-----|---------------------------|--------------------------------------|----|
-| where        | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | An optional filter expression. If provided, only rows where `where` is `True` will be included in the aggregate.                                          | `None`  |
-| order_by     | [Any](%60typing.Any%60)                                                                                            | An ordering key (or keys) to use to order the rows before aggregating. If not provided, the meaning of `first` is undefined and will be backend specific. | `None`  |
-| include_null | [bool](%60bool%60)                                                                                                 | Whether to include null values when performing this aggregation. Set to `True` to include nulls in the result.                                            | `False` |
+| Name          | Type                                                                                                               | Description                                                                                                                                               | Default |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| where         | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | An optional filter expression. If provided, only rows where `where` is `True` will be included in the aggregate.                                          | `None`  |
+| order\_by     | [Any](%60typing.Any%60)                                                                                            | An ordering key (or keys) to use to order the rows before aggregating. If not provided, the meaning of `first` is undefined and will be backend specific. | `None`  |
+| include\_null | [bool](%60bool%60)                                                                                                 | Whether to include null values when performing this aggregation. Set to `True` to include nulls in the result.                                            | `False` |
 
 #### Examples
 
@@ -951,7 +951,7 @@ Return the row located at `offset` rows **before** the current row.
 #### Parameters
 
 | Name    | Type                                                                                                                                   | Description                             | Default |
-|-----|----------------------------------------------|----------------|-----|
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------- |
 | offset  | [int](%60int%60) \| [ir](%60letsql.vendor.ibis.expr.types%60).[IntegerValue](%60letsql.vendor.ibis.expr.types.IntegerValue%60) \| None | Index of row to select                  | `None`  |
 | default | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) \| None                                                                     | Value used if no row exists at `offset` | `None`  |
 
@@ -965,11 +965,11 @@ Return the last value of a column.
 
 #### Parameters
 
-| Name         | Type                                                                                                               | Description                                                                                                                                              | Default |
-|-----|---------------------------|-------------------------------------|----|
-| where        | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | An optional filter expression. If provided, only rows where `where` is `True` will be included in the aggregate.                                         | `None`  |
-| order_by     | [Any](%60typing.Any%60)                                                                                            | An ordering key (or keys) to use to order the rows before aggregating. If not provided, the meaning of `last` is undefined and will be backend specific. | `None`  |
-| include_null | [bool](%60bool%60)                                                                                                 | Whether to include null values when performing this aggregation. Set to `True` to include nulls in the result.                                           | `False` |
+| Name          | Type                                                                                                               | Description                                                                                                                                              | Default |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| where         | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | An optional filter expression. If provided, only rows where `where` is `True` will be included in the aggregate.                                         | `None`  |
+| order\_by     | [Any](%60typing.Any%60)                                                                                            | An ordering key (or keys) to use to order the rows before aggregating. If not provided, the meaning of `last` is undefined and will be backend specific. | `None`  |
+| include\_null | [bool](%60bool%60)                                                                                                 | Whether to include null values when performing this aggregation. Set to `True` to include nulls in the result.                                           | `False` |
 
 #### Examples
 
@@ -1009,7 +1009,7 @@ Return the row located at `offset` rows **after** the current row.
 #### Parameters
 
 | Name    | Type                                                                                                                                   | Description                             | Default |
-|-----|----------------------------------------------|----------------|-----|
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ------- |
 | offset  | [int](%60int%60) \| [ir](%60letsql.vendor.ibis.expr.types%60).[IntegerValue](%60letsql.vendor.ibis.expr.types.IntegerValue%60) \| None | Index of row to select                  | `None`  |
 | default | [Value](%60letsql.vendor.ibis.expr.types.generic.Value%60) \| None                                                                     | Value used if no row exists at `offset` | `None`  |
 
@@ -1024,13 +1024,13 @@ Return the maximum of a column.
 #### Parameters
 
 | Name  | Type                                                                                                               | Description                             | Default |
-|-----|---------------------------------------------|------------------|------|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | Filter in values when `where` is `True` | `None`  |
 
 #### Returns
 
 | Name | Type                                                         | Description                 |
-|-------|-------------------------------------------|----------------------|
+| ---- | ------------------------------------------------------------ | --------------------------- |
 |      | [Scalar](%60letsql.vendor.ibis.expr.types.generic.Scalar%60) | The maximum value in `self` |
 
 #### Examples
@@ -1060,13 +1060,13 @@ Return the median of the column.
 #### Parameters
 
 | Name  | Type                                                                                                               | Description                                                                                                               | Default |
-|----|------------------------------|----------------------------------|----|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | Optional boolean expression. If given, only the values where `where` evaluates to true will be considered for the median. | `None`  |
 
 #### Returns
 
 | Name | Type                                                         | Description          |
-|--------|----------------------------------------------|-------------------|
+| ---- | ------------------------------------------------------------ | -------------------- |
 |      | [Scalar](%60letsql.vendor.ibis.expr.types.generic.Scalar%60) | Median of the column |
 
 #### Examples
@@ -1127,13 +1127,13 @@ Return the minimum of a column.
 #### Parameters
 
 | Name  | Type                                                                                                               | Description                             | Default |
-|-----|---------------------------------------------|------------------|------|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | Filter in values when `where` is `True` | `None`  |
 
 #### Returns
 
 | Name | Type                                                         | Description                 |
-|-------|-------------------------------------------|----------------------|
+| ---- | ------------------------------------------------------------ | --------------------------- |
 |      | [Scalar](%60letsql.vendor.ibis.expr.types.generic.Scalar%60) | The minimum value in `self` |
 
 #### Examples
@@ -1167,13 +1167,13 @@ If the value of `n` is greater than the number of rows in the window,
 #### Parameters
 
 | Name | Type                                                                                                                           | Description        | Default    |
-|-----|---------------------------------------------------|----------|-------|
+| ---- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------ | ---------- |
 | n    | [int](%60int%60) \| [ir](%60letsql.vendor.ibis.expr.types%60).[IntegerValue](%60letsql.vendor.ibis.expr.types.IntegerValue%60) | Desired rank value | *required* |
 
 #### Returns
 
 | Name | Type                                                         | Description                 |
-|-------|-------------------------------------------|----------------------|
+| ---- | ------------------------------------------------------------ | --------------------------- |
 |      | [Column](%60letsql.vendor.ibis.expr.types.generic.Column%60) | The nth value over a window |
 
 ### nunique
@@ -1187,13 +1187,13 @@ Compute the number of distinct rows in an expression.
 #### Parameters
 
 | Name  | Type                                                                                                               | Description       | Default |
-|-----|---------------------------------------------------|----------|-------|
+| ----- | ------------------------------------------------------------------------------------------------------------------ | ----------------- | ------- |
 | where | [ir](%60letsql.vendor.ibis.expr.types%60).[BooleanValue](%60letsql.vendor.ibis.expr.types.BooleanValue%60) \| None | Filter expression | `None`  |
 
 #### Returns
 
 | Name | Type                                                                       | Description                                  |
-|------|----------------------------------------|--------------------------|
+| ---- | -------------------------------------------------------------------------- | -------------------------------------------- |
 |      | [IntegerScalar](%60letsql.vendor.ibis.expr.types.numeric.IntegerScalar%60) | Number of distinct elements in an expression |
 
 #### Examples
