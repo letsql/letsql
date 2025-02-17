@@ -77,14 +77,14 @@ This method is useful for exposing an ibis expression to the underlying
 backend for use in the
 [`Table.sql`](#ibis.expr.types.relations.Table.sql) method.
 
-:::note[`.alias` will create a temporary view]
+<Note>
 
 `.alias` creates a temporary view in the database.
 
-This side effect will be removed in a future version of ibis and **is
+This side effect will be removed in a future version of xorq and **is
 not part of the public API**.
 
-:::
+</Note>
 
 #### Parameters
 
@@ -278,9 +278,9 @@ Return a Table with duplicate rows removed.
 
 Similar to `pandas.DataFrame.drop_duplicates()`.
 
-:::note[Some backends do not support `keep='last'`]
-
-:::
+<Note>
+Some backends do not support `keep='last'`
+</Note>
 
 #### Parameters
 
@@ -559,10 +559,10 @@ limit(n, offset=0)
 
 Select `n` rows from `self` starting at `offset`.
 
-:::note[The result set is not deterministic without a call to
+<Note>
+The result set is not deterministic without a call to
 [`order_by`](#ibis.expr.types.relations.Table.order_by).]
-
-:::
+</Note>
 
 #### Parameters
 
@@ -824,7 +824,7 @@ sample(fraction, *, method='row', seed=None)
 
 Sample a fraction of rows from a table.
 
-:::note[Results may be non-repeatable]
+<Note>
 
 Sampling is by definition a random operation. Some backends support
 specifying a `seed` for repeatable results, but not all backends support
@@ -836,7 +836,7 @@ In all cases, results are backend-specific. An execution against one
 backend is unlikely to sample the same rows when executed against a
 different backend, even with the same `seed` set.
 
-:::
+</Note>
 
 #### Parameters
 

@@ -670,11 +670,11 @@ row_number()
 
 Return an analytic function expression for the current row number.
 
-:::note
+<Note>
 
 `row_number` is normalized across backends to start at 0
 
-:::
+</Note>
 
 ## Returns
 
@@ -1159,16 +1159,16 @@ Generate a range of values.
 
 Integer ranges are supported, as well as timestamp ranges.
 
-:::note
+<Note>
 
-`start` is inclucive and `stop` is exclusive, just like Python’s builtin
+`start` is inclusive and `stop` is exclusive, just like Python’s builtin
 [range](range).
 
 When `step` equals 0, however, this function will return an empty array.
 
 Python’s `range` will raise an exception when `step` is zero.
 
-:::
+</Note>
 
 ## Parameters
 
