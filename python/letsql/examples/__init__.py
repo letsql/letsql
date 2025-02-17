@@ -1,51 +1,40 @@
-from functools import partial
-
 import letsql as ls
 from letsql.examples.core import (
     get_name_to_suffix,
-    get_table_from_csv,
-    get_table_from_parquet,
+    get_table_from_name,
     whitelist,
 )
 
 
 class Example:
-    def __init__(self, name, load):
-        self.load = load
+    def __init__(self, name):
         self.name = name
 
     def fetch(self, table_name=None, backend=None):
         if backend is None:
             backend = ls.connect()
-        return self.load(backend, table_name or self.name)
+        return get_table_from_name(self.name, backend, table_name or self.name)
 
 
 def __dir__():
     return (
-        "get_table_from_csv",
-        "get_table_from_parquet",
+        "get_table_from_name",
         *whitelist,
     )
 
 
 def __getattr__(name):
+    from letsql.vendor.ibis import examples as ibex
+
     lookup = get_name_to_suffix()
 
     if name not in lookup:
-        raise AttributeError
+        return getattr(ibex, name)
 
-    read = get_table_from_csv if lookup[name] == ".csv" else get_table_from_parquet
-    return Example(name, partial(read, name))
+    return Example(name)
 
 
 __all__ = (
-    "get_table_from_csv",
-    "get_table_from_parquet",
+    "get_table_from_name",
     *whitelist,
 )
-
-
-def __getattr__(name):
-    from letsql.vendor.ibis import examples as ibex
-
-    return getattr(ibex, name)

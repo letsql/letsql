@@ -26,11 +26,14 @@ def get_name_to_suffix():
     return dct
 
 
-def get_table_from_parquet(name, backend, table_name=None):
-    parquet_file = ls.config.options.pins.get_path(name)
-    return backend.read_parquet(parquet_file, table_name=table_name or name)
-
-
-def get_table_from_csv(name, backend, table_name=None):
-    parquet_file = ls.config.options.pins.get_path(name)
-    return backend.read_csv(parquet_file, table_name=table_name or name)
+def get_table_from_name(name, backend, table_name=None):
+    suffix = get_name_to_suffix().get(name)
+    match suffix:
+        case ".parquet":
+            method = backend.read_parquet
+        case ".csv":
+            method = backend.read_csv
+        case _:
+            raise ValueError
+    path = ls.config.options.pins.get_path(name)
+    return method(path, table_name=table_name or name)
