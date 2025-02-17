@@ -7,7 +7,7 @@ import pytest
 import letsql as ls
 from letsql.flight import FlightServer, FlightUrl, make_con
 from letsql.flight.action import AddExchangeAction
-from letsql.flight.exchanger import UDFExchanger
+from letsql.flight.exchanger import PandasUDFExchanger
 
 
 @pytest.mark.parametrize(
@@ -119,7 +119,7 @@ def test_exchange(connection, port):
         connection=connection,
     ) as main:
         client = make_con(main).con
-        udf_exchanger = UDFExchanger(
+        udf_exchanger = PandasUDFExchanger(
             my_f,
             schema_in=pa.schema(
                 (
