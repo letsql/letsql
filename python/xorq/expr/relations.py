@@ -1,6 +1,6 @@
 import functools
 from collections import defaultdict
-from typing import Any
+from typing import Any, Callable
 
 import pyarrow as pa
 
@@ -126,6 +126,36 @@ class RemoteTable(ops.DatabaseTable):
             schema=expr.schema(),
             source=con,
             remote_expr=expr,
+        )
+
+
+class FlightExchange(ops.DatabaseTable):
+    input_expr: Expr = None
+    unbound_expr: Expr = None
+    make_server: Callable = None
+
+    @classmethod
+    def validate_schema(cls, input_expr, unbound_expr):
+        (dt, *rest) = unbound_expr.op().find(ops.UnboundTable)
+        if rest or not isinstance(dt, ops.UnboundTable):
+            raise ValueError
+        if dt.schema != input_expr.schema():
+            raise ValueError
+
+    @classmethod
+    def from_exprs(cls, input_expr, unbound_expr, make_server=None, name=None):
+        from letsql.flight import FlightServer
+
+        make_server = make_server or FlightServer
+        cls.validate_schema(input_expr, unbound_expr)
+        name = name or gen_name()
+        return cls(
+            name=name,
+            schema=unbound_expr.schema(),
+            source=input_expr._find_backend(),
+            input_expr=input_expr,
+            unbound_expr=unbound_expr,
+            make_server=make_server,
         )
 
 
