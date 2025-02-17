@@ -52,14 +52,14 @@ def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
 
 
 def streaming_expr_exchange(
-    unbound_expr, context, reader, writer, options=None, **kwargs
+    unbound_expr, make_connection, context, reader, writer, options=None, **kwargs
 ):
     def make_filtered_reader(reader):
         gen = (chunk.data for chunk in reader if chunk.data)
         return pa.RecordBatchReader.from_batches(reader.schema, gen)
 
     filtered_reader = make_filtered_reader(reader)
-    t = ls.connect().read_record_batches(filtered_reader)
+    t = make_connection().read_record_batches(filtered_reader)
     bound_expr = replace_one_unbound(unbound_expr, t)
     started = False
     for batch in bound_expr.to_pyarrow_batches():
@@ -434,8 +434,9 @@ class PandasUDFExchanger(AbstractExchanger):
 
 
 class UnboundExprExchanger(AbstractExchanger):
-    def __init__(self, unbound_expr):
+    def __init__(self, unbound_expr, make_connection=ls.connect):
         self.unbound_expr = unbound_expr
+        self.make_connection = make_connection
 
     @property
     def op_hash(self):
@@ -443,7 +444,9 @@ class UnboundExprExchanger(AbstractExchanger):
 
     @property
     def exchange_f(self):
-        return functools.partial(streaming_expr_exchange, self.unbound_expr)
+        return functools.partial(
+            streaming_expr_exchange, self.unbound_expr, self.make_connection
+        )
 
     @property
     def schema_in_required(self):
