@@ -5,9 +5,14 @@ from abc import (
     abstractmethod,
 )
 
+import dask
 import pandas as pd
 import pyarrow as pa
 import requests
+
+import letsql as ls
+import letsql.vendor.ibis.expr.operations as ops
+from letsql.common.utils.graph_utils import replace_fix
 
 
 def schemas_equal(s0, s1):
@@ -15,6 +20,25 @@ def schemas_equal(s0, s1):
         return {name: s.field(name) for name in s.names}
 
     return schema_to_dct(s0) == schema_to_dct(s1)
+
+
+def replace_one_unbound(unbound_expr, table):
+    (unbound, *rest) = unbound_expr.op().find(ops.UnboundTable)
+    if rest:
+        raise ValueError
+    dt = table.op()
+    if not isinstance(dt, ops.DatabaseTable):
+        raise ValueError
+    if not unbound.schema == dt.schema:
+        raise ValueError
+
+    def _replace_unbound(node, _, **kwargs):
+        if isinstance(node, ops.UnboundTable):
+            return dt
+        else:
+            return node.__recreate__(kwargs)
+
+    return unbound_expr.op().replace(replace_fix(_replace_unbound)).to_expr()
 
 
 def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
@@ -25,6 +49,24 @@ def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
             writer.begin(out.schema, options=options)
             started = True
         writer.write_batch(out)
+
+
+def streaming_expr_exchange(
+    unbound_expr, context, reader, writer, options=None, **kwargs
+):
+    def make_filtered_reader(reader):
+        gen = (chunk.data for chunk in reader if chunk.data)
+        return pa.RecordBatchReader.from_batches(reader.schema, gen)
+
+    filtered_reader = make_filtered_reader(reader)
+    t = ls.connect().read_record_batches(filtered_reader)
+    bound_expr = replace_one_unbound(unbound_expr, t)
+    started = False
+    for batch in bound_expr.to_pyarrow_batches():
+        if not started:
+            writer.begin(batch.schema, options=options)
+            started = True
+        writer.write_batch(batch)
 
 
 class AbstractExchanger(ABC):
@@ -379,6 +421,49 @@ class PandasUDFExchanger(AbstractExchanger):
     @property
     def command(self):
         return f"custom-udf-{self.f.__name__}"
+
+    @property
+    def query_result(self):
+        return {
+            "schema-in-required": self.schema_in_required,
+            "schema-in-condition": self.schema_in_condition,
+            "calc-schema-out": self.calc_schema_out,
+            "description": self.description,
+            "command": self.command,
+        }
+
+
+class UnboundExprExchanger(AbstractExchanger):
+    def __init__(self, unbound_expr):
+        self.unbound_expr = unbound_expr
+
+    @property
+    def op_hash(self):
+        return dask.base.tokenize(self.unbound_expr.op())
+
+    @property
+    def exchange_f(self):
+        return functools.partial(streaming_expr_exchange, self.unbound_expr)
+
+    @property
+    def schema_in_required(self):
+        (op,) = self.unbound_expr.op().find(ops.UnboundTable)
+        return op.to_expr().schema().to_pyarrow()
+
+    def schema_in_condition(self, schema_in):
+        return schema_in == self.schema_in_required
+
+    def calc_schema_out(self, schema_in):
+        return self.unbound_expr.schema().to_pyarrow()
+
+    @classmethod
+    @property
+    def description(cls):
+        return "run the given unbound expr on the rbr"
+
+    @property
+    def command(self):
+        return f"execute-unbound-expr-{self.op_hash}"
 
     @property
     def query_result(self):
