@@ -437,7 +437,7 @@ class UnboundExprExchanger(AbstractExchanger):
 
     @property
     def op_hash(self):
-        return dask.base.tokenize(self.unbound_expr.op())
+        return dask.base.tokenize(self.unbound_expr)
 
     @property
     def exchange_f(self):
