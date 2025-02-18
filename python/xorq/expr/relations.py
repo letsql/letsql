@@ -150,13 +150,18 @@ class FlightExchange(ops.DatabaseTable):
         import letsql as ls
         from letsql.flight import FlightServer
 
+        def roundtrip_cloudpickle(obj):
+            import cloudpickle
+
+            return cloudpickle.loads(cloudpickle.dumps(obj))
+
         cls.validate_schema(input_expr, unbound_expr)
         return cls(
             name=name or gen_name(),
             schema=unbound_expr.schema(),
             source=input_expr._find_backend(),
             input_expr=input_expr,
-            unbound_expr=unbound_expr,
+            unbound_expr=roundtrip_cloudpickle(unbound_expr),
             make_server=make_server or FlightServer,
             make_connection=make_connection or ls.connect,
         )
