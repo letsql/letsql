@@ -13,6 +13,7 @@ import requests
 import letsql as ls
 import letsql.vendor.ibis.expr.operations as ops
 from letsql.common.utils.graph_utils import replace_fix
+from letsql.common.utils.rbr_utils import make_filtered_reader
 
 
 def schemas_equal(s0, s1):
@@ -54,10 +55,6 @@ def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
 def streaming_expr_exchange(
     unbound_expr, make_connection, context, reader, writer, options=None, **kwargs
 ):
-    def make_filtered_reader(reader):
-        gen = (chunk.data for chunk in reader if chunk.data)
-        return pa.RecordBatchReader.from_batches(reader.schema, gen)
-
     filtered_reader = make_filtered_reader(reader)
     t = make_connection().read_record_batches(filtered_reader)
     bound_expr = replace_one_unbound(unbound_expr, t)

@@ -4,6 +4,10 @@ from typing import Any, Callable
 
 import pyarrow as pa
 
+from xorq.common.utils.rbr_utils import (
+    copy_rbr_batches,
+    instrument_reader,
+)
 from xorq.vendor import ibis
 from xorq.vendor.ibis import Expr, Schema
 from xorq.vendor.ibis.common.collections import FrozenDict
@@ -134,6 +138,7 @@ class FlightExchange(ops.DatabaseTable):
     unbound_expr: Expr = None
     make_server: Callable = None
     make_connection: Callable = None
+    do_instrument_reader: bool = False
 
     @classmethod
     def validate_schema(cls, input_expr, unbound_expr):
@@ -145,7 +150,13 @@ class FlightExchange(ops.DatabaseTable):
 
     @classmethod
     def from_exprs(
-        cls, input_expr, unbound_expr, make_server=None, make_connection=None, name=None
+        cls,
+        input_expr,
+        unbound_expr,
+        make_server=None,
+        make_connection=None,
+        name=None,
+        **kwargs,
     ):
         import letsql as ls
         from letsql.flight import FlightServer
@@ -164,17 +175,23 @@ class FlightExchange(ops.DatabaseTable):
             unbound_expr=roundtrip_cloudpickle(unbound_expr),
             make_server=make_server or FlightServer,
             make_connection=make_connection or ls.connect,
+            **kwargs,
         )
 
-    def to_rbr(self):
+    def to_rbr(self, do_instrument_reader=None):
         from letsql.flight import make_con
         from letsql.flight.action import AddExchangeAction
         from letsql.flight.exchanger import (
             UnboundExprExchanger,
         )
 
+        if do_instrument_reader is None:
+            do_instrument_reader = self.do_instrument_reader
+
         def inner(flight_exchange):
             rbr_in = flight_exchange.input_expr.to_pyarrow_batches()
+            if do_instrument_reader:
+                rbr_in = instrument_reader(rbr_in, "input: ")
             with flight_exchange.make_server() as server:
                 client = make_con(server).con
                 unbound_expr_exchanger = UnboundExprExchanger(
@@ -188,11 +205,40 @@ class FlightExchange(ops.DatabaseTable):
                 (fut, rbr_out) = client.do_exchange(
                     unbound_expr_exchanger.command, rbr_in
                 )
+                if do_instrument_reader:
+                    rbr_out = instrument_reader(rbr_out, "output: ")
+
+                # HAK: account for https://github.com/apache/arrow-rs/issues/6471
+                rbr_out = copy_rbr_batches(rbr_out)
                 yield from rbr_out
 
         gen = inner(self)
         schema = self.schema.to_pyarrow()
         return pa.RecordBatchReader.from_batches(schema, gen)
+
+
+def flight_operator(
+    expr,
+    unbound_expr,
+    name=None,
+    make_server=None,
+    make_connection=None,
+    inner_name=None,
+    con=None,
+    **kwargs,
+):
+    return (
+        FlightExchange.from_exprs(
+            expr,
+            unbound_expr,
+            make_server=make_server,
+            make_connection=make_connection,
+            name=inner_name,
+            **kwargs,
+        )
+        .to_expr()
+        .into_backend(con=con or expr._find_backend(), name=name)
+    )
 
 
 def into_backend(expr, con, name=None):
