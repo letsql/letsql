@@ -166,6 +166,34 @@ class FlightExchange(ops.DatabaseTable):
             make_connection=make_connection or ls.connect,
         )
 
+    def to_rbr(self):
+        from letsql.flight import make_con
+        from letsql.flight.action import AddExchangeAction
+        from letsql.flight.exchanger import (
+            UnboundExprExchanger,
+        )
+
+        def inner(flight_exchange):
+            rbr_in = flight_exchange.input_expr.to_pyarrow_batches()
+            with flight_exchange.make_server() as server:
+                client = make_con(server).con
+                unbound_expr_exchanger = UnboundExprExchanger(
+                    flight_exchange.unbound_expr
+                )
+                client.do_action(
+                    AddExchangeAction.name,
+                    unbound_expr_exchanger,
+                    options=client._options,
+                )
+                (fut, rbr_out) = client.do_exchange(
+                    unbound_expr_exchanger.command, rbr_in
+                )
+                yield from rbr_out
+
+        gen = inner(self)
+        schema = self.schema.to_pyarrow()
+        return pa.RecordBatchReader.from_batches(schema, gen)
+
 
 def into_backend(expr, con, name=None):
     return RemoteTable.from_expr(con=con, expr=expr, name=name).to_expr()
