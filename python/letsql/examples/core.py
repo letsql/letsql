@@ -30,7 +30,7 @@ def get_name_to_suffix():
     return dct
 
 
-def get_table_from_name(name, backend, table_name=None, deferred=True):
+def get_table_from_name(name, backend, table_name=None, deferred=True, **kwargs):
     suffix = get_name_to_suffix().get(name)
     match suffix:
         case ".parquet":
@@ -46,4 +46,4 @@ def get_table_from_name(name, backend, table_name=None, deferred=True):
         case _:
             raise ValueError
     path = ls.config.options.pins.get_path(name)
-    return method(path, table_name=table_name or name)
+    return method(path, table_name=table_name or name, **kwargs)

@@ -10,11 +10,15 @@ class Example:
     def __init__(self, name):
         self.name = name
 
-    def fetch(self, backend=None, table_name=None, deferred=True):
+    def fetch(self, backend=None, table_name=None, deferred=True, **kwargs):
         if backend is None:
             backend = ls.connect()
         return get_table_from_name(
-            self.name, backend, table_name or self.name, deferred=deferred
+            self.name,
+            backend,
+            table_name or self.name,
+            deferred=deferred,
+            **kwargs,
         )
 
 
