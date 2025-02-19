@@ -16,7 +16,7 @@ import xorq.vendor.ibis.expr.datatypes as dt
 import xorq.vendor.ibis.expr.operations as ops
 import xorq.vendor.ibis.expr.schema as sch
 import xorq.vendor.ibis.expr.types as ir
-from xorq.common.exceptions import LetSQLInputError
+from xorq.common.exceptions import XorqInputError
 from xorq.vendor.ibis import selectors, util
 from xorq.vendor.ibis.backends import BaseBackend, connect
 from xorq.vendor.ibis.common.deferred import Deferred, _, deferrable
@@ -503,7 +503,7 @@ def _memtable(
     cols = df.columns
     dupes = [name for name, count in Counter(cols).items() if count > 1]
     if dupes:
-        raise LetSQLInputError(
+        raise XorqInputError(
             f"Duplicate column names found in DataFrame when constructing memtable: {dupes}"
         )
 
@@ -1710,7 +1710,7 @@ def window(
     has_between = between is not None
     has_preceding_following = preceding is not None or following is not None
     if has_rows + has_range + has_between + has_preceding_following > 1:
-        raise LetSQLInputError(
+        raise XorqInputError(
             "Must only specify either `rows`, `range`, `between` or `preceding`/`following`"
         )
 

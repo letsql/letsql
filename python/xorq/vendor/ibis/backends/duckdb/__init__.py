@@ -303,7 +303,7 @@ class Backend(SQLBackend, CanCreateDatabase, CanCreateSchema, UrlFromPath):
         try:
             result = self.con.sql(query)
         except duckdb.CatalogException:
-            raise exc.LetSQLError(f"Table not found: {table_name!r}")
+            raise exc.XorqError(f"Table not found: {table_name!r}")
         else:
             meta = result.fetch_arrow_table()
 

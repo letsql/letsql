@@ -81,11 +81,11 @@ class WindowFunction(Value):
     def __init__(self, how, start, end, **kwargs):
         if how == "rows":
             if start and not start.dtype.is_integer():
-                raise com.LetSQLTypeError(
+                raise com.XorqTypeError(
                     "Row-based window frame start boundary must be an integer"
                 )
             if end and not end.dtype.is_integer():
-                raise com.LetSQLTypeError(
+                raise com.XorqTypeError(
                     "Row-based window frame end boundary must be an integer"
                 )
         elif how == "range":
@@ -97,11 +97,11 @@ class WindowFunction(Value):
                     or (start.dtype.is_numeric() and end.dtype.is_numeric())
                 )
             ):
-                raise com.LetSQLTypeError(
+                raise com.XorqTypeError(
                     "Window frame start and end boundaries must have the same datatype"
                 )
         else:
-            raise com.LetSQLTypeError(
+            raise com.XorqTypeError(
                 f"Window frame type must be either 'rows' or 'range', got {how}"
             )
         super().__init__(how=how, start=start, end=end, **kwargs)

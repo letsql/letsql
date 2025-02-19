@@ -164,7 +164,7 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
 
         if not meta:
             fqn = sg.table(table_name, db=database, catalog=catalog).sql(self.name)
-            raise com.LetSQLError(f"Table not found: {fqn}")
+            raise com.XorqError(f"Table not found: {fqn}")
 
         type_mapper = self.compiler.type_mapper
 
@@ -449,7 +449,7 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
 
         """
         if obj is None and schema is None:
-            raise com.LetSQLError("One of the `schema` or `obj` parameter is required")
+            raise com.XorqError("One of the `schema` or `obj` parameter is required")
         if schema is not None:
             schema = ibis.schema(schema)
 
@@ -574,7 +574,7 @@ class Backend(SQLBackend, CanListCatalog, CanCreateDatabase, CanCreateSchema):
     def _register_in_memory_table(self, op: ops.InMemoryTable) -> None:
         schema = op.schema
         if null_columns := [col for col, dtype in schema.items() if dtype.is_null()]:
-            raise com.LetSQLTypeError(
+            raise com.XorqTypeError(
                 "Trino cannot yet reliably handle `null` typed columns; "
                 f"got null typed columns: {null_columns}"
             )

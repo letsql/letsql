@@ -7,7 +7,7 @@ from collections import defaultdict
 import toolz
 
 import xorq.vendor.ibis.expr.operations as ops
-from xorq.common.exceptions import ExpressionError, LetSQLInputError
+from xorq.common.exceptions import ExpressionError, XorqInputError
 from xorq.vendor.ibis.common.collections import FrozenDict  # noqa: TCH001
 from xorq.vendor.ibis.common.deferred import Item, _, deferred, var
 from xorq.vendor.ibis.common.graph import Node as Traversable
@@ -151,7 +151,7 @@ class DerefMap(Concrete, Traversable):
         """
         ambigs = value.find(lambda x: x in self.ambigs, filter=ops.Value)
         if ambigs:
-            raise LetSQLInputError(
+            raise XorqInputError(
                 f"Ambiguous field reference {ambigs!r} in expression {value!r}"
             )
         return value.replace(self.subs, filter=ops.Value)

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Literal
 from public import public
 
 import xorq.vendor.ibis.expr.operations as ops
-from xorq.common.exceptions import LetSQLTypeError
+from xorq.common.exceptions import XorqTypeError
 from xorq.vendor import ibis
 from xorq.vendor.ibis.expr.types.core import _binop
 from xorq.vendor.ibis.expr.types.generic import Column, Scalar, Value
@@ -1184,7 +1184,7 @@ class IntegerValue(NumericValue):
         """
         try:
             node = ops.BitwiseNot(self)
-        except (LetSQLTypeError, NotImplementedError):
+        except (XorqTypeError, NotImplementedError):
             return NotImplemented
         else:
             return node.to_expr()

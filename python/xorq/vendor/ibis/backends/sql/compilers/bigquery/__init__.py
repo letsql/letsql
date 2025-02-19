@@ -737,7 +737,7 @@ class BigQueryCompiler(SQLGlotCompiler):
 
     def visit_TimestampRange(self, op, *, start, stop, step):
         if op.start.dtype.timezone is None or op.stop.dtype.timezone is None:
-            raise com.LetSQLTypeError(
+            raise com.XorqTypeError(
                 "Timestamps without timezone values are not supported when generating timestamp ranges"
             )
         return self._make_range(
@@ -952,7 +952,7 @@ class BigQueryCompiler(SQLGlotCompiler):
         # rename their columns
         limit = 300
         if len(candidate) > limit:
-            raise com.LetSQLError(
+            raise com.XorqError(
                 f"BigQuery does not allow column names longer than {limit:d} characters. "
                 "Please rename your columns to have fewer characters."
             )

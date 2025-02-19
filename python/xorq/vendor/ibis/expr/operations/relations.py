@@ -13,8 +13,8 @@ import xorq.vendor.ibis.expr.datashape as ds
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.common.exceptions import (
     IntegrityError,
-    LetSQLTypeError,
     RelationError,
+    XorqTypeError,
 )
 from xorq.vendor.ibis.common.annotations import attribute
 from xorq.vendor.ibis.common.collections import (
@@ -98,7 +98,7 @@ class Field(Value):
     def __init__(self, rel, name):
         if name not in rel.schema:
             columns_formatted = ", ".join(map(repr, rel.schema.names))
-            raise LetSQLTypeError(
+            raise XorqTypeError(
                 f"Column {name!r} is not found in table. "
                 f"Existing columns: {columns_formatted}."
             )

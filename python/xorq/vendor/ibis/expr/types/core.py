@@ -15,7 +15,7 @@ from attr.validators import (
 from public import public
 
 import xorq.vendor.ibis.expr.operations as ops
-from xorq.common.exceptions import LetSQLError, TranslationError
+from xorq.common.exceptions import TranslationError, XorqError
 from xorq.vendor import ibis
 from xorq.vendor.ibis.common.annotations import ValidationError
 from xorq.vendor.ibis.common.grounds import Immutable
@@ -367,7 +367,7 @@ class Expr(Immutable, Coercible):
 
         if not backends:
             if has_unbound:
-                raise LetSQLError(
+                raise XorqError(
                     "Expression contains unbound tables and therefore cannot "
                     "be executed. Use `<backend>.execute(expr)` to execute "
                     "against an explicit backend, or rebuild the expression "
@@ -375,13 +375,13 @@ class Expr(Immutable, Coercible):
                 )
             default = _default_backend() if use_default else None
             if default is None:
-                raise LetSQLError(
+                raise XorqError(
                     "Expression depends on no backends, and found no default"
                 )
             return default
 
         if len(backends) > 1:
-            raise LetSQLError("Multiple backends found for this expression")
+            raise XorqError("Multiple backends found for this expression")
 
         return backends[0]
 
@@ -394,7 +394,7 @@ class Expr(Immutable, Coercible):
                 current_backend = _backend_init()
             else:
                 current_backend = self._find_backend_original(use_default=use_default)
-        except LetSQLError as e:
+        except XorqError as e:
             if "Multiple backends found" in e.args[0]:
                 current_backend = _backend_init()
             else:

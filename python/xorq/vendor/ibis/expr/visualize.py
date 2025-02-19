@@ -28,7 +28,7 @@ def get_type(node):
             return node.output_type.__name__
         except (AttributeError, NotImplementedError):
             return "\u2205"  # empty set character
-    except com.LetSQLError:
+    except com.XorqError:
         assert isinstance(node, ops.Join)
         left_table_name = getattr(node.left, "name", None) or ops.genname()
         left_schema = node.left.schema

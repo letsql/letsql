@@ -22,19 +22,19 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class LetSQLError(Exception):
+class XorqError(Exception):
     """LetSQLError: All user-facing errors for LetSQL."""
 
 
-class InternalError(LetSQLError):
+class InternalError(XorqError):
     """InternalError."""
 
 
-class IntegrityError(LetSQLError):
+class IntegrityError(XorqError):
     """IntegrityError."""
 
 
-class ExpressionError(LetSQLError):
+class ExpressionError(XorqError):
     """ExpressionError."""
 
 
@@ -42,7 +42,7 @@ class RelationError(ExpressionError):
     """RelationError."""
 
 
-class TranslationError(LetSQLError):
+class TranslationError(XorqError):
     """TranslationError."""
 
 
@@ -58,31 +58,31 @@ class UnsupportedBackendType(TranslationError):
     """UnsupportedBackendType."""
 
 
-class UnboundExpressionError(ValueError, LetSQLError):
+class UnboundExpressionError(ValueError, XorqError):
     """UnboundExpressionError."""
 
 
-class LetSQLInputError(ValueError, LetSQLError):
+class XorqInputError(ValueError, XorqError):
     """IbisInputError."""
 
 
-class LetSQLTypeError(TypeError, LetSQLError):
+class XorqTypeError(TypeError, XorqError):
     """IbisTypeError."""
 
 
-class InputTypeError(LetSQLTypeError):
+class InputTypeError(XorqTypeError):
     """InputTypeError."""
 
 
-class UnsupportedArgumentError(LetSQLError):
+class UnsupportedArgumentError(XorqError):
     """UnsupportedArgumentError."""
 
 
-class BackendConversionError(LetSQLError):
+class BackendConversionError(XorqError):
     """A backend cannot convert an input to its native type."""
 
 
-class BackendConfigurationNotRegistered(LetSQLError):
+class BackendConfigurationNotRegistered(XorqError):
     """A backend has options but isn't registered in ibis/config.py."""
 
     def __init__(self, backend_name: str) -> None:
@@ -93,7 +93,7 @@ class BackendConfigurationNotRegistered(LetSQLError):
         return f"Please register options for the `{backend_name}` backend in ibis/config.py"
 
 
-class DuplicateUDFError(LetSQLError):
+class DuplicateUDFError(XorqError):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -102,7 +102,7 @@ class DuplicateUDFError(LetSQLError):
         return f"More than one function with `{name}` found."
 
 
-class MissingUDFError(LetSQLError):
+class MissingUDFError(XorqError):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -111,7 +111,7 @@ class MissingUDFError(LetSQLError):
         return f"No user-defined function found with name `{name}`"
 
 
-class AmbiguousUDFError(LetSQLError):
+class AmbiguousUDFError(XorqError):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -120,7 +120,7 @@ class AmbiguousUDFError(LetSQLError):
         return f"Multiple implementations of function `{name}`. Only one implementation is supported."
 
 
-class MissingReturnAnnotationError(LetSQLError):
+class MissingReturnAnnotationError(XorqError):
     def __init__(self, func_name: str):
         super().__init__(func_name)
 
@@ -129,7 +129,7 @@ class MissingReturnAnnotationError(LetSQLError):
         return f"function `{func_name}` has no return type annotation"
 
 
-class MissingParameterAnnotationError(LetSQLError):
+class MissingParameterAnnotationError(XorqError):
     def __init__(self, func_name: str, param_name: str):
         super().__init__(func_name, param_name)
 
@@ -138,7 +138,7 @@ class MissingParameterAnnotationError(LetSQLError):
         return f"parameter `{param_name}` in function `{func_name}` is missing a type annotation"
 
 
-class InvalidDecoratorError(LetSQLError):
+class InvalidDecoratorError(XorqError):
     def __init__(self, name: str, lines: str):
         super().__init__(name, lines)
 

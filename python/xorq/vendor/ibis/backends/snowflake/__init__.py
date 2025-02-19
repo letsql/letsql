@@ -451,7 +451,7 @@ $$ {defn["source"]} $$"""
 
     def reconnect(self) -> None:
         if self._from_snowpark:
-            raise com.LetSQLError(
+            raise com.XorqError(
                 "Reconnecting is not supported when using a Snowpark session"
             )
         super().reconnect()
@@ -900,7 +900,7 @@ $$ {defn["source"]} $$"""
         skip_header = kwargs.pop("skip_header", True)
 
         if int(parse_header) != int(skip_header):
-            raise com.LetSQLInputError(
+            raise com.XorqInputError(
                 "`parse_header` and `skip_header` must match: "
                 f"parse_header = {parse_header}, skip_header = {skip_header}"
             )

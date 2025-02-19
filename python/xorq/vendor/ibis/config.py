@@ -181,7 +181,7 @@ def _default_backend() -> Any:
     try:
         import duckdb as _  # noqa: F401
     except ImportError:
-        raise com.LetSQLError(
+        raise com.XorqError(
             """\
 You have used a function that relies on the default backend, but the default
 backend (DuckDB) is not installed.

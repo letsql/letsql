@@ -8,7 +8,7 @@ __version__ = "9.5.0"
 import warnings
 from typing import Any
 
-from xorq.common.exceptions import LetSQLError
+from xorq.common.exceptions import XorqError
 from xorq.vendor.ibis import examples, util
 from xorq.vendor.ibis.backends import BaseBackend
 from xorq.vendor.ibis.config import options
@@ -25,7 +25,7 @@ __all__ = [  # noqa: PLE0604
     "udf",
     "util",
     "BaseBackend",
-    "LetSQLError",
+    "XorqError",
     "options",
     *api.__all__,
 ]

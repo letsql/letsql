@@ -10,7 +10,7 @@ from xorq.common.exceptions import (
     ExpressionError,
     InputTypeError,
     IntegrityError,
-    LetSQLInputError,
+    XorqInputError,
 )
 from xorq.vendor import ibis
 from xorq.vendor.ibis import util
@@ -260,7 +260,7 @@ class Join(Table):
         if how == "left_semi":
             how = "semi"
         elif how == "asof":
-            raise LetSQLInputError("use table.asof_join(...) instead")
+            raise XorqInputError("use table.asof_join(...) instead")
 
         chain = self.op()
         right = right.op()

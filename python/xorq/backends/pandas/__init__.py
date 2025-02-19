@@ -29,7 +29,7 @@ class Backend(IbisPandasBackend):
 
     def drop_table(self, name: str, *, force: bool = False) -> None:
         if not force and name in self.dictionary:
-            raise com.LetSQLError(
+            raise com.XorqError(
                 "Cannot drop existing table. Call drop_table with force=True to drop existing table."
             )
         del self.dictionary[name]

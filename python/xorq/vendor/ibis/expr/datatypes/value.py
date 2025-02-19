@@ -16,7 +16,7 @@ import toolz
 from public import public
 
 import xorq.vendor.ibis.expr.datatypes as dt
-from xorq.common.exceptions import InputTypeError, LetSQLTypeError
+from xorq.common.exceptions import InputTypeError, XorqTypeError
 from xorq.vendor.ibis.common.collections import frozendict
 from xorq.vendor.ibis.common.dispatch import lazy_singledispatch
 from xorq.vendor.ibis.common.numeric import normalize_decimal
@@ -58,7 +58,7 @@ def infer_map(value: Mapping[Any, Any]) -> dt.Map:
             highest_precedence(map(infer, value.keys())),
             highest_precedence(map(infer, value.values())),
         )
-    except LetSQLTypeError:
+    except XorqTypeError:
         return dt.Struct(toolz.valmap(infer, value, factory=type(value)))
 
 
@@ -336,7 +336,7 @@ def normalize(typ, value):
             elif dtype.is_multipolygon():
                 return shp.MultiPolygon(map(partial(normalize, dt.polygon), value))
             else:
-                raise LetSQLTypeError(f"Unsupported geospatial type: {dtype}")
+                raise XorqTypeError(f"Unsupported geospatial type: {dtype}")
         elif isinstance(value, shp.geometry.base.BaseGeometry):
             return value
         else:

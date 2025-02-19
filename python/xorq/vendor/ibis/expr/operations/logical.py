@@ -6,7 +6,7 @@ from public import public
 
 import xorq.vendor.ibis.expr.datatypes as dt
 import xorq.vendor.ibis.expr.rules as rlz
-from xorq.common.exceptions import LetSQLTypeError
+from xorq.common.exceptions import XorqTypeError
 from xorq.vendor.ibis.common.annotations import ValidationError, attribute
 from xorq.vendor.ibis.common.typing import VarTuple  # noqa: TCH001
 from xorq.vendor.ibis.expr.operations.core import Binary, Unary, Value
@@ -65,7 +65,7 @@ class Comparison(Binary):
         Ibis to help the user avoid them?
         """
         if not rlz.comparable(left, right):
-            raise LetSQLTypeError(
+            raise XorqTypeError(
                 f"Arguments {rlz.arg_type_error_format(left)} and "
                 f"{rlz.arg_type_error_format(right)} are not comparable"
             )

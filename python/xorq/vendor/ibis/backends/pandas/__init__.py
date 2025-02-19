@@ -200,17 +200,17 @@ class BasePandasBackend(BaseBackend, NoUrl):
     ) -> ir.Table:
         """Create a table."""
         if temp:
-            com.LetSQLError(
+            com.XorqError(
                 "Passing `temp=True` to the Pandas backend create_table method has no "
                 "effect: all tables are in memory and temporary."
             )
         if database:
-            com.LetSQLError(
+            com.XorqError(
                 "Passing `database` to the Pandas backend create_table method has no "
                 "effect: Pandas cannot set a database."
             )
         if obj is None and schema is None:
-            raise com.LetSQLError("The schema or obj parameter is required")
+            raise com.XorqError("The schema or obj parameter is required")
         if schema is not None:
             schema = ibis.schema(schema)
 
@@ -221,7 +221,7 @@ class BasePandasBackend(BaseBackend, NoUrl):
             df = pd.DataFrame(columns=dtypes.keys()).astype(dtypes)
 
         if name in self.dictionary and not overwrite:
-            raise com.LetSQLError(f"Cannot overwrite existing table `{name}`")
+            raise com.XorqError(f"Cannot overwrite existing table `{name}`")
 
         self.dictionary[name] = df
 
@@ -249,7 +249,7 @@ class BasePandasBackend(BaseBackend, NoUrl):
             del self.dictionary[name]
         except KeyError:
             if not force:
-                raise com.LetSQLError(f"Table {name} does not exist") from None
+                raise com.XorqError(f"Table {name} does not exist") from None
 
     def _convert_object(self, obj: Any) -> Any:
         return _convert_object(obj, self)

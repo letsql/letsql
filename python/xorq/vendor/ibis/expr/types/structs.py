@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from public import public
 
 import xorq.vendor.ibis.expr.operations as ops
-from xorq.common.exceptions import LetSQLError
+from xorq.common.exceptions import XorqError
 from xorq.vendor.ibis import util
 from xorq.vendor.ibis.common.deferred import deferrable
 from xorq.vendor.ibis.expr.types.generic import Column, Scalar, Value, literal
@@ -338,7 +338,7 @@ class StructValue(Value):
         try:
             (table,) = self.op().relations
         except ValueError:
-            raise LetSQLError("StructValue must depend on exactly one table")
+            raise XorqError("StructValue must depend on exactly one table")
 
         return table.to_expr().select([self[name] for name in self.names])
 

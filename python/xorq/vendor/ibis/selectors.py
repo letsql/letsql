@@ -388,7 +388,7 @@ class Cols(Selector):
         names = self.names
         columns = table.columns
         if extra_cols := sorted(names.difference(columns)):
-            raise exc.LetSQLInputError(
+            raise exc.XorqInputError(
                 f"Columns {extra_cols} are not present in {columns}"
             )
         return names
@@ -783,7 +783,7 @@ def _to_selector(
     elif isinstance(obj, str):
         return cols(obj)
     elif isinstance(obj, Expandable):
-        raise exc.LetSQLInputError(
+        raise exc.XorqInputError(
             f"Cannot compose {obj.__class__.__name__} with other selectors"
         )
     elif not obj:

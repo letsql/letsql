@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 from public import public
 
 import xorq.vendor.ibis.expr.datatypes.core as dt
-from xorq.common.exceptions import LetSQLTypeError
+from xorq.common.exceptions import XorqTypeError
 
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ def cast(source: str | dt.DataType, target: str | dt.DataType, **kwargs) -> dt.D
     source, target = dt.dtype(source), dt.dtype(target)
 
     if not source.castable(target, **kwargs):
-        raise LetSQLTypeError(
+        raise XorqTypeError(
             f"Datatype {source} cannot be implicitly casted to {target}"
         )
     return target
@@ -134,7 +134,7 @@ def higher_precedence(left: dt.DataType, right: dt.DataType) -> dt.DataType:
     elif right.castable(left):
         return left.copy(nullable=nullable)
     else:
-        raise LetSQLTypeError(
+        raise XorqTypeError(
             f"Cannot compute precedence for `{left}` and `{right}` types"
         )
 
