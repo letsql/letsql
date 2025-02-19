@@ -4,8 +4,7 @@ import xorq as xq
 from xorq.common.caching import ParquetCacheStorage
 
 
-t = xq.examples.penguins.fetch()
-
+t = xq.examples.penguins.fetch(deferred=False)
 con = t.op().source
 storage = ParquetCacheStorage(source=con, path=Path.cwd())
 
