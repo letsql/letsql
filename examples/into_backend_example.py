@@ -1,9 +1,9 @@
-import letsql as ls
-from letsql.common.caching import SourceStorage
+import xorq as xq
+from xorq.common.caching import SourceStorage
 
 
-con = ls.connect()
-pg = ls.postgres.connect_env()
+con = xq.connect()
+pg = xq.postgres.connect_env()
 
 t = pg.table("batting").into_backend(con, "ls_batting")
 

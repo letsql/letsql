@@ -27,11 +27,11 @@ pip install letsql
 ```python
 import urllib.request
 
-import letsql as ls
+import xorq as xq
 
 urllib.request.urlretrieve("https://raw.githubusercontent.com/mwaskom/seaborn-data/master/iris.csv", "iris.csv")
 
-con = ls.connect()
+con = xq.connect()
 iris_table = con.read_csv("iris.csv", table_name="iris")
 
 res = (
@@ -46,7 +46,7 @@ for more examples on how to use letsql, check the [examples](https://github.com/
 note that in order to run some of the scripts in there, you need to install the library with `examples` extra:
 
 ```shell
-pip install 'letsql[examples]'
+pip install 'xorq[examples]'
 ```
 
 ## Contributing
