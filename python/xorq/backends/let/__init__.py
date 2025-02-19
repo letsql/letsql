@@ -182,9 +182,9 @@ class Backend(DataFusionBackend):
         └───────┴────────┘
 
         """
-        import xorq as xq
+        import xorq as xo
 
-        con = xq.sqlite.connect(path)
+        con = xo.sqlite.connect(path)
 
         table = con.table(table_name)
         registered_table = super().register_table_provider(table, table_name=table_name)

@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 import pytest
 
-import xorq as xq
+import xorq as xo
 
 
 @pytest.fixture
@@ -110,11 +110,11 @@ def test_register_batches(con):
 def test_register_dataset(con):
     tab = pa.table({"x": [1, 2, 3]})
     dataset = ds.InMemoryDataset(tab)
-    t = xq.memtable(dataset, name="my_table")
+    t = xo.memtable(dataset, name="my_table")
     assert con.execute(t.x.sum()) == 6
 
 
 def test_register_memtable(con):
     data = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [2, 3, 4, 5, 6]})
-    t = xq.memtable(data)
+    t = xo.memtable(data)
     assert con.execute(t.a.sum()) == 15

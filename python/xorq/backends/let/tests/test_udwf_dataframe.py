@@ -2,7 +2,7 @@ import numpy as np
 import pyarrow as pa
 import pytest
 
-import xorq as xq
+import xorq as xo
 from xorq.expr.udf import pyarrow_udwf
 from xorq.internal import WindowEvaluator
 from xorq.vendor import ibis
@@ -174,7 +174,7 @@ def smooth_two_col(self, values: list[pa.Array], num_rows: int) -> pa.Array:
     ],
 )
 def test_smooth_default(df, window, expected):
-    con = xq.connect()
+    con = xo.connect()
     t = con.register(df, table_name="t")
 
     expr = t.select(
@@ -189,7 +189,7 @@ def test_smooth_default(df, window, expected):
 
 
 def test_smooth_bounded(df):
-    con = xq.connect()
+    con = xo.connect()
     t = con.register(df, table_name="t")
 
     expr = t.select(
@@ -204,7 +204,7 @@ def test_smooth_bounded(df):
 
 
 def test_smooth_two_column(df):
-    con = xq.connect()
+    con = xo.connect()
     t = con.register(df, table_name="t")
 
     expr = t.select(
@@ -219,7 +219,7 @@ def test_smooth_two_column(df):
 
 
 def test_smooth_rank(df):
-    con = xq.connect()
+    con = xo.connect()
     t = con.register(df, table_name="t")
 
     expr = t.select(
@@ -245,7 +245,7 @@ def test_smooth_rank(df):
     ],
 )
 def test_smooth_frame_bounded(df, window, expected):
-    con = xq.connect()
+    con = xo.connect()
     t = con.register(df, table_name="t")
 
     expr = t.select(

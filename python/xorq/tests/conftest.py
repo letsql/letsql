@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import xorq as xq
+import xorq as xo
 from xorq.common.utils.aws_utils import (
     connection_is_set,
     make_s3_credentials_defaults,
@@ -207,7 +207,7 @@ def statements(ddl_file: Path):
 
 @pytest.fixture(scope="session")
 def con(data_dir, ddl_file):
-    conn = xq.connect()
+    conn = xo.connect()
     parquet_dir = data_dir / "parquet"
     conn.read_parquet(
         parquet_dir / "functional_alltypes.parquet", "functional_alltypes"
@@ -308,7 +308,7 @@ def hyphen_model_path(tmp_path_factory):
 
 @pytest.fixture(scope="session")
 def mixed_feature_table():
-    con = xq.connect()
+    con = xo.connect()
     df = pd.DataFrame(
         {
             "carat": [0.23, 0.21, 0.23],
@@ -343,7 +343,7 @@ def mixed_feature_table():
 
 @pytest.fixture(scope="session")
 def feature_table():
-    con = xq.connect()
+    con = xo.connect()
     df = pd.DataFrame(
         {
             "carat": [0.23, 0.21, 0.23],
@@ -379,13 +379,13 @@ def feature_table():
 
 @pytest.fixture
 def prediction_expr(feature_table, float_model_path):
-    predict_fn = xq.expr.ml.make_quickgrove_udf(float_model_path)
+    predict_fn = xo.expr.ml.make_quickgrove_udf(float_model_path)
     return feature_table.mutate(pred=predict_fn.on_expr)
 
 
 @pytest.fixture
 def mixed_prediction_expr(mixed_feature_table, mixed_model_path):
-    predict_fn = xq.expr.ml.make_quickgrove_udf(mixed_model_path)
+    predict_fn = xo.expr.ml.make_quickgrove_udf(mixed_model_path)
     return mixed_feature_table.mutate(pred=predict_fn.on_expr)
 
 

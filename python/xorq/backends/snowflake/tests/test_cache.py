@@ -5,7 +5,7 @@ import re
 import pandas as pd
 import pytest
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.operations as ops
 from xorq.backends.conftest import (
     get_storage_uncached,
@@ -49,7 +49,7 @@ def test_snowflake_cache_invalidation(sf_con, temp_catalog, temp_db, tmp_path):
     group_by = "key"
     df = pd.DataFrame({group_by: list("abc"), "value": [1, 2, 3]})
     name = gen_name("tmp_table")
-    con = xq.connect()
+    con = xo.connect()
     storage = ParquetCacheStorage(source=con, path=tmp_path)
 
     # must explicitly invoke USE SCHEMA: use of temp_* DOESN'T impact internal create_table's CREATE TEMP STAGE
@@ -75,13 +75,13 @@ def test_snowflake_cache_invalidation(sf_con, temp_catalog, temp_db, tmp_path):
         assert query_df.QUERY_TEXT.eq(unbound_sql).sum() == 0
 
         # test cache creation
-        xq.execute(cached_expr)
+        xo.execute(cached_expr)
         query_df = get_session_query_df(sf_con)
         assert storage.exists(uncached)
         assert query_df.QUERY_TEXT.eq(unbound_sql).sum() == 1
 
         # test cache use
-        xq.execute(cached_expr)
+        xo.execute(cached_expr)
         assert query_df.QUERY_TEXT.eq(unbound_sql).sum() == 1
 
         # test cache invalidation
@@ -91,11 +91,11 @@ def test_snowflake_cache_invalidation(sf_con, temp_catalog, temp_db, tmp_path):
 
 @pytest.mark.snowflake
 def test_snowflake_simple_cache(sf_con, tmp_path):
-    db_con = xq.duckdb.connect()
+    db_con = xo.duckdb.connect()
     with inside_temp_schema(sf_con, "SNOWFLAKE_SAMPLE_DATA", "TPCH_SF1"):
         table = sf_con.table("CUSTOMER")
         expr = table.limit(1).cache(ParquetCacheStorage(source=db_con, path=tmp_path))
-        xq.execute(expr)
+        xo.execute(expr)
 
 
 @pytest.mark.snowflake
@@ -117,7 +117,7 @@ def test_snowflake_native_cache(sf_con, temp_catalog, temp_db, tmp_path):
             .agg({f"count_{col}": table[col].count() for col in table.columns})
             .cache(storage)
         )
-        xq.execute(cached_expr)
+        xo.execute(cached_expr)
 
 
 @pytest.mark.snowflake
@@ -125,7 +125,7 @@ def test_snowflake_snapshot(sf_con, temp_catalog, temp_db):
     group_by = "key"
     df = pd.DataFrame({group_by: list("abc"), "value": [1, 2, 3]})
     name = gen_name("tmp_table")
-    storage = SnapshotStorage(source=xq.duckdb.connect())
+    storage = SnapshotStorage(source=xo.duckdb.connect())
 
     # must explicitly invoke USE SCHEMA: use of temp_* DOESN'T impact internal create_table's CREATE TEMP STAGE
     with inside_temp_schema(sf_con, temp_catalog, temp_db):
@@ -151,13 +151,13 @@ def test_snowflake_snapshot(sf_con, temp_catalog, temp_db):
         assert query_df.QUERY_TEXT.eq(unbound_sql).sum() == 0
 
         # test cache creation
-        executed0 = xq.execute(cached_expr)
+        executed0 = xo.execute(cached_expr)
         query_df = get_session_query_df(sf_con)
         assert storage.exists(uncached)
         assert query_df.QUERY_TEXT.eq(unbound_sql).sum() == 1
 
         # test cache use
-        executed1 = xq.execute(cached_expr)
+        executed1 = xo.execute(cached_expr)
         assert query_df.QUERY_TEXT.eq(unbound_sql).sum() == 1
         assert executed0.equals(executed1)
 
@@ -165,5 +165,5 @@ def test_snowflake_snapshot(sf_con, temp_catalog, temp_db):
         sf_con.insert(name, df, database=f"{temp_catalog}.{temp_db}")
         (storage, uncached) = get_storage_uncached(cached_expr)
         assert storage.exists(uncached)
-        executed2 = xq.execute(cached_expr.ls.uncached)
+        executed2 = xo.execute(cached_expr.ls.uncached)
         assert not executed0.equals(executed2)

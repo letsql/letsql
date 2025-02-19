@@ -2,7 +2,7 @@ import pandas as pd
 import toolz
 import xgboost as xgb
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.expr import udf
 
@@ -47,7 +47,7 @@ curried_calc_best_features = toolz.curry(
 ibis_output_type = dt.infer(({"feature": "feature", "score": 0.0},))
 
 
-t = xq.connect().read_parquet(xq.config.options.pins.get_path("lending-club"))
+t = xo.connect().read_parquet(xo.config.options.pins.get_path("lending-club"))
 agg_udf = udf.agg.pandas_df(
     curried_calc_best_features,
     t[cols].schema(),
@@ -55,4 +55,4 @@ agg_udf = udf.agg.pandas_df(
     name="calc_best_features",
 )
 expr = t.group_by(by).agg(agg_udf.on_expr(t).name("best_features")).order_by(by)
-result = xq.execute(expr)
+result = xo.execute(expr)

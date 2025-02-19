@@ -157,7 +157,7 @@ class Read(ops.Relation):
 
 
 def register_and_transform_remote_tables(expr):
-    import xorq as xq
+    import xorq as xo
 
     created = {}
 
@@ -179,7 +179,7 @@ def register_and_transform_remote_tables(expr):
         if not ex.op().find((RemoteTable, CachedNode, Read)):
             batches = ex.to_pyarrow_batches()  # execute in native backend
         else:
-            batches = xq.to_pyarrow_batches(ex)
+            batches = xo.to_pyarrow_batches(ex)
         schema = ex.as_table().schema().to_pyarrow()
         replicas = SafeTee.tee(batches, count)
         batches_table[arg] = (schema, list(replicas))

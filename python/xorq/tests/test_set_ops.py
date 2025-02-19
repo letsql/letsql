@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.types as ir
 from xorq.tests.util import assert_frame_equal
 from xorq.vendor.ibis import _
@@ -37,7 +37,7 @@ def union_subsets(alltypes, df):
 def test_union(union_subsets, distinct):
     (a, b, c), (da, db, dc) = union_subsets
 
-    expr = xq.union(a, b, distinct=distinct).order_by("id")
+    expr = xo.union(a, b, distinct=distinct).order_by("id")
     result = expr.execute()
 
     expected = pd.concat([da, db], axis=0).sort_values("id").reset_index(drop=True)
@@ -77,7 +77,7 @@ def test_intersect(alltypes, df, distinct):
     db = df[(df.id >= 5205) & (df.id <= 5215)]
     dc = df[(df.id >= 5195) & (df.id <= 5208)]
 
-    expr = xq.intersect(a, b, c, distinct=distinct).order_by("id")
+    expr = xo.intersect(a, b, c, distinct=distinct).order_by("id")
     result = expr.execute()
 
     index = da.index.intersection(db.index).intersection(dc.index)
@@ -106,7 +106,7 @@ def test_difference(alltypes, df, distinct):
     db = df[(df.id >= 5205) & (df.id <= 5215)]
     dc = df[(df.id >= 5195) & (df.id <= 5202)]
 
-    expr = xq.difference(a, b, c, distinct=distinct).order_by("id")
+    expr = xo.difference(a, b, c, distinct=distinct).order_by("id")
     result = expr.execute()
 
     index = da.index.difference(db.index).difference(dc.index)
@@ -120,7 +120,7 @@ def test_difference(alltypes, df, distinct):
 @pytest.mark.parametrize("method", ["intersect", "difference", "union"])
 def test_table_set_operations_api(alltypes, method):
     # top level variadic
-    result = getattr(xq, method)(alltypes)
+    result = getattr(xo, method)(alltypes)
     assert result.equals(alltypes)
 
     # table level methods require at least one argument

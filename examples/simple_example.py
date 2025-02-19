@@ -1,8 +1,8 @@
-import xorq as xq
+import xorq as xo
 
 
-con = xq.connect()
-iris = xq.examples.iris.fetch(backend=con, table_name="iris")
+con = xo.connect()
+iris = xo.examples.iris.fetch(backend=con, table_name="iris")
 res = (
     iris.filter([iris.sepal_length > 5])
     .group_by("species")

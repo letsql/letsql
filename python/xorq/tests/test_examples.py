@@ -4,10 +4,10 @@ import runpy
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 
 
-KEY_PREFIX = xq.config.options.cache.key_prefix
+KEY_PREFIX = xo.config.options.cache.key_prefix
 LIBRARY_SCRIPTS = ("pandas_example",)
 
 file_path = pathlib.Path(__file__).absolute()

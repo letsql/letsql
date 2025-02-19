@@ -1,6 +1,6 @@
 import pandas as pd
 
-import xorq as xq
+import xorq as xo
 from xorq import memtable
 
 
@@ -12,12 +12,12 @@ test_size = 0.25
 table = memtable([(i, "val") for i in range(N)], columns=["key1", "val"])
 
 
-train_table, test_table = xq.train_test_splits(
+train_table, test_table = xo.train_test_splits(
     table, unique_key="key1", test_sizes=test_size, num_buckets=N, random_seed=42
 )
 
-train_count = xq.execute(train_table.count())
-test_count = xq.execute(test_table.count())
+train_count = xo.execute(train_table.count())
+test_count = xo.execute(test_table.count())
 total = train_count + test_count
 print(f"train ratio: {round(train_count / total, 2)}")
 print(f"test ratio: {round(test_count / total, 2)}\n")
@@ -32,7 +32,7 @@ partition_info = {
 }
 
 partitions = tuple(
-    xq.train_test_splits(
+    xo.train_test_splits(
         table,
         unique_key="key1",
         test_sizes=list(partition_info.values()),
@@ -40,14 +40,14 @@ partitions = tuple(
         random_seed=42,
     )
 )
-counts = pd.Series(xq.execute(p.count()) for p in partitions)
+counts = pd.Series(xo.execute(p.count()) for p in partitions)
 total = sum(counts)
 
 for i, partition_name in enumerate(partition_info.keys()):
     print(f"{partition_name.upper()} Ratio: {round(counts[i] / total, 2)}")
 
 name = "split"
-c = xq.calc_split_column(
+c = xo.calc_split_column(
     table,
     unique_key="key1",
     test_sizes=list(partition_info.values()),
@@ -55,7 +55,7 @@ c = xq.calc_split_column(
     random_seed=42,
     name=name,
 )
-other_counts = xq.execute(c.value_counts().order_by(c.get_name())).set_index(name)[
+other_counts = xo.execute(c.value_counts().order_by(c.get_name())).set_index(name)[
     f"{name}_count"
 ]
 assert counts.equals(other_counts)

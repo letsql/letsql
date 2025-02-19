@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 from xorq.tests.util import assert_series_equal, default_series_rename
 from xorq.vendor import ibis
 from xorq.vendor.ibis import _
@@ -23,43 +23,43 @@ from xorq.vendor.ibis.expr import datatypes as dt
     ("expr",),
     [
         param(
-            xq.literal(1, type=dt.int8),
+            xo.literal(1, type=dt.int8),
             id="int8",
         ),
         param(
-            xq.literal(1, type=dt.int16),
+            xo.literal(1, type=dt.int16),
             id="int16",
         ),
         param(
-            xq.literal(1, type=dt.int32),
+            xo.literal(1, type=dt.int32),
             id="int32",
         ),
         param(
-            xq.literal(1, type=dt.int64),
+            xo.literal(1, type=dt.int64),
             id="int64",
         ),
         param(
-            xq.literal(1, type=dt.uint8),
+            xo.literal(1, type=dt.uint8),
             id="uint8",
         ),
         param(
-            xq.literal(1, type=dt.uint16),
+            xo.literal(1, type=dt.uint16),
             id="uint16",
         ),
         param(
-            xq.literal(1, type=dt.uint32),
+            xo.literal(1, type=dt.uint32),
             id="uint32",
         ),
         param(
-            xq.literal(1, type=dt.uint64),
+            xo.literal(1, type=dt.uint64),
             id="uint64",
         ),
         param(
-            xq.literal(1, type=dt.float32),
+            xo.literal(1, type=dt.float32),
             id="float32",
         ),
         param(
-            xq.literal(1, type=dt.float64),
+            xo.literal(1, type=dt.float64),
             id="float64",
         ),
     ],
@@ -73,12 +73,12 @@ def test_numeric_literal(con, expr):
     ("expr", "expected_result"),
     [
         param(
-            xq.literal(decimal.Decimal("1.1"), type=dt.decimal),
+            xo.literal(decimal.Decimal("1.1"), type=dt.decimal),
             decimal.Decimal("1.1"),
             id="default",
         ),
         param(
-            xq.literal(decimal.Decimal("1.1"), type=dt.Decimal(38, 9)),
+            xo.literal(decimal.Decimal("1.1"), type=dt.Decimal(38, 9)),
             decimal.Decimal("1.1"),
             id="decimal-small",
         ),
@@ -108,22 +108,22 @@ def test_decimal_literal(con, expr, expected_result):
             id="double-column",
         ),
         param(
-            lambda t: xq.literal(1.3),
+            lambda t: xo.literal(1.3),
             lambda t: 1.3,
             id="float-literal",
         ),
         param(
-            lambda t: xq.literal(np.nan),
+            lambda t: xo.literal(np.nan),
             lambda t: np.nan,
             id="nan-literal",
         ),
         param(
-            lambda t: xq.literal(np.inf),
+            lambda t: xo.literal(np.inf),
             lambda t: np.inf,
             id="inf-literal",
         ),
         param(
-            lambda t: xq.literal(-np.inf),
+            lambda t: xo.literal(-np.inf),
             lambda t: -np.inf,
             id="-inf-literal",
         ),
@@ -236,12 +236,12 @@ def test_isnan_isinf(
             id="mod",
         ),
         param(
-            xq.greatest(L(10), L(1)),
+            xo.greatest(L(10), L(1)),
             10,
             id="greatest",
         ),
         param(
-            xq.least(L(10), L(1)),
+            xo.least(L(10), L(1)),
             1,
             id="least",
         ),
@@ -377,22 +377,22 @@ def test_complex_math_functions_columns(con, alltypes, df, expr_fn, expected_fn)
     ("expr_fn", "expected_fn"),
     [
         param(
-            lambda t: xq.least(t.bigint_col, t.int_col),
+            lambda t: xo.least(t.bigint_col, t.int_col),
             lambda t: pd.Series(list(map(min, t.bigint_col, t.int_col))),
             id="least-all-columns",
         ),
         param(
-            lambda t: xq.least(t.bigint_col, t.int_col, -2),
+            lambda t: xo.least(t.bigint_col, t.int_col, -2),
             lambda t: pd.Series(list(map(min, t.bigint_col, t.int_col, [-2] * len(t)))),
             id="least-scalar",
         ),
         param(
-            lambda t: xq.greatest(t.bigint_col, t.int_col),
+            lambda t: xo.greatest(t.bigint_col, t.int_col),
             lambda t: pd.Series(list(map(max, t.bigint_col, t.int_col))),
             id="greatest-all-columns",
         ),
         param(
-            lambda t: xq.greatest(t.bigint_col, t.int_col, -2),
+            lambda t: xo.greatest(t.bigint_col, t.int_col, -2),
             lambda t: pd.Series(list(map(max, t.bigint_col, t.int_col, [-2] * len(t)))),
             id="greatest-scalar",
         ),
@@ -516,7 +516,7 @@ def test_divide_by_zero(alltypes, df, column, denominator):
 
 
 def test_random(con):
-    expr = xq.random()
+    expr = xo.random()
     result = con.execute(expr)
     assert isinstance(result, float)
     assert 0 <= result <= 1

@@ -4,7 +4,7 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 
-import xorq as xq
+import xorq as xo
 from xorq.flight import FlightServer, FlightUrl, make_con
 from xorq.flight.action import AddExchangeAction
 from xorq.flight.exchanger import UDFExchanger
@@ -13,9 +13,9 @@ from xorq.flight.exchanger import UDFExchanger
 @pytest.mark.parametrize(
     "connection,port",
     [
-        pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
-        pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="xorq"),
+        pytest.param(xo.duckdb.connect, 5005, id="duckdb"),
+        pytest.param(xo.datafusion.connect, 5005, id="datafusion"),
+        pytest.param(xo.connect, 5005, id="xorq"),
     ],
 )
 def test_port_in_use(connection, port):
@@ -36,9 +36,9 @@ def test_port_in_use(connection, port):
 @pytest.mark.parametrize(
     "connection,port",
     [
-        pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
-        pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="xorq"),
+        pytest.param(xo.duckdb.connect, 5005, id="duckdb"),
+        pytest.param(xo.datafusion.connect, 5005, id="datafusion"),
+        pytest.param(xo.connect, 5005, id="xorq"),
     ],
 )
 def test_register_and_list_tables(connection, port):
@@ -59,7 +59,7 @@ def test_register_and_list_tables(connection, port):
 
         con.register(data, table_name="users")
         t = con.table("users")
-        actual = xq.execute(t)
+        actual = xo.execute(t)
 
         assert t.schema() is not None
         assert main.flight_url.port_in_use()
@@ -70,9 +70,9 @@ def test_register_and_list_tables(connection, port):
 @pytest.mark.parametrize(
     "connection,port",
     [
-        pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
-        pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="xorq"),
+        pytest.param(xo.duckdb.connect, 5005, id="duckdb"),
+        pytest.param(xo.datafusion.connect, 5005, id="datafusion"),
+        pytest.param(xo.connect, 5005, id="xorq"),
     ],
 )
 def test_read_parquet(connection, port, parquet_dir):
@@ -85,7 +85,7 @@ def test_read_parquet(connection, port, parquet_dir):
     ) as main:
         con = make_con(main)
         batting = con.read_parquet(parquet_dir / "batting.parquet")
-        assert xq.execute(batting) is not None
+        assert xo.execute(batting) is not None
 
 
 def instrument_reader(reader, prefix=""):
@@ -101,9 +101,9 @@ def instrument_reader(reader, prefix=""):
 @pytest.mark.parametrize(
     "connection,port",
     [
-        pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
-        pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="xorq"),
+        pytest.param(xo.duckdb.connect, 5005, id="duckdb"),
+        pytest.param(xo.datafusion.connect, 5005, id="datafusion"),
+        pytest.param(xo.connect, 5005, id="xorq"),
     ],
 )
 def test_exchange(connection, port):

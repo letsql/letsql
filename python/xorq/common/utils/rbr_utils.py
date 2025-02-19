@@ -5,7 +5,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import toolz
 
-import xorq as xq
+import xorq as xo
 
 
 @toolz.curry
@@ -107,5 +107,5 @@ class ReaderSplitter:
 
     @classmethod
     def gen_splits(cls, expr, split_key):
-        rbr = xq.to_pyarrow_batches(expr.order_by(split_key))
+        rbr = xo.to_pyarrow_batches(expr.order_by(split_key))
         yield from cls(rbr, split_key)

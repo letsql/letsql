@@ -8,7 +8,7 @@ import sqlglot as sg
 import sqlglot.expressions as sge
 import toolz
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.schema as sch
 from xorq.backends.postgres.compiler import compiler
 from xorq.common.utils.defer_utils import (
@@ -209,5 +209,5 @@ class Backend(IbisPostgresBackend):
             },
             **kwargs,
         }
-        con = xq.postgres.connect(**dct)
+        con = xo.postgres.connect(**dct)
         return con

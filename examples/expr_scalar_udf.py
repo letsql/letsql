@@ -2,7 +2,7 @@ import pandas as pd
 import toolz
 import xgboost as xgb
 
-import xorq as xq
+import xorq as xo
 import xorq.expr.udf as udf
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.expr.udf import (
@@ -49,17 +49,17 @@ train_fn = train_xgboost_model(features=features, target=target)
 predict_fn = predict_xgboost_model(features=features)
 
 
-con = xq.connect()
-t = con.read_parquet(xq.config.options.pins.get_path("lending-club"))
-(train, test) = xq.train_test_splits(
+con = xo.connect()
+t = con.read_parquet(xo.config.options.pins.get_path("lending-club"))
+(train, test) = xo.train_test_splits(
     t,
     unique_key=ROWNUM,
     test_sizes=0.7,
 )
 
 # manual run
-model = train_fn(xq.execute(train))
-from_pd = xq.execute(test).assign(
+model = train_fn(xo.execute(train))
+from_pd = xo.execute(test).assign(
     **{prediction_key: predict_fn(**{model_key: model})},
 )
 

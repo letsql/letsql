@@ -4,7 +4,7 @@ import pickle
 import pandas as pd
 import pyarrow as pa
 
-import xorq as xq
+import xorq as xo
 from xorq.common.utils.rbr_utils import (
     instrument_reader,
     streaming_split_exchange,
@@ -86,16 +86,16 @@ class IterativeSplitTrainExchanger(AbstractExchanger):
 
 
 def train_test_split_union(expr, name=SPLIT_KEY, *args, **kwargs):
-    splits = xq.expr.ml.train_test_splits(expr, *args, **kwargs)
-    return xq.union(
+    splits = xo.expr.ml.train_test_splits(expr, *args, **kwargs)
+    return xo.union(
         *(
-            split.mutate(**{name: xq.literal(i, "int64")})
+            split.mutate(**{name: xo.literal(i, "int64")})
             for i, split in enumerate(splits)
         )
     )
 
 
-con = xq.connect()
+con = xo.connect()
 N = 10_000
 df = pd.DataFrame({"a": range(N), "b": range(N, 2 * N)})
 t = con.register(df, "t")
@@ -104,7 +104,7 @@ expr = train_test_split_union(
 )
 
 
-rbr_in = instrument_reader(xq.to_pyarrow_batches(expr), prefix="input ::")
+rbr_in = instrument_reader(xo.to_pyarrow_batches(expr), prefix="input ::")
 with FlightServer() as server:
     client = make_con(server).con
     client.do_action(

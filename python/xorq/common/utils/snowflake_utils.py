@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import snowflake.connector
 
-import xorq as xq
+import xorq as xo
 
 
 def make_credential_defaults():
@@ -32,7 +32,7 @@ def make_connection(
     schema,
     **kwargs,
 ):
-    con = xq.snowflake.connect(
+    con = xo.snowflake.connect(
         database=f"{database}/{schema}",
         **{
             **make_credential_defaults(),

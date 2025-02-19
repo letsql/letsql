@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.tests.util import assert_frame_equal, assert_series_equal
 
@@ -27,7 +27,7 @@ from xorq.tests.util import assert_frame_equal, assert_series_equal
     ],
 )
 def test_string_literal(con, text_value):
-    expr = xq.literal(text_value)
+    expr = xo.literal(text_value)
     result = con.execute(expr)
     assert result == text_value
 
@@ -268,7 +268,7 @@ def test_string_col_is_unicode(alltypes, df):
             id="expr_slice_begin_end",
         ),
         param(
-            lambda t: xq.literal("-").join(["a", t.string_col, "c"]),
+            lambda t: xo.literal("-").join(["a", t.string_col, "c"]),
             lambda t: "a-" + t.string_col + "-c",
             id="join",
         ),
@@ -303,14 +303,14 @@ def test_string(alltypes, df, result_func, expected_func):
 
 
 def test_re_replace_global(con):
-    expr = xq.literal("aba").re_replace("a", "c")
+    expr = xo.literal("aba").re_replace("a", "c")
     result = con.execute(expr)
     assert result == "cbc"
 
 
 def test_substr_with_null_values(alltypes, df):
     table = alltypes.mutate(
-        substr_col_null=xq.case()
+        substr_col_null=xo.case()
         .when(alltypes["bool_col"], alltypes["string_col"])
         .else_(None)
         .end()
@@ -350,7 +350,7 @@ def test_substr_with_null_values(alltypes, df):
         param(lambda d: d.query(), "name=networking", id="query"),
         param(lambda d: d.query("name"), "networking", id="query-key"),
         param(
-            lambda d: d.query(xq.literal("na") + xq.literal("me")),
+            lambda d: d.query(xo.literal("na") + xo.literal("me")),
             "networking",
             id="query-dynamic-key",
         ),
@@ -359,27 +359,27 @@ def test_substr_with_null_values(alltypes, df):
 )
 def test_parse_url(con, result_func, expected):
     url = "http://user:pass@example.com:80/docs/books/tutorial/index.html?name=networking#DOWNLOADING"
-    expr = result_func(xq.literal(url))
+    expr = result_func(xo.literal(url))
     result = con.execute(expr)
     assert result == expected
 
 
 def test_capitalize(con):
-    s = xq.literal("aBc")
+    s = xo.literal("aBc")
     expected = "Abc"
     expr = s.capitalize()
     assert con.execute(expr) == expected
 
 
 def test_subs_with_re_replace(con):
-    expr = xq.literal("hi").re_replace("i", "a").substitute({"d": "b"}, else_="k")
+    expr = xo.literal("hi").re_replace("i", "a").substitute({"d": "b"}, else_="k")
     result = con.execute(expr)
     assert result == "k"
 
 
 def test_multiple_subs(con):
     m = {"foo": "FOO", "bar": "BAR"}
-    expr = xq.literal("foo").substitute(m)
+    expr = xo.literal("foo").substitute(m)
     result = con.execute(expr)
     assert result == "FOO"
 
@@ -387,8 +387,8 @@ def test_multiple_subs(con):
 @pytest.mark.parametrize(
     "expr",
     [
-        param(xq.case().when(True, "%").end(), id="case"),
-        param(xq.ifelse(True, "%", xq.null()), id="ifelse"),
+        param(xo.case().when(True, "%").end(), id="case"),
+        param(xo.ifelse(True, "%", xo.null()), id="ifelse"),
     ],
 )
 def test_no_conditional_percent_escape(con, expr):
@@ -396,12 +396,12 @@ def test_no_conditional_percent_escape(con, expr):
 
 
 def test_string_length(con):
-    t = xq.memtable({"s": ["aaa", "a", "aa"]})
+    t = xo.memtable({"s": ["aaa", "a", "aa"]})
     assert con.execute(t.s.length()).gt(0).all()
 
 
 def test_hash(con):
-    s = xq.literal("aBc")
+    s = xo.literal("aBc")
     expected = 5357040098349975229
     expr = s.hash()
     assert con.execute(expr) == expected

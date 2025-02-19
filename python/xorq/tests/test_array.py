@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.types as ir
 from xorq.tests.util import assert_frame_equal, assert_series_equal
 
@@ -24,7 +24,7 @@ def flatten_data():
 
 
 def test_array_column(alltypes, df):
-    expr = xq.array([alltypes["double_col"], alltypes["double_col"]])
+    expr = xo.array([alltypes["double_col"], alltypes["double_col"]])
     assert isinstance(expr, ir.ArrayColumn)
 
     result = expr.execute()
@@ -36,7 +36,7 @@ def test_array_column(alltypes, df):
 
 
 def test_array_scalar(con):
-    expr = xq.array([1.0, 2.0, 3.0])
+    expr = xo.array([1.0, 2.0, 3.0])
     assert isinstance(expr, ir.ArrayScalar)
 
     result = con.execute(expr.name("tmp"))
@@ -46,7 +46,7 @@ def test_array_scalar(con):
 
 
 def test_array_repeat(con):
-    expr = xq.array([1.0, 2.0]) * 2
+    expr = xo.array([1.0, 2.0]) * 2
 
     result = con.execute(expr.name("tmp"))
     expected = np.array([1.0, 2.0, 1.0, 2.0])
@@ -55,8 +55,8 @@ def test_array_repeat(con):
 
 
 def test_array_concat(con):
-    left = xq.literal([1, 2, 3])
-    right = xq.literal([2, 1])
+    left = xo.literal([1, 2, 3])
+    right = xo.literal([2, 1])
     expr = left + right
     result = con.execute(expr.name("tmp"))
     expected = np.array([1, 2, 3, 2, 1])
@@ -64,8 +64,8 @@ def test_array_concat(con):
 
 
 def test_array_concat_variadic(con):
-    left = xq.literal([1, 2, 3])
-    right = xq.literal([2, 1])
+    left = xo.literal([1, 2, 3])
+    right = xo.literal([2, 1])
     expr = left.concat(right, right, right)
     result = con.execute(expr.name("tmp"))
     expected = np.array([1, 2, 3, 2, 1, 2, 1, 2, 1])
@@ -74,7 +74,7 @@ def test_array_concat_variadic(con):
 
 def test_array_radd_concat(con):
     left = [1]
-    right = xq.literal([2])
+    right = xo.literal([2])
     expr = left + right
     result = con.execute(expr.name("tmp"))
     expected = np.array([1, 2])
@@ -83,13 +83,13 @@ def test_array_radd_concat(con):
 
 
 def test_array_length(con):
-    expr = xq.literal([1, 2, 3]).length()
+    expr = xo.literal([1, 2, 3]).length()
     assert con.execute(expr.name("tmp")) == 3
 
 
 def test_list_literal(con):
     arr = [1, 2, 3]
-    expr = xq.literal(arr)
+    expr = xo.literal(arr)
     result = con.execute(expr.name("tmp"))
 
     assert np.array_equal(result, arr)
@@ -97,7 +97,7 @@ def test_list_literal(con):
 
 def test_np_array_literal(con):
     arr = np.array([1, 2, 3])
-    expr = xq.literal(arr)
+    expr = xo.literal(arr)
     result = con.execute(expr.name("tmp"))
 
     assert np.array_equal(result, arr)
@@ -113,7 +113,7 @@ def test_array_contains(con, array_types):
 
 @pytest.mark.skip(reason="failing in datafusion 34+ version")
 def test_array_position(con):
-    t = xq.memtable({"a": [[1], [], [42, 42], []]})
+    t = xo.memtable({"a": [[1], [], [42, 42], []]})
     expr = t.a.index(42)
     result = con.execute(expr)
     expected = pd.Series([-1, -1, 0, -1], dtype="object")
@@ -121,7 +121,7 @@ def test_array_position(con):
 
 
 def test_array_remove(con):
-    t = xq.memtable({"a": [[3, 2], [], [42, 2], [2, 2], []]})
+    t = xo.memtable({"a": [[3, 2], [], [42, 2], [2, 2], []]})
     expr = t.a.remove(2)
     result = con.execute(expr)
     expected = pd.Series([[3], [], [42], [], []], dtype="object")
@@ -139,7 +139,7 @@ def test_array_remove(con):
 )
 def test_array_flatten(con, flatten_data, column, expected):
     data = flatten_data[column]
-    t = xq.memtable({column: data["data"]}, schema={column: data["type"]})
+    t = xo.memtable({column: data["data"]}, schema={column: data["type"]})
     expr = t[column].flatten()
     result = con.execute(expr)
     assert_series_equal(
@@ -164,14 +164,14 @@ def test_array_flatten(con, flatten_data, column, expected):
     ],
 )
 def test_range_start_stop_step(con, start, stop, step):
-    expr = xq.range(start, stop, step)
+    expr = xo.range(start, stop, step)
     result = con.execute(expr)
     assert list(result) == list(range(start, stop, step))
 
 
 @pytest.mark.parametrize("n", [-2, 0, 2])
 def test_range_single_argument(con, n):
-    expr = xq.range(n)
+    expr = xo.range(n)
     result = con.execute(expr)
     assert list(result) == list(range(n))
 
@@ -187,7 +187,7 @@ def test_range_single_argument(con, n):
     ],
 )
 def test_array_unique(con, data, expected):
-    t = xq.memtable(data)
+    t = xo.memtable(data)
     expr = t.a.unique()
     result = con.execute(expr)
     assert_series_equal(result, pd.Series(expected, dtype="object"))
@@ -279,7 +279,7 @@ def test_unnest_no_nulls(array_types):
 def test_unnest_default_name(array_types):
     df = array_types.execute()
     expr = (
-        array_types.x.cast("!array<int64>") + xq.array([1]).cast("!array<int64>")
+        array_types.x.cast("!array<int64>") + xo.array([1]).cast("!array<int64>")
     ).unnest()
     assert expr.get_name().startswith("ArrayConcat(")
 

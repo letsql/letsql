@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-import xorq as xq
+import xorq as xo
 import xorq.backends.let
 from xorq.common.caching import ParquetCacheStorage
 
@@ -17,7 +17,7 @@ def parquet_dir():
 def test_put_get_drop(tmp_path, parquet_dir):
     astronauts_path = parquet_dir.joinpath("astronauts.parquet")
 
-    con = xq.datafusion.connect()
+    con = xo.datafusion.connect()
     t = con.read_parquet(astronauts_path, table_name="astronauts")
 
     storage = ParquetCacheStorage(path=tmp_path, source=con)
@@ -35,7 +35,7 @@ def test_put_get_drop(tmp_path, parquet_dir):
 def test_default_connection(tmp_path, parquet_dir):
     batting_path = parquet_dir.joinpath("astronauts.parquet")
 
-    con = xq.datafusion.connect()
+    con = xo.datafusion.connect()
     t = con.read_parquet(batting_path, table_name="astronauts")
 
     # if we do cross source caching, then we get a random name and storage.get_key result isn't stable

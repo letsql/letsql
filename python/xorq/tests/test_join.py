@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.schema as sch
 from xorq.tests.util import assert_frame_equal
 
@@ -188,32 +188,32 @@ def test_join_with_pandas_non_null_typed_columns(batting, awards_players):
     [
         # Trues
         param(True, True, id="true"),
-        param(xq.literal(True), True, id="true-literal"),
+        param(xo.literal(True), True, id="true-literal"),
         param([True], True, id="true-list"),
-        param([xq.literal(True)], True, id="true-literal-list"),
+        param([xo.literal(True)], True, id="true-literal-list"),
         # only trues
         param([True, True], True, id="true-true-list"),
         param(
-            [xq.literal(True), xq.literal(True)],
+            [xo.literal(True), xo.literal(True)],
             True,
             id="true-true-literal-list",
         ),
-        param([True, xq.literal(True)], True, id="true-true-const-expr-list"),
-        param([xq.literal(True), True], True, id="true-true-expr-const-list"),
+        param([True, xo.literal(True)], True, id="true-true-const-expr-list"),
+        param([xo.literal(True), True], True, id="true-true-expr-const-list"),
         # Falses
         param(False, False, id="false"),
-        param(xq.literal(False), False, id="false-literal"),
+        param(xo.literal(False), False, id="false-literal"),
         param([False], False, id="false-list"),
-        param([xq.literal(False)], False, id="false-literal-list"),
+        param([xo.literal(False)], False, id="false-literal-list"),
         # only falses
         param([False, False], False, id="false-false-list"),
         param(
-            [xq.literal(False), xq.literal(False)],
+            [xo.literal(False), xo.literal(False)],
             False,
             id="false-false-literal-list",
         ),
-        param([False, xq.literal(False)], False, id="false-false-const-expr-list"),
-        param([xq.literal(False), False], False, id="false-false-expr-const-list"),
+        param([False, xo.literal(False)], False, id="false-false-const-expr-list"),
+        param([xo.literal(False), False], False, id="false-false-expr-const-list"),
     ],
 )
 @pytest.mark.parametrize(

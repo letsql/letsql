@@ -1,7 +1,7 @@
 import pyarrow as pa
 import pytest
 
-import xorq as xq
+import xorq as xo
 
 
 expected_tables = (
@@ -25,7 +25,7 @@ expected_tables = (
 
 @pytest.fixture(scope="session")
 def pg():
-    conn = xq.postgres.connect(
+    conn = xo.postgres.connect(
         host="localhost",
         port=5432,
         user="postgres",
@@ -66,7 +66,7 @@ def con(dirty):
 
 @pytest.fixture(scope="session")
 def dirty_ls_con():
-    con = xq.connect()
+    con = xo.connect()
     return con
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-import xorq as xq
+import xorq as xo
 from xorq.backends.let import Backend
 from xorq.common.caching import (
     ParquetCacheStorage,
@@ -19,7 +19,7 @@ def cached_two(ls_con, batting, tmp_path):
 
 @pytest.fixture
 def duck_batting_raw(batting_df):
-    return xq.duckdb.connect().create_table(
+    return xo.duckdb.connect().create_table(
         "batting_df",
         batting_df,
     )
@@ -109,7 +109,7 @@ def test_exists(cached_two):
     assert not cached_two.ls.exists()
     assert not tuple(storage.path.iterdir())
 
-    xq.execute(cached_two)
+    xo.execute(cached_two)
     assert cached_two.ls.exists()
     assert len(tuple(storage.path.iterdir())) == 1
 

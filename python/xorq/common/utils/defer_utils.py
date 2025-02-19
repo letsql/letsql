@@ -2,7 +2,7 @@ import pandas as pd
 import pyarrow as pa
 import toolz
 
-import xorq as xq
+import xorq as xo
 from xorq.common.utils.inspect_utils import (
     get_arguments,
 )
@@ -95,7 +95,7 @@ def deferred_read_parquet(con, path, table_name=None, **kwargs):
     method = getattr(con, method_name)
     if table_name is None:
         table_name = gen_name(f"letsql-{method_name}")
-    schema = xq.connect().read_parquet(path).schema()
+    schema = xo.connect().read_parquet(path).schema()
     read_kwargs = make_read_kwargs(method, path, table_name, **kwargs)
     return Read(
         method_name=method_name,

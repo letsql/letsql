@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq import memtable
 from xorq.expr.ml import _calculate_bounds, make_quickgrove_udf
@@ -21,7 +21,7 @@ def test_train_test_splits_intersections():
     table = memtable([(i, "val") for i in range(N)], columns=["key1", "val"])
     results = [
         r
-        for r in xq.train_test_splits(
+        for r in xo.train_test_splits(
             table,
             unique_key="key1",
             test_sizes=test_size,
@@ -68,7 +68,7 @@ def test_train_test_split():
 
     # init table
     table = memtable([(i, "val") for i in range(N)], columns=["key1", "val"])
-    train_table, test_table = xq.train_test_splits(
+    train_table, test_table = xo.train_test_splits(
         table, unique_key="key1", test_sizes=test_size, num_buckets=N, random_seed=42
     )
 
@@ -81,14 +81,14 @@ def test_train_test_split():
     assert train_table.union(test_table).join(table, how="semi").count().execute() == N
 
     # Check reproducibility
-    reproduced_train_table, reproduced_test_table = xq.train_test_splits(
+    reproduced_train_table, reproduced_test_table = xo.train_test_splits(
         table, unique_key="key1", test_sizes=test_size, num_buckets=N, random_seed=42
     )
     assert_frame_equal(train_table.execute(), reproduced_train_table.execute())
     assert_frame_equal(test_table.execute(), reproduced_test_table.execute())
 
     # make sure it could generate different data with different random_seed
-    different_train_table, different_test_table = xq.train_test_splits(
+    different_train_table, different_test_table = xo.train_test_splits(
         table, unique_key="key1", test_sizes=test_size, num_buckets=N, random_seed=0
     )
     assert not train_table.execute().equals(different_train_table.execute())
@@ -98,15 +98,15 @@ def test_train_test_split():
 def test_train_test_split_invalid_test_size():
     table = memtable({"key": [1, 2, 3]})
     with pytest.raises(ValueError, match="test size should be a float between 0 and 1"):
-        xq.train_test_splits(table, unique_key="key", test_sizes=1.5)
+        xo.train_test_splits(table, unique_key="key", test_sizes=1.5)
     with pytest.raises(ValueError, match="test size should be a float between 0 and 1"):
-        xq.train_test_splits(table, unique_key="key", test_sizes=-0.5)
+        xo.train_test_splits(table, unique_key="key", test_sizes=-0.5)
 
 
 def test_train_test_split_invalid_num_buckets_type():
     table = memtable({"key": [1, 2, 3]})
     with pytest.raises(ValueError, match="num_buckets must be an integer"):
-        xq.train_test_splits(table, unique_key="key", test_sizes=0.5, num_buckets=10.5)
+        xo.train_test_splits(table, unique_key="key", test_sizes=0.5, num_buckets=10.5)
 
 
 def test_train_test_split_invalid_num_buckets_value():
@@ -114,7 +114,7 @@ def test_train_test_split_invalid_num_buckets_value():
     with pytest.raises(
         ValueError, match="num_buckets = 1 places all data into training set"
     ):
-        xq.train_test_splits(table, unique_key="key", test_sizes=0.5, num_buckets=1)
+        xo.train_test_splits(table, unique_key="key", test_sizes=0.5, num_buckets=1)
 
 
 def test_train_test_split_multiple_keys():
@@ -124,7 +124,7 @@ def test_train_test_split_multiple_keys():
         "value": [i % 3 for i in range(100)],
     }
     table = memtable(data)
-    train_table, test_table = xq.train_test_splits(
+    train_table, test_table = xo.train_test_splits(
         table,
         unique_key=["key1", "key2"],
         test_sizes=0.25,
@@ -139,10 +139,10 @@ def test_train_test_splits_deterministic_with_seed():
     test_sizes = [0.4, 0.6]
 
     splits1 = list(
-        xq.train_test_splits(table, "key", test_sizes, random_seed=123, num_buckets=10)
+        xo.train_test_splits(table, "key", test_sizes, random_seed=123, num_buckets=10)
     )
     splits2 = list(
-        xq.train_test_splits(table, "key", test_sizes, random_seed=123, num_buckets=10)
+        xo.train_test_splits(table, "key", test_sizes, random_seed=123, num_buckets=10)
     )
 
     for s1, s2 in zip(splits1, splits2):
@@ -152,17 +152,17 @@ def test_train_test_splits_deterministic_with_seed():
 def test_train_test_splits_invalid_test_sizes():
     table = memtable({"key": [1, 2, 3], "value": [4, 5, 6]})
     with pytest.raises(ValueError, match="Test size must be float."):
-        next(xq.train_test_splits(table, "key", ["a", "b"]))
+        next(xo.train_test_splits(table, "key", ["a", "b"]))
     with pytest.raises(
         ValueError, match="test size should be a float between 0 and 1."
     ):
-        next(xq.train_test_splits(table, "key", [-0.1, 0.5]))
+        next(xo.train_test_splits(table, "key", [-0.1, 0.5]))
 
 
 def test_train_test_splits_must_sum_one():
     table = memtable({"key": [1, 2, 3], "value": [4, 5, 6]})
     with pytest.raises(ValueError, match="Test sizes must sum to 1"):
-        next(xq.train_test_splits(table, "key", [0.1, 0.5]))
+        next(xo.train_test_splits(table, "key", [0.1, 0.5]))
 
 
 @pytest.mark.parametrize(
@@ -187,7 +187,7 @@ def test_train_test_splits_num_buckets_gt_one():
         match="num_buckets = 1 places all data into training set. For any integer x  >=0 , x mod 1 = 0 . ",
     ):
         next(
-            xq.train_test_splits(
+            xo.train_test_splits(
                 table, "key", test_sizes, random_seed=123, num_buckets=1
             )
         )
@@ -196,11 +196,11 @@ def test_train_test_splits_num_buckets_gt_one():
 @pytest.mark.parametrize(
     "connect_method",
     (
-        xq.connect,
-        xq.duckdb.connect,
-        xq.postgres.connect_env,
+        xo.connect,
+        xo.duckdb.connect,
+        xo.postgres.connect_env,
         pytest.param(
-            xq.datafusion.connect,
+            xo.datafusion.connect,
             marks=pytest.mark.xfail(
                 reason="Compilation rule for 'Hash' operation is not define"
             ),
@@ -223,7 +223,7 @@ def test_train_test_splits_intersections_parameterized_pass(connect_method):
 
     results = [
         r
-        for r in xq.train_test_splits(
+        for r in xo.train_test_splits(
             table,
             unique_key="key1",
             test_sizes=test_size,
@@ -266,11 +266,11 @@ def test_train_test_splits_intersections_parameterized_pass(connect_method):
 @pytest.mark.parametrize(
     "connect_method",
     (
-        xq.connect,
-        xq.duckdb.connect,
-        xq.postgres.connect_env,
+        xo.connect,
+        xo.duckdb.connect,
+        xo.postgres.connect_env,
         pytest.param(
-            xq.datafusion.connect,
+            xo.datafusion.connect,
             marks=pytest.mark.xfail(
                 reason="Compilation rule for 'Hash' operation is not define"
             ),
@@ -293,7 +293,7 @@ def test_calc_split_column(connect_method, n, name):
     table = con.table(test_table_name)
     expr = (
         table.mutate(
-            xq.calc_split_column(
+            xo.calc_split_column(
                 table,
                 unique_key=unique_key,
                 test_sizes=test_sizes,
@@ -302,9 +302,9 @@ def test_calc_split_column(connect_method, n, name):
             )
         )[name]
         .value_counts()
-        .order_by(xq.asc(name))
+        .order_by(xo.asc(name))
     )
-    df = xq.execute(expr)
+    df = xo.execute(expr)
     assert tuple(df[name].values) == tuple(range(n))
     assert df[f"{name}_count"].sum() == N
 

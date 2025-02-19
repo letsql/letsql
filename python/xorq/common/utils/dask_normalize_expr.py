@@ -5,7 +5,7 @@ import types
 import dask
 import sqlglot as sg
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dat
 import xorq.vendor.ibis.expr.operations.relations as ir
 from xorq.common.utils.defer_utils import (
@@ -30,12 +30,12 @@ def expr_is_bound(expr):
 def unbound_expr_to_default_sql(expr):
     if expr_is_bound(expr):
         raise ValueError
-    default_sql = xq.to_sql(expr)
+    default_sql = xo.to_sql(expr)
     return str(default_sql)
 
 
 def normalize_memory_databasetable(dt):
-    import xorq as xq
+    import xorq as xo
 
     if dt.source.name not in ("pandas", "let", "datafusion", "duckdb"):
         raise ValueError
@@ -47,7 +47,7 @@ def normalize_memory_databasetable(dt):
             # in memory: so we can assume it's reasonable to hash the data
             tuple(
                 dask.base.tokenize(el.serialize().to_pybytes())
-                for el in xq.to_pyarrow_batches(dt.to_expr())
+                for el in xo.to_pyarrow_batches(dt.to_expr())
             ),
         )
     )

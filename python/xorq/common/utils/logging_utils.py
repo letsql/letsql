@@ -51,9 +51,9 @@ def log_initial_state(hash_diffs=False, cwd=None):
                 **git_state,
             )
         else:
-            import xorq as xq
+            import xorq as xo
 
-            logger.info("xorq version", version=xq.__version__)
+            logger.info("xorq version", version=xo.__version__)
     except Exception:
         logger.exception("failed to log git repo info")
 

@@ -153,7 +153,7 @@ extend-select = ["I", "ICN"]
 "python/xorq/__init__.py" = ["I001"]
 
 [tool.ruff.lint.flake8-import-conventions.extend-aliases]
-"xorq" = "xq"
+"xorq" = "xo"
 
 [tool.ruff.lint.isort]
 known-first-party = ["xorq"]

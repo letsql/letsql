@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.tests.util import assert_frame_equal, assert_series_equal
 
@@ -37,7 +37,7 @@ def test_single_field(struct, field, expected):
 
 
 def test_all_fields(struct, struct_df):
-    result = xq.execute(struct.abc)
+    result = xo.execute(struct.abc)
     expected = struct_df.abc
 
     assert {
@@ -48,11 +48,11 @@ def test_all_fields(struct, struct_df):
 
 
 _SIMPLE_DICT = dict(a=1, b="2", c=3.0)
-_STRUCT_LITERAL = xq.struct(
+_STRUCT_LITERAL = xo.struct(
     _SIMPLE_DICT,
     type="struct<a: int64, b: string, c: float64>",
 )
-_NULL_STRUCT_LITERAL = xq.null().cast("struct<a: int64, b: string, c: float64>")
+_NULL_STRUCT_LITERAL = xo.null().cast("struct<a: int64, b: string, c: float64>")
 
 
 @pytest.mark.parametrize("field", ["a", "b", "c"])
@@ -67,9 +67,9 @@ def test_literal(con, field):
 
 def test_struct_column(alltypes, df):
     t = alltypes
-    expr = t.select(s=xq.struct(dict(a=t.string_col, b=1, c=t.bigint_col)))
+    expr = t.select(s=xo.struct(dict(a=t.string_col, b=1, c=t.bigint_col)))
     assert expr.s.type() == dt.Struct(dict(a=dt.string, b=dt.int8, c=dt.int64))
-    result = xq.execute(expr)
+    result = xo.execute(expr)
     expected = pd.DataFrame(
         {"s": [dict(a=a, b=1, c=c) for a, c in zip(df.string_col, df.bigint_col)]}
     )
@@ -77,8 +77,8 @@ def test_struct_column(alltypes, df):
 
 
 def test_field_access_after_case(con):
-    s = xq.struct({"a": 3})
-    x = xq.case().when(True, s).else_(xq.struct({"a": 4})).end()
+    s = xo.struct({"a": 3})
+    x = xo.case().when(True, s).else_(xo.struct({"a": 4})).end()
     y = x.a
     assert con.to_pandas(y) == 3
 
@@ -91,12 +91,12 @@ def test_collect_into_struct(alltypes):
         t[_.string_col.isin(("0", "1"))]
         .group_by(group="string_col")
         .agg(
-            val=lambda t: xq.struct(
+            val=lambda t: xo.struct(
                 dict(key=t.bigint_col.collect().cast("array<int64>"))
             )
         )
     )
-    result = xq.execute(expr)
+    result = xo.execute(expr)
     assert result.shape == (2, 2)
     assert set(result.group) == {"0", "1"}
     val = result.val

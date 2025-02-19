@@ -3,7 +3,7 @@ import socket
 import toolz
 from pydantic import AnyUrl, UrlConstraints
 
-import xorq as xq
+import xorq as xo
 from xorq.flight.backend import Backend
 from xorq.flight.server import (
     BasicAuthServerMiddlewareFactory,
@@ -83,7 +83,7 @@ class FlightServer:
         verify_client=False,
         root_certificates=None,
         auth: BasicAuth = None,
-        connection=xq.connect,
+        connection=xo.connect,
     ):
         self.flight_url = flight_url
         self.certificate_path = certificate_path

@@ -1,9 +1,9 @@
-import xorq as xq
+import xorq as xo
 from xorq.common.caching import SourceStorage
 
 
-con = xq.connect()
-pg = xq.postgres.connect_env()
+con = xo.connect()
+pg = xo.postgres.connect_env()
 
 t = pg.table("batting").into_backend(con, "ls_batting")
 

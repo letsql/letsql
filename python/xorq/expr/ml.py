@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Callable, Iterable, Iterator, List, Tuple, Uni
 import pandas as pd
 import toolz
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 import xorq.vendor.ibis.expr.operations as ops
 
@@ -224,9 +224,9 @@ def calc_split_column(
         num_buckets=num_buckets,
         random_seed=random_seed,
     )
-    col = xq.case()
+    col = xo.case()
     for i, condition in enumerate(conditions):
-        col = col.when(condition, xq.literal(i, "int64"))
+        col = col.when(condition, xo.literal(i, "int64"))
     col = col.end().name(name)
     return col
 

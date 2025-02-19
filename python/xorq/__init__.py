@@ -37,7 +37,7 @@ def load_backend(name):
     ):
         import types
 
-        import xorq as xq
+        import xorq as xo
 
         module = entry_point.load()
         backend = module.Backend()
@@ -51,7 +51,7 @@ def load_backend(name):
         connect.__module__ = f"xorq.{name}"
 
         proxy = types.ModuleType(f"xorq.{name}")
-        setattr(xq, name, proxy)
+        setattr(xo, name, proxy)
         proxy.connect = connect
         proxy.compile = backend.compile
         proxy.has_operation = backend.has_operation

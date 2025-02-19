@@ -7,7 +7,7 @@ import pytest
 import toolz
 import xgboost as xgb
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.expr import udf
 from xorq.expr.udf import make_pandas_expr_udf, make_pandas_udf
@@ -52,16 +52,16 @@ def centroid_list(a: dt.float64, b: dt.float64, c: dt.float64) -> pa.list_(
 
 
 def test_udf_agg_pyarrow(ls_con, batting):
-    batting = ls_con.register(xq.execute(batting), "pg-batting")
+    batting = ls_con.register(xo.execute(batting), "pg-batting")
     result = my_mean(batting.G).execute()
 
-    assert result == xq.execute(batting.G).mean()
+    assert result == xo.execute(batting.G).mean()
 
 
 def test_multiple_arguments_udf_agg_pyarrow(ls_con, batting):
-    batting = ls_con.register(xq.execute(batting), "pg-batting")
+    batting = ls_con.register(xo.execute(batting), "pg-batting")
     actual = add_mean(batting.G, batting.G).execute()
-    expected = xq.execute(batting.G)
+    expected = xo.execute(batting.G)
     expected = (expected + expected).mean()
 
     assert actual == expected
@@ -70,9 +70,9 @@ def test_multiple_arguments_udf_agg_pyarrow(ls_con, batting):
 def test_multiple_arguments_struct_udf_agg_pyarrow(ls_con, batting):
     from math import isclose
 
-    batting = ls_con.register(xq.execute(batting), "pg-batting")
+    batting = ls_con.register(xo.execute(batting), "pg-batting")
     actual = centroid(batting.G, batting.G, batting.G).execute()
-    expected = xq.execute(batting.G).mean()
+    expected = xo.execute(batting.G).mean()
 
     assert all(isclose(value, expected) for value in actual.values())
 
@@ -80,9 +80,9 @@ def test_multiple_arguments_struct_udf_agg_pyarrow(ls_con, batting):
 def test_multiple_arguments_list_udf_agg_pyarrow(ls_con, batting):
     from math import isclose
 
-    batting = ls_con.register(xq.execute(batting), "pg-batting")
+    batting = ls_con.register(xo.execute(batting), "pg-batting")
     actual = centroid_list(batting.G, batting.G, batting.G).execute()
-    expected = xq.execute(batting.G).mean()
+    expected = xo.execute(batting.G).mean()
 
     assert all(isclose(value, expected) for value in actual)
 
@@ -102,7 +102,7 @@ def test_group_by_udf_agg_pyarrow(ls_con, alltypes_df):
         .aggregate(sum=my_sum(_.double_col))
     )
 
-    result = xq.execute(expr).astype({"x": "int64"})
+    result = xo.execute(expr).astype({"x": "int64"})
     expected = (
         alltypes_df.loc[alltypes_df.string_col == "1", :]
         .assign(x=1)
@@ -117,7 +117,7 @@ def test_group_by_udf_agg_pyarrow(ls_con, alltypes_df):
 
 def test_udf_agg_pandas_df(ls_con, alltypes):
     name = "sum_sum"
-    alltypes = ls_con.register(xq.execute(alltypes), "pg-alltypes")
+    alltypes = ls_con.register(xo.execute(alltypes), "pg-alltypes")
     cols = (by, _) = ["year", "month"]
     expr = alltypes
 
@@ -157,7 +157,7 @@ def test_udf_agg_pandas_df(ls_con, alltypes):
 def test_udf_pandas_df(ls_con, batting):
     typ = "int64"
     name = "my_least"
-    batting = ls_con.register(xq.execute(batting), "pg-batting")
+    batting = ls_con.register(xo.execute(batting), "pg-batting")
     my_least = operator.methodcaller("min", axis=1)
     schema = batting.select(of_type(typ)).schema()
     return_type = dt.dtype(typ)
@@ -165,7 +165,7 @@ def test_udf_pandas_df(ls_con, batting):
     order_by = ("playerID", "yearID", "stint")
 
     from_builtin = ls_con.execute(
-        batting.mutate(xq.least(*(xq._[name] for name in schema)).name(name)).order_by(
+        batting.mutate(xo.least(*(xo._[name] for name in schema)).name(name)).order_by(
             order_by
         )
     )
@@ -208,11 +208,11 @@ def test_pandas_expr_udf():
     name = "predicted"
     typ = "float64"
 
-    con = xq.connect()
-    t = con.read_parquet(xq.config.options.pins.get_path("lending-club"))
+    con = xo.connect()
+    t = con.read_parquet(xo.config.options.pins.get_path("lending-club"))
 
     # manual run
-    df = xq.execute(t)
+    df = xo.execute(t)
     model = pickle.loads(train_fn(df))["model"]
     from_pd = df.assign(
         **{name: predict_xgboost_model(df[list(features)], model)}

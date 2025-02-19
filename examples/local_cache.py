@@ -1,11 +1,11 @@
 from pathlib import Path
 
-import xorq as xq
+import xorq as xo
 from xorq.common.caching import ParquetCacheStorage
 
 
-pg = xq.postgres.connect_examples()
-con = xq.connect()  # empty connection
+pg = xo.postgres.connect_examples()
+con = xo.connect()  # empty connection
 storage = ParquetCacheStorage(
     source=con,
     path=Path.cwd(),
@@ -31,6 +31,6 @@ path = storage.get_loc(cached.ls.get_key())
 
 
 print(f"{path} exists?: {path.exists()}")
-result = xq.execute(cached)  # the filter is executed on the local table
+result = xo.execute(cached)  # the filter is executed on the local table
 print(f"{path} exists?: {path.exists()}")
 print(result)

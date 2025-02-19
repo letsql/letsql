@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import xorq as xq
+import xorq as xo
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def trades_df():
 @pytest.fixture
 def ddb_con(quotes_df):
     """Create DuckDB connection with Ibis"""
-    duckdb_connection = xq.duckdb.connect()
+    duckdb_connection = xo.duckdb.connect()
     duckdb_connection.create_table(
         "quotes",
         quotes_df,
@@ -54,6 +54,6 @@ def ddb_con(quotes_df):
 @pytest.fixture
 def con(trades_df):
     """Create DataFusion connection with xorq"""
-    con = xq.datafusion.connect()
+    con = xo.datafusion.connect()
     con.create_table("trades", trades_df, temp=False)
     return con

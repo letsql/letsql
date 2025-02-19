@@ -1,6 +1,6 @@
 import pandas as pd
 
-import xorq as xq
+import xorq as xo
 from xorq.expr.datatypes import LargeString
 from xorq.tests.util import assert_frame_equal, assert_series_equal
 from xorq.vendor import ibis
@@ -8,18 +8,18 @@ from xorq.vendor.ibis.expr.datatypes import Int64, String
 
 
 def test_can_create_table(utf8_data):
-    con = xq.connect()
+    con = xo.connect()
     schema = ibis.schema([("name", LargeString), ("age", Int64)])
     t = con.create_table("names", utf8_data, schema=schema)
     assert t.schema() == schema
     assert "names" in con.list_tables()
 
-    actual = xq.execute(t)  # can be executed
+    actual = xo.execute(t)  # can be executed
     assert_frame_equal(utf8_data, actual)
 
 
 def test_can_read_table(utf8_data):
-    con = xq.connect()
+    con = xo.connect()
 
     data = """
     create table utf8_data(str string, val bigint) as values
@@ -46,30 +46,30 @@ def test_can_read_table(utf8_data):
     assert t.schema() == schema
 
     expr = t.select(t.str.name("name"), t.val.name("age"))
-    actual = xq.execute(expr)
+    actual = xo.execute(expr)
 
     assert_frame_equal(actual, utf8_data)
 
 
 def test_can_read_write_parquet(utf8_data, tmp_path):
-    con = xq.connect()
+    con = xo.connect()
     schema = ibis.schema([("name", LargeString), ("age", Int64)])
     t = con.create_table("names", utf8_data, schema=schema)
 
     names_parquet_path = tmp_path / "names.parquet"
-    xq.to_parquet(t, names_parquet_path)
+    xo.to_parquet(t, names_parquet_path)
 
     # need to specify the schema when reading parquet because DataFusion transforms into StringView
-    t = xq.read_parquet(names_parquet_path, "names_parquet", schema=schema.to_pyarrow())
+    t = xo.read_parquet(names_parquet_path, "names_parquet", schema=schema.to_pyarrow())
     assert t.schema() == schema
 
-    actual = xq.execute(t)
+    actual = xo.execute(t)
 
     assert_frame_equal(utf8_data, actual)
 
 
 def test_can_execute_test_ops(utf8_data):
-    con = xq.connect()
+    con = xo.connect()
     schema = ibis.schema([("name", LargeString), ("age", Int64)])
     t = con.create_table("names", utf8_data, schema=schema)
     assert t.schema() == schema
@@ -82,10 +82,10 @@ def test_can_execute_test_ops(utf8_data):
 
 
 def test_cast(utf8_data):
-    con = xq.connect()
+    con = xo.connect()
     t = con.register(utf8_data, "t")
     expr = t.mutate(a=t.name.cast(LargeString))
-    actual = xq.execute(expr)
+    actual = xo.execute(expr)
 
     assert expr.schema() == ibis.schema(
         [("name", String), ("age", Int64), ("a", LargeString)]

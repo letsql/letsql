@@ -4,7 +4,7 @@ import pandas as pd
 import pyarrow as pa
 import pytest
 
-import xorq as xq
+import xorq as xo
 from xorq.common.caching import ParquetCacheStorage, SourceStorage
 from xorq.expr.relations import register_and_transform_remote_tables
 from xorq.vendor import ibis
@@ -32,7 +32,7 @@ expected_tables = (
 
 @pytest.fixture(scope="session")
 def pg():
-    conn = xq.postgres.connect_env()
+    conn = xo.postgres.connect_env()
     yield conn
     remove_unexpected_tables(conn)
 
@@ -40,7 +40,7 @@ def pg():
 @pytest.fixture(scope="session")
 def trino_table():
     return (
-        xq.trino.connect(database="tpch", schema="sf1")
+        xo.trino.connect(database="tpch", schema="sf1")
         .table("orders")
         .cast({"orderdate": "date"})
     )
@@ -83,7 +83,7 @@ def remove_unexpected_tables(dirty):
 
 
 def test_multiple_record_batches(pg):
-    con = xq.connect()
+    con = xo.connect()
 
     table = pg.table("batting")
     left = con.register(table.to_pyarrow_batches(), "batting_0")
@@ -101,9 +101,9 @@ def test_multiple_record_batches(pg):
     assert 0 < len(res) <= 15
 
 
-@pytest.mark.parametrize("method", [xq.to_pyarrow, xq.to_pyarrow_batches, xq.execute])
+@pytest.mark.parametrize("method", [xo.to_pyarrow, xo.to_pyarrow_batches, xo.execute])
 def test_into_backend_simple(pg, method):
-    con = xq.connect()
+    con = xo.connect()
     expr = pg.table("batting").into_backend(con, "ls_batting")
     res = method(expr)
 
@@ -115,7 +115,7 @@ def test_into_backend_simple(pg, method):
 
 @pytest.mark.parametrize("method", ["to_pyarrow", "to_pyarrow_batches", "execute"])
 def test_into_backend_complex(pg, method):
-    con = xq.connect()
+    con = xo.connect()
 
     t = pg.table("batting").into_backend(con, "ls_batting")
 
@@ -126,7 +126,7 @@ def test_into_backend_complex(pg, method):
         .cache(SourceStorage(source=con))
     )
 
-    assert xq.to_sql(expr).count("batting") == 2
+    assert xo.to_sql(expr).count("batting") == 2
     res = methodcaller(method)(expr)
 
     if isinstance(res, pa.RecordBatchReader):
@@ -136,8 +136,8 @@ def test_into_backend_complex(pg, method):
 
 
 def test_double_into_backend_batches(pg):
-    con = xq.connect()
-    ddb_con = xq.duckdb.connect()
+    con = xo.connect()
+    ddb_con = xo.duckdb.connect()
 
     t = pg.table("batting").into_backend(con, "ls_batting")
 
@@ -157,8 +157,8 @@ def test_double_into_backend_batches(pg):
 
 @pytest.mark.benchmark
 def test_into_backend_cache(pg, tmp_path):
-    con = xq.connect()
-    ddb_con = xq.duckdb.connect()
+    con = xo.connect()
+    ddb_con = xo.duckdb.connect()
 
     t = pg.table("batting").into_backend(con, "ls_batting")
 
@@ -176,7 +176,7 @@ def test_into_backend_cache(pg, tmp_path):
 
 
 def test_into_backend_duckdb(pg):
-    ddb = xq.duckdb.connect()
+    ddb = xo.duckdb.connect()
     t = pg.table("batting").into_backend(ddb, "ls_batting")
     expr = (
         t.join(t, "playerID")
@@ -195,7 +195,7 @@ def test_into_backend_duckdb(pg):
 
 
 def test_into_backend_duckdb_expr(pg):
-    ddb = xq.duckdb.connect()
+    ddb = xo.duckdb.connect()
     t = pg.table("batting").into_backend(ddb, "ls_batting")
     expr = t.join(t, "playerID").limit(15).select(_.playerID * 2)
 
@@ -210,7 +210,7 @@ def test_into_backend_duckdb_expr(pg):
 
 
 def test_into_backend_duckdb_trino(trino_table):
-    db_con = xq.duckdb.connect()
+    db_con = xo.duckdb.connect()
     expr = trino_table.head(10_000).into_backend(db_con).pipe(make_merged)
 
     expr, created = register_and_transform_remote_tables(expr)
@@ -224,8 +224,8 @@ def test_into_backend_duckdb_trino(trino_table):
 
 
 def test_multiple_into_backend_duckdb_xorq(trino_table):
-    db_con = xq.duckdb.connect()
-    ls_con = xq.connect()
+    db_con = xo.duckdb.connect()
+    ls_con = xo.connect()
 
     expr = (
         trino_table.head(10_000)
@@ -245,7 +245,7 @@ def test_multiple_into_backend_duckdb_xorq(trino_table):
 
 @pytest.mark.benchmark
 def test_into_backend_duckdb_trino_cached(trino_table, tmp_path):
-    db_con = xq.duckdb.connect()
+    db_con = xo.duckdb.connect()
     expr = (
         trino_table.head(10_000)
         .into_backend(db_con)
@@ -258,7 +258,7 @@ def test_into_backend_duckdb_trino_cached(trino_table, tmp_path):
 
 
 def test_into_backend_to_pyarrow_batches(trino_table):
-    db_con = xq.duckdb.connect()
+    db_con = xo.duckdb.connect()
     df = (
         trino_table.head(10_000)
         .into_backend(db_con)
@@ -270,7 +270,7 @@ def test_into_backend_to_pyarrow_batches(trino_table):
 
 
 def test_to_pyarrow_batches_simple(pg):
-    con = xq.duckdb.connect()
+    con = xo.duckdb.connect()
 
     t = pg.table("batting").into_backend(con, "ls_batting")
 

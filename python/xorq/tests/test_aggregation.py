@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.common.exceptions as com
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.tests.util import assert_frame_equal, reduction_tolerance
@@ -216,7 +216,7 @@ def test_aggregate_grouped(alltypes, df, result_fn, expected_fn):
             id="is_in",
         ),
         param(
-            lambda _: xq._.string_col.isin(["1", "7"]),
+            lambda _: xo._.string_col.isin(["1", "7"]),
             lambda t: t.string_col.isin(["1", "7"]),
             id="is_in_deferred",
         ),
@@ -408,9 +408,9 @@ def test_agg_name_in_output_column(alltypes):
 
 
 def test_grouped_case(con):
-    table = xq.memtable({"key": [1, 1, 2, 2], "value": [10, 30, 20, 40]})
+    table = xo.memtable({"key": [1, 1, 2, 2], "value": [10, 30, 20, 40]})
 
-    case_expr = xq.case().when(table.value < 25, table.value).else_(xq.null()).end()
+    case_expr = xo.case().when(table.value < 25, table.value).else_(xo.null()).end()
 
     expr = table.group_by("key").aggregate(mx=case_expr.max()).order_by("key")
     result = con.execute(expr)

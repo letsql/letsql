@@ -1,16 +1,16 @@
-import xorq as xq
+import xorq as xo
 from xorq import _
 from xorq.common.caching import SourceStorage
 
 
-con = xq.connect()
-ddb = xq.duckdb.connect()
-pg = xq.postgres.connect_env()
+con = xo.connect()
+ddb = xo.duckdb.connect()
+pg = xo.postgres.connect_env()
 
 name = "batting"
 
 right = (
-    xq.examples.get_table_from_name(name, backend=ddb)
+    xo.examples.get_table_from_name(name, backend=ddb)
     .filter(_.yearID == 2014)
     .into_backend(con)
 )

@@ -2,7 +2,7 @@ import pandas as pd
 import pyarrow as pa
 from pandas.testing import assert_series_equal
 
-import xorq as xq
+import xorq as xo
 from xorq.expr.udf import pyarrow_udwf
 from xorq.internal import WindowEvaluator
 from xorq.vendor import ibis
@@ -276,7 +276,7 @@ def smooth_two_col(self, values: list[pa.Array], num_rows: int) -> pa.Array:
     return pa.array(results)
 
 
-con = xq.connect()
+con = xo.connect()
 t = con.register(
     pa.Table.from_batches(
         [
@@ -307,7 +307,7 @@ expr = (
         .round(3)
     )
 )
-result = xq.execute(expr).sort_values(["c", "a"], ignore_index=True)
+result = xo.execute(expr).sort_values(["c", "a"], ignore_index=True)
 expected = (
     t.execute()
     .combine_first(

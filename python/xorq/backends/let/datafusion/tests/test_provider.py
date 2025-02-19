@@ -7,7 +7,7 @@ import pytest
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 
-import xorq as xq
+import xorq as xo
 from xorq.backends.let.datafusion.provider import IbisTableProvider
 from xorq.vendor.ibis import udf
 
@@ -62,7 +62,7 @@ def data_dir():
 
 @pytest.fixture(scope="session")
 def con(data_dir):
-    conn = xq.connect()
+    conn = xo.connect()
     parquet_dir = data_dir / "parquet"
     conn.register(parquet_dir / "functional_alltypes.parquet", "functional_alltypes")
 
@@ -116,7 +116,7 @@ def test_registered_model_udf(data_dir, tmp_model_dir, con):
         )
     )
 
-    result = xq.execute(t)
+    result = xo.execute(t)
 
     assert result is not None
     assert isinstance(result, pd.DataFrame)
@@ -140,7 +140,7 @@ def test_register_model_with_udf_output(data_dir, tmp_model_dir, con):
         prediction=lambda t: predict_diamond(t.carat, t.depth, t.x, t.y, t.z)
     )
 
-    result = xq.execute(t)
+    result = xo.execute(t)
 
     assert result is not None
     assert isinstance(result, pd.DataFrame)

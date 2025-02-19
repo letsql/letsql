@@ -1,9 +1,9 @@
 import pandas as pd
 
-import xorq as xq
+import xorq as xo
 
 
-con = xq.connect()
+con = xo.connect()
 
 df = pd.DataFrame({"a": [1, 2, 3, 4, 5], "b": [2, 3, 4, 5, 6]})
 t = con.create_table("frame", df)

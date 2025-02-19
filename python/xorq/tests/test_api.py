@@ -5,7 +5,7 @@ from typing import Callable
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.types as ir
 from xorq.tests.conftest import TEST_TABLES
 
@@ -87,7 +87,7 @@ def test_limit_chain(alltypes, expr_fn):
     ],
 )
 def test_unbind(alltypes, expr_fn: Callable):
-    xq.options.interactive = False
+    xo.options.interactive = False
 
     expr = expr_fn(alltypes)
     assert expr.unbind() != expr
@@ -99,7 +99,7 @@ def test_unbind(alltypes, expr_fn: Callable):
 
 @pytest.mark.parametrize(
     ("extension", "method"),
-    [("parquet", xq.read_parquet), ("csv", xq.read_csv)],
+    [("parquet", xo.read_parquet), ("csv", xo.read_csv)],
 )
 def test_read(data_dir, extension, method):
     table = method(

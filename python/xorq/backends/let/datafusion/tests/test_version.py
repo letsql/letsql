@@ -1,11 +1,11 @@
-import xorq as xq
+import xorq as xo
 from xorq.backends.let.datafusion import Backend
 
 
 def test_version():
-    assert xq.__version__ == Backend().version
+    assert xo.__version__ == Backend().version
 
 
 def test_context_name():
-    con = xq.connect()
+    con = xo.connect()
     assert "let.SessionContext" in str(type(con.con))

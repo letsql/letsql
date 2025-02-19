@@ -9,7 +9,7 @@ import pytest
 import toolz
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.common.exceptions as com
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.tests.util import assert_frame_equal, assert_series_equal
@@ -18,7 +18,7 @@ from xorq.vendor.ibis.common.annotations import ValidationError
 
 
 def test_null_literal(con):
-    expr = xq.null()
+    expr = xo.null()
     assert pd.isna(con.execute(expr))
     assert con.execute(expr.typeof()) == "Null"
 
@@ -27,7 +27,7 @@ def test_null_literal(con):
 
 
 def test_boolean_literal(con):
-    expr = xq.literal(False, type=dt.boolean)
+    expr = xo.literal(False, type=dt.boolean)
     result = con.execute(expr)
     assert not result
     assert type(result) in (np.bool_, bool)
@@ -37,10 +37,10 @@ def test_boolean_literal(con):
 @pytest.mark.parametrize(
     ("expr", "expected"),
     [
-        param(xq.null().fill_null(5), 5, id="na_fillna"),
-        param(xq.literal(5).fill_null(10), 5, id="non_na_fillna"),
-        param(xq.literal(5).nullif(5), None, id="nullif_null"),
-        param(xq.literal(10).nullif(5), 10, id="nullif_not_null"),
+        param(xo.null().fill_null(5), 5, id="na_fillna"),
+        param(xo.literal(5).fill_null(10), 5, id="non_na_fillna"),
+        param(xo.literal(5).nullif(5), None, id="nullif_null"),
+        param(xo.literal(10).nullif(5), 10, id="nullif_not_null"),
     ],
 )
 def test_scalar_fillna_nullif(con, expr, expected):
@@ -67,9 +67,9 @@ def test_scalar_fillna_nullif(con, expr, expected):
 )
 def test_isna(alltypes, col, filt):
     table = alltypes.select(
-        nan_col=xq.literal(np.nan), none_col=xq.null().cast("float64")
+        nan_col=xo.literal(np.nan), none_col=xo.null().cast("float64")
     )
-    df = xq.execute(table)
+    df = xo.execute(table)
 
     result = table[filt].execute().reset_index(drop=True)
     expected = df[df[col].isna()].reset_index(drop=True)
@@ -84,8 +84,8 @@ def test_isna(alltypes, col, filt):
     ],
 )
 def test_column_fillna(alltypes, value):
-    table = alltypes.mutate(missing=xq.literal(value).cast("float64"))
-    pd_table = xq.execute(table)
+    table = alltypes.mutate(missing=xo.literal(value).cast("float64"))
+    pd_table = xo.execute(table)
 
     res = table.mutate(missing=table.missing.fill_null(0.0)).execute()
     sol = pd_table.assign(missing=pd_table.missing.fillna(0.0))
@@ -95,10 +95,10 @@ def test_column_fillna(alltypes, value):
 @pytest.mark.parametrize(
     ("expr", "expected"),
     [
-        param(xq.coalesce(5, None, 4), 5, id="generic"),
-        param(xq.coalesce(xq.null(), 4, xq.null()), 4, id="null_start_end"),
+        param(xo.coalesce(5, None, 4), 5, id="generic"),
+        param(xo.coalesce(xo.null(), 4, xo.null()), 4, id="null_start_end"),
         param(
-            xq.coalesce(xq.null(), xq.null(), 3.14),
+            xo.coalesce(xo.null(), xo.null(), 3.14),
             3.14,
             id="non_null_last",
         ),
@@ -195,7 +195,7 @@ def test_case_where(alltypes, df):
     table = alltypes
     table = table.mutate(
         new_col=(
-            xq.case()
+            xo.case()
             .when(table["int_col"] == 1, 20)
             .when(table["int_col"] == 0, 10)
             .else_(0)
@@ -309,12 +309,12 @@ def test_dropna_table(alltypes, how, subset):
     is_four = alltypes.int_col == 4
 
     table = alltypes.mutate(
-        col_1=is_two.ifelse(xq.null(), alltypes.float_col),
-        col_2=is_four.ifelse(xq.null(), alltypes.float_col),
-        col_3=(is_two | is_four).ifelse(xq.null(), alltypes.float_col),
+        col_1=is_two.ifelse(xo.null(), alltypes.float_col),
+        col_2=is_four.ifelse(xo.null(), alltypes.float_col),
+        col_3=(is_two | is_four).ifelse(xo.null(), alltypes.float_col),
     ).select("col_1", "col_2", "col_3")
 
-    table_pandas = xq.execute(table)
+    table_pandas = xo.execute(table)
     result = table.drop_null(subset, how).execute().reset_index(drop=True)
     expected = table_pandas.dropna(how=how, subset=subset).reset_index(drop=True)
 
@@ -333,7 +333,7 @@ def test_select_sort_sort(alltypes):
         param(_.id, {"by": "id"}),
         param(lambda _: _.id, {"by": "id"}),
         param(
-            xq.desc("id"),
+            xo.desc("id"),
             {"by": "id", "ascending": False},
         ),
         param(
@@ -341,7 +341,7 @@ def test_select_sort_sort(alltypes):
             {"by": ["id", "int_col"]},
         ),
         param(
-            ["id", xq.desc("int_col")],
+            ["id", xo.desc("int_col")],
             {"by": ["id", "int_col"], "ascending": [True, False]},
         ),
     ],
@@ -353,9 +353,9 @@ def test_order_by(alltypes, df, key, df_kwargs):
 
 
 def test_order_by_random(alltypes):
-    expr = alltypes.filter(_.id < 100).order_by(xq.random()).limit(5)
-    r1 = xq.execute(expr)
-    r2 = xq.execute(expr)
+    expr = alltypes.filter(_.id < 100).order_by(xo.random()).limit(5)
+    r1 = xo.execute(expr)
+    r2 = xo.execute(expr)
     assert len(r1) == 5
     assert len(r2) == 5
     # Ensure that multiple executions returns different results
@@ -406,7 +406,7 @@ def test_isin_notin(alltypes, df, ibis_op, pandas_op):
     ],
 )
 def test_logical_negation_literal(con, expr, expected, op):
-    assert con.execute(op(xq.literal(expr)).name("tmp")) == expected
+    assert con.execute(op(xo.literal(expr)).name("tmp")) == expected
 
 
 @pytest.mark.parametrize(
@@ -428,7 +428,7 @@ def test_ifelse_select(alltypes, df):
     table = table.select(
         [
             "int_col",
-            (xq.ifelse(table["int_col"] == 0, 42, -1).cast("int64").name("where_col")),
+            (xo.ifelse(table["int_col"] == 0, 42, -1).cast("int64").name("where_col")),
         ]
     )
 
@@ -443,8 +443,8 @@ def test_ifelse_select(alltypes, df):
 
 
 def test_ifelse_column(alltypes, df):
-    expr = xq.ifelse(alltypes["int_col"] == 0, 42, -1).cast("int64").name("where_col")
-    result = xq.execute(expr)
+    expr = xo.ifelse(alltypes["int_col"] == 0, 42, -1).cast("int64").name("where_col")
+    result = xo.execute(expr)
 
     expected = pd.Series(
         np.where(df.int_col == 0, 42, -1),
@@ -477,12 +477,12 @@ def test_select_filter_select(alltypes, df):
 
 
 def test_interactive(alltypes, monkeypatch):
-    monkeypatch.setattr(xq.options, "interactive", True)
+    monkeypatch.setattr(xo.options, "interactive", True)
 
     expr = alltypes.mutate(
         str_col=_.string_col.replace("1", "").nullif("2"),
         date_col=_.timestamp_col.date(),
-        delta_col=lambda t: xq.now() - t.timestamp_col,
+        delta_col=lambda t: xo.now() - t.timestamp_col,
     )
 
     repr(expr)
@@ -503,7 +503,7 @@ def test_uncorrelated_subquery(batting, batting_df):
 
 
 def test_int_column(alltypes):
-    expr = alltypes.mutate(x=xq.literal(1)).x
+    expr = alltypes.mutate(x=xo.literal(1)).x
     result = expr.execute()
     assert expr.type() == dt.int8
     assert result.dtype == np.int8
@@ -536,13 +536,13 @@ def test_int_scalar(alltypes):
     ],
 )
 def test_literal_na(con, dtype):
-    expr = xq.literal(None, type=dtype)
+    expr = xo.literal(None, type=dtype)
     result = con.execute(expr)
     assert pd.isna(result)
 
 
 def test_memtable_bool_column(con):
-    t = xq.memtable({"a": [True, False, True]})
+    t = xo.memtable({"a": [True, False, True]})
     assert_series_equal(con.execute(t.a), pd.Series([True, False, True], name="a"))
 
 
@@ -557,8 +557,8 @@ def test_memtable_construct():
             "d": [None, "b", None],
         }
     )
-    t = xq.memtable(pa_t)
-    assert_frame_equal(xq.execute(t).fillna(pd.NA), pa_t.to_pandas().fillna(pd.NA))
+    t = xo.memtable(pa_t)
+    assert_frame_equal(xo.execute(t).fillna(pd.NA), pa_t.to_pandas().fillna(pd.NA))
 
 
 def test_pivot_wider(diamonds):
@@ -642,7 +642,7 @@ def test_sample(functional_alltypes):
 
 def test_sample_memtable(con):
     df = pd.DataFrame({"x": [1, 2, 3, 4]})
-    res = con.execute(xq.memtable(df).sample(0.5))
+    res = con.execute(xo.memtable(df).sample(0.5))
     assert len(res) <= 4
     assert_frame_equal(res.iloc[:0], df.iloc[:0])
 
@@ -664,7 +664,7 @@ def test_hexdigest(alltypes):
 
 def test_typeof(con):
     # Other tests also use the typeof operation, but only this test has this operation required.
-    expr = xq.literal(1).typeof()
+    expr = xo.literal(1).typeof()
     result = con.execute(expr)
 
     assert result is not None

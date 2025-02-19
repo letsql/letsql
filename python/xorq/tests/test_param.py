@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.tests.util import assert_series_equal, default_series_rename
 
@@ -17,7 +17,7 @@ from xorq.tests.util import assert_series_equal, default_series_rename
     ],
 )
 def test_floating_scalar_parameter(alltypes, df, column, raw_value):
-    value = xq.param(dt.double)
+    value = xo.param(dt.double)
     expr = (alltypes[column] + value).name("tmp")
     expected = df[column] + raw_value
     result = expr.execute(params={value: raw_value})

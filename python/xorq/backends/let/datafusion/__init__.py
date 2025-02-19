@@ -18,7 +18,7 @@ import sqlglot as sg
 import sqlglot.expressions as sge
 import toolz
 
-import xorq as xq
+import xorq as xo
 import xorq.common.exceptions as com
 import xorq.internal as df
 import xorq.vendor.ibis.expr.datatypes as dt
@@ -216,7 +216,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
 
     @property
     def version(self):
-        return xq.__version__
+        return xo.__version__
 
     def do_connect(self, config: SessionConfig | None = None) -> None:
         if config is None:
@@ -317,7 +317,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
     def _compile_pyarrow_expr_udf(self, udf_node):
         def extract_computed_kwargs(expr):
             # user can do Scalar.to_table() if they want to cache it
-            value = xq.execute(expr)
+            value = xo.execute(expr)
             if isinstance(value, pd.DataFrame):
                 if value.shape != (1, 1):
                     raise ValueError
@@ -888,7 +888,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
 
         if obj is not None:
             if not isinstance(obj, ir.Expr):
-                table = xq.memtable(obj, schema=schema)
+                table = xo.memtable(obj, schema=schema)
             else:
                 table = obj
 
@@ -982,7 +982,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
         self._import_pyarrow()
         import pyarrow.parquet as pq
 
-        with xq.to_pyarrow_batches(expr, params=params) as batch_reader:
+        with xo.to_pyarrow_batches(expr, params=params) as batch_reader:
             with pq.ParquetWriter(path, batch_reader.schema, **kwargs) as writer:
                 for batch in batch_reader:
                     writer.write_batch(batch)

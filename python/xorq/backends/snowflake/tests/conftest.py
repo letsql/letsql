@@ -4,7 +4,7 @@ import pytest
 import sqlglot as sg
 import sqlglot.expressions as sge
 
-import xorq as xq
+import xorq as xo
 from xorq.vendor.ibis.util import gen_name
 
 
@@ -13,7 +13,7 @@ SU = pytest.importorskip("xorq.common.utils.snowflake_utils")
 
 @pytest.fixture(scope="session")
 def sf_con():
-    return xq.snowflake.connect(
+    return xo.snowflake.connect(
         # a database/schema we can trust exists
         database="SNOWFLAKE_SAMPLE_DATA",
         schema="TPCH_SF1",

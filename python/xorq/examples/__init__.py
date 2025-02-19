@@ -1,4 +1,4 @@
-import xorq as xq
+import xorq as xo
 from xorq.examples.core import (
     get_name_to_suffix,
     get_table_from_name,
@@ -12,7 +12,7 @@ class Example:
 
     def fetch(self, backend=None, table_name=None, deferred=True, **kwargs):
         if backend is None:
-            backend = xq.connect()
+            backend = xo.connect()
         return get_table_from_name(
             self.name,
             backend,

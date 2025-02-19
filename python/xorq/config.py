@@ -172,7 +172,7 @@ def _backend_init():
     if (backend := options.backend) is not None:
         return backend
 
-    import xorq as xq
+    import xorq as xo
 
-    options.backend = con = xq.connect()
+    options.backend = con = xo.connect()
     return con

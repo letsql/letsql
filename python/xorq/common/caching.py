@@ -18,7 +18,7 @@ from attr.validators import (
     instance_of,
 )
 
-import xorq as xq
+import xorq as xo
 import xorq.common.utils.dask_normalize  # noqa: F401
 import xorq.vendor.ibis.expr.operations as ops
 from xorq.common.utils.dask_normalize import (
@@ -265,7 +265,7 @@ class ParquetStorage(CacheStorage):
 
     def _put(self, key, value):
         loc = self.get_loc(key)
-        xq.to_parquet(value.to_expr(), loc)
+        xo.to_parquet(value.to_expr(), loc)
         return self._get(key)
 
     def _drop(self, key):
@@ -290,7 +290,7 @@ class _SourceStorage(CacheStorage):
         return self.source.table(key).op()
 
     def _put(self, key, value):
-        self.source.create_table(key, xq.to_pyarrow(value.to_expr()))
+        self.source.create_table(key, xo.to_pyarrow(value.to_expr()))
         return self._get(key)
 
     def _drop(self, key):

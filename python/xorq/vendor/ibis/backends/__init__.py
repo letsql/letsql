@@ -13,7 +13,7 @@ import weakref
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
-import xorq as xq
+import xorq as xo
 import xorq.common.exceptions as exc
 import xorq.vendor.ibis.config
 import xorq.vendor.ibis.expr.operations as ops
@@ -1424,12 +1424,12 @@ def connect(resource: Path | str, **kwargs: Any) -> BaseBackend:
     if scheme == "file":
         path = parsed.netloc + parsed.path
         if path.endswith(".duckdb"):
-            return xq.duckdb.connect(path, **kwargs)
+            return xo.duckdb.connect(path, **kwargs)
         elif path.endswith((".sqlite", ".db")):
-            return xq.sqlite.connect(path, **kwargs)
+            return xo.sqlite.connect(path, **kwargs)
         elif path.endswith((".parquet", ".csv", ".csv.gz")):
             # Load parquet/csv/csv.gz files with duckdb by default
-            con = xq.duckdb.connect(**kwargs)
+            con = xo.duckdb.connect(**kwargs)
             con.register(path)
             return con
         else:
@@ -1439,7 +1439,7 @@ def connect(resource: Path | str, **kwargs: Any) -> BaseBackend:
     scheme = scheme.replace("postgresql", "postgres")
 
     try:
-        backend = getattr(xq, scheme)
+        backend = getattr(xo, scheme)
     except AttributeError:
         raise ValueError(f"Don't know how to connect to {resource!r}") from None
 

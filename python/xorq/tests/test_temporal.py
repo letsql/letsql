@@ -10,7 +10,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 import xorq.vendor.ibis.expr.datatypes as dt
 from xorq.tests.util import (
     assert_frame_equal,
@@ -55,7 +55,7 @@ def test_date_extract(alltypes, df, attr, expr_fn):
 def test_timestamp_extract(alltypes, df, attr):
     method = getattr(alltypes.timestamp_col, attr)
     expr = method().name(attr)
-    result = xq.execute(expr)
+    result = xo.execute(expr)
     expected = (
         getattr(df.timestamp_col.dt, attr.replace("_", "")).astype("int32").rename(attr)
     )
@@ -113,7 +113,7 @@ def test_timestamp_extract(alltypes, df, attr):
     ],
 )
 def test_timestamp_extract_literal(con, func, expected):
-    value = xq.timestamp("2015-09-01 14:48:05.359")
+    value = xo.timestamp("2015-09-01 14:48:05.359")
     assert con.execute(func(value).name("tmp")) == expected
 
 
@@ -263,7 +263,7 @@ def test_timestamp_comparison_filter_numpy(con, alltypes, df, func_name):
 
 def test_interval_add_cast_scalar(alltypes):
     timestamp_date = alltypes.timestamp_col.date()
-    delta = xq.literal(10).cast("interval('D')")
+    delta = xo.literal(10).cast("interval('D')")
     expr = (timestamp_date + delta).name("result")
     result = expr.execute()
     expected = timestamp_date.name("result").execute() + pd.Timedelta(10, unit="D")
@@ -302,7 +302,7 @@ unit_factors = {"s": 10**9, "ms": 10**6, "us": 10**3, "ns": 1}
     ],
 )
 def test_day_of_week_scalar(con, date, expected_index, expected_day):
-    expr = xq.literal(date).cast(dt.date)
+    expr = xo.literal(date).cast(dt.date)
     result_index = con.execute(expr.day_of_week.index().name("tmp"))
     assert result_index == expected_index
 
@@ -360,8 +360,8 @@ def test_day_of_week_column_group_by(
 
 
 def test_date_scalar_from_iso(con):
-    expr = xq.literal("2022-02-24")
-    expr2 = xq.date(expr)
+    expr = xo.literal("2022-02-24")
+    expr2 = xo.date(expr)
 
     result = con.execute(expr2)
     assert result.strftime("%Y-%m-%d") == "2022-02-24"
@@ -374,7 +374,7 @@ def test_date_column_from_iso(con, alltypes, df):
         + alltypes.month.cast("string").lpad(2, "0")
         + "-13"
     )
-    expr = xq.date(expr)
+    expr = xo.date(expr)
 
     result = con.execute(expr.name("tmp"))
     golden = df.year.astype(str) + "-" + df.month.astype(str).str.rjust(2, "0") + "-13"
@@ -383,14 +383,14 @@ def test_date_column_from_iso(con, alltypes, df):
 
 
 def test_timestamp_extract_milliseconds_with_big_value(con):
-    timestamp = xq.timestamp("2021-01-01 01:30:59.333456")
+    timestamp = xo.timestamp("2021-01-01 01:30:59.333456")
     millis = timestamp.millisecond()
     result = con.execute(millis.name("tmp"))
     assert result == 333
 
 
 def test_big_timestamp(con):
-    value = xq.timestamp("2419-10-11 10:10:25")
+    value = xo.timestamp("2419-10-11 10:10:25")
     result = con.execute(value.name("tmp"))
     expected = datetime.datetime(2419, 10, 11, 10, 10, 25)
     assert result == expected
@@ -441,7 +441,7 @@ def test_timestamp_date_comparison(alltypes, df, left_fn, right_fn):
 
 def test_large_timestamp(con):
     huge_timestamp = datetime.datetime(year=4567, month=1, day=1)
-    expr = xq.timestamp("4567-01-01 00:00:00")
+    expr = xo.timestamp("4567-01-01 00:00:00")
     result = con.execute(expr)
     assert result.replace(tzinfo=None) == huge_timestamp
 
@@ -471,7 +471,7 @@ def test_large_timestamp(con):
 )
 def test_timestamp_precision_output(con, ts, scale, unit):
     dtype = dt.Timestamp(scale=scale)
-    expr = xq.literal(ts).cast(dtype)
+    expr = xo.literal(ts).cast(dtype)
     result = con.execute(expr)
     expected = pd.Timestamp(ts).floor(unit)
     assert result == expected
@@ -503,19 +503,19 @@ def test_timestamp_precision_output(con, ts, scale, unit):
     ],
 )
 def test_time_extract_literal(con, func, expected):
-    value = xq.time("14:48:05.359")
+    value = xo.time("14:48:05.359")
     assert con.execute(func(value).name("tmp")) == expected
 
 
 def test_now(con):
-    expr = xq.now()
+    expr = xo.now()
     result = con.execute(expr.name("tmp"))
     assert isinstance(result, datetime.datetime)
 
 
 def test_now_from_projection(alltypes):
     n = 2
-    expr = alltypes.select(now=xq.now()).limit(n)
+    expr = alltypes.select(now=xo.now()).limit(n)
     result = expr.execute()
     ts = result.now
     assert len(result) == n
@@ -536,7 +536,7 @@ def test_integer_to_interval_date(con, alltypes, df, unit):
     interval = alltypes.int_col.as_interval(unit=unit)
     array = alltypes.date_string_col.split("/")
     month, day, year = array[0], array[1], array[2]
-    date_col = xq.literal("-").join(["20" + year, month, day]).cast("date")
+    date_col = xo.literal("-").join(["20" + year, month, day]).cast("date")
     expr = (date_col + interval).name("tmp")
 
     with warnings.catch_warnings():
@@ -662,7 +662,7 @@ def test_timestamp_bucket(alltypes, kws: dict, pd_freq):
 @pytest.mark.parametrize("offset_in_minutes", [2, -2], ids=["pos", "neg"])
 def test_timestamp_bucket_offset(alltypes, offset_in_minutes):
     ts = alltypes.timestamp_col
-    expr = ts.bucket(minutes=5, offset=xq.interval(minutes=offset_in_minutes))
+    expr = ts.bucket(minutes=5, offset=xo.interval(minutes=offset_in_minutes))
     res = expr.execute().astype("datetime64[ns]").rename("ts")
     td = pd.Timedelta(minutes=offset_in_minutes)
     sol = ((ts.execute().rename("ts") - td).dt.floor("300s") + td).astype(
@@ -674,7 +674,7 @@ def test_timestamp_bucket_offset(alltypes, offset_in_minutes):
 @pytest.mark.parametrize("offset_in_hours", [2, -2], ids=["pos", "neg"])
 def test_timestamp_bucket_offset_in_hours(alltypes, offset_in_hours):
     ts = alltypes.timestamp_col
-    expr = ts.bucket(minutes=5, offset=xq.interval(hours=offset_in_hours))
+    expr = ts.bucket(minutes=5, offset=xo.interval(hours=offset_in_hours))
     res = expr.execute().astype("datetime64[ns]").rename("ts")
     td = pd.Timedelta(hours=offset_in_hours)
     sol = ((ts.execute().rename("ts") - td).dt.floor("300s") + td).astype(

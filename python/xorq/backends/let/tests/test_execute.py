@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from pytest import param
 
-import xorq as xq
+import xorq as xo
 from xorq.common.caching import SourceStorage
 from xorq.tests.util import (
     assert_frame_equal,
@@ -16,7 +16,7 @@ from xorq.tests.util import (
 from xorq.vendor import ibis
 
 
-KEY_PREFIX = xq.config.options.cache.key_prefix
+KEY_PREFIX = xo.config.options.cache.key_prefix
 
 
 def _pandas_semi_join(left, right, on, **_):
@@ -83,7 +83,7 @@ def parquet_dir():
 
 @pytest.fixture(scope="session")
 def dirty_duckdb_con(csv_dir):
-    con = xq.duckdb.connect()
+    con = xo.duckdb.connect()
     con.read_csv(csv_dir / "awards_players.csv", table_name="ddb_players")
     con.read_csv(csv_dir / "batting.csv", table_name="batting")
     return con
@@ -115,7 +115,7 @@ def parquet_batting(parquet_dir):
 
 @pytest.fixture(scope="function")
 def ls_batting(parquet_batting):
-    return xq.connect().read_parquet(parquet_batting)
+    return xo.connect().read_parquet(parquet_batting)
 
 
 @pytest.fixture(scope="function")
@@ -328,7 +328,7 @@ def test_sql_execution(ls_con, duckdb_con, awards_players, batting):
 
     left = batting[batting.yearID == 2015]
     right_df = make_right(awards_players).execute()
-    left_df = xq.execute(left)
+    left_df = xo.execute(left)
     predicate = ["playerID"]
     result_order = ["playerID", "yearID", "lgID", "stint"]
 
@@ -337,7 +337,7 @@ def test_sql_execution(ls_con, duckdb_con, awards_players, batting):
         predicate,
         how="inner",
     )
-    query = xq.to_sql(expr)
+    query = xo.to_sql(expr)
 
     result = (
         ls_con.sql(query)
@@ -375,10 +375,10 @@ def test_multiple_execution_letsql_register_table(ls_con, csv_dir):
 @pytest.mark.parametrize(
     "other_con",
     [
-        xq.connect(),
-        xq.datafusion.connect(),
-        xq.duckdb.connect(),
-        xq.postgres.connect(
+        xo.connect(),
+        xo.datafusion.connect(),
+        xo.duckdb.connect(),
+        xo.postgres.connect(
             host="localhost",
             port=5432,
             user="postgres",
@@ -468,8 +468,8 @@ def test_arbitrary_expression_multiple_tables(duckdb_con):
 @pytest.mark.parametrize(
     "new_con",
     [
-        xq.connect(),
-        xq.duckdb.connect(),
+        xo.connect(),
+        xo.duckdb.connect(),
     ],
 )
 def test_multiple_pipes(pg, new_con):
@@ -507,7 +507,7 @@ def test_duckdb_datafusion_roundtrip(ls_con, pg, duckdb_con, function, remote):
     table_name = "batting"
     pg_t = pg.table(table_name)[lambda t: t.yearID == 2015].cache(storage)
 
-    db_t = duckdb_con.create_table(f"ls-{table_name}", xq.to_pyarrow(pg_t))[
+    db_t = duckdb_con.create_table(f"ls-{table_name}", xo.to_pyarrow(pg_t))[
         lambda t: t.yearID == 2014
     ]
 
@@ -628,7 +628,7 @@ def test_execution_expr_multiple_tables_cached(ls_con, tables, request):
 
 
 def test_no_registration_same_table_name(ls_con, pg_batting):
-    ddb_con = xq.duckdb.connect()
+    ddb_con = xo.duckdb.connect()
     table = pg_batting[["playerID", "yearID"]].to_pyarrow()
     ddb_batting = ddb_con.create_table("batting", table)
     ls_batting = ls_con.register(table, "batting")
