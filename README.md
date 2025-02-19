@@ -1,4 +1,4 @@
-# LETSQL
+# xorq (formerly LETSQL)
 
 [![Downloads](https://static.pepy.tech/badge/letsql)](https://pepy.tech/project/letsql)
 ![PyPI - Version](https://img.shields.io/pypi/v/letsql)
@@ -9,6 +9,9 @@
 
 Data processing library built on top of **Ibis** and **DataFusion** to write multi-engine data workflows.
 
+> [!NOTE]  
+> We are changing the name from LETSQL to xorq.
+
 > [!CAUTION]
 > This library does not currently have a stable release. Both the API and implementation are subject to change, and future updates may not be backward compatible.
 
@@ -16,10 +19,10 @@ Data processing library built on top of **Ibis** and **DataFusion** to write mul
 
 ### Installation
 
-LETSQL is available as [`letsql`](https://pypi.org/project/letsql/) on PyPI:
+LETSQL is available as [`xorq`](https://pypi.org/project/xorq/) on PyPI:
 
 ```shell
-pip install letsql
+pip install xorq
 ```
 
 ### Usage
