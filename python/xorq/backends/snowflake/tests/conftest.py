@@ -8,7 +8,7 @@ import xorq as xq
 from xorq.vendor.ibis.util import gen_name
 
 
-SU = pytest.importorskip("letsql.common.utils.snowflake_utils")
+SU = pytest.importorskip("xorq.common.utils.snowflake_utils")
 
 
 @pytest.fixture(scope="session")

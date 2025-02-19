@@ -8,7 +8,7 @@ import tempfile
 import structlog
 
 
-default_log_path = pathlib.Path("~/.config/letsql/letsql.log").expanduser()
+default_log_path = pathlib.Path("~/.config/xorq/xorq.log").expanduser()
 
 
 def _git_is_present(cwd=None):
@@ -53,7 +53,7 @@ def log_initial_state(hash_diffs=False, cwd=None):
         else:
             import xorq as xq
 
-            logger.info("letsql version", version=xq.__version__)
+            logger.info("xorq version", version=xq.__version__)
     except Exception:
         logger.exception("failed to log git repo info")
 
@@ -62,7 +62,7 @@ def get_log_path(log_path=default_log_path):
     try:
         log_path.parent.mkdir(exist_ok=True, parents=True)
     except Exception:
-        (_, log_path) = tempfile.mkstemp(suffix=".log", prefix="letsql-")
+        (_, log_path) = tempfile.mkstemp(suffix=".log", prefix="xorq-")
     return log_path
 
 

@@ -28,14 +28,14 @@ def test_logging_with_git(log_output):
     log_initial_state()
 
     assert _has_event(log_output.entries, "git state")
-    assert not _has_event(log_output.entries, "letsql version")
+    assert not _has_event(log_output.entries, "xorq version")
 
 
 def test_logging_without_git(log_output, tmp_path):
     log_initial_state(cwd=tmp_path)
 
     assert not _has_event(log_output.entries, "git state")
-    assert _has_event(log_output.entries, "letsql version")
+    assert _has_event(log_output.entries, "xorq version")
 
 
 def test_temp_log_path():

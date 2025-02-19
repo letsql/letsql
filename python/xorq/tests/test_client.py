@@ -225,8 +225,8 @@ def test_repr_mimebundle(alltypes, interactive, expr_type, monkeypatch):
 def test_ibis_config_wrapper(option, monkeypatch):
     from xorq.vendor import ibis
 
-    letsql_option_value = getattr(xq.options.repr.interactive, option)
-    assert letsql_option_value == getattr(ibis.options.repr.interactive, option)
+    xorq_option_value = getattr(xq.options.repr.interactive, option)
+    assert xorq_option_value == getattr(ibis.options.repr.interactive, option)
 
-    monkeypatch.setattr(xq.options.repr.interactive, option, letsql_option_value + 1)
-    assert getattr(ibis.options.repr.interactive, option) == letsql_option_value + 1
+    monkeypatch.setattr(xq.options.repr.interactive, option, xorq_option_value + 1)
+    assert getattr(ibis.options.repr.interactive, option) == xorq_option_value + 1

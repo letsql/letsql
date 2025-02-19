@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class XorqError(Exception):
-    """LetSQLError: All user-facing errors for LetSQL."""
+    """XorqError: All user-facing errors for xorq."""
 
 
 class InternalError(XorqError):

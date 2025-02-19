@@ -1344,7 +1344,7 @@ def _get_backend_names(*, exclude: tuple[str] = ()) -> frozenset[str]:
 
     """
 
-    entrypoints = importlib.metadata.entry_points(group="letsql.backends")
+    entrypoints = importlib.metadata.entry_points(group="xorq.backends")
     return frozenset(ep.name for ep in entrypoints).difference(exclude)
 
 

@@ -15,7 +15,7 @@ from xorq.flight.exchanger import UDFExchanger
     [
         pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
         pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="letsql"),
+        pytest.param(xq.connect, 5005, id="xorq"),
     ],
 )
 def test_port_in_use(connection, port):
@@ -38,7 +38,7 @@ def test_port_in_use(connection, port):
     [
         pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
         pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="letsql"),
+        pytest.param(xq.connect, 5005, id="xorq"),
     ],
 )
 def test_register_and_list_tables(connection, port):
@@ -72,7 +72,7 @@ def test_register_and_list_tables(connection, port):
     [
         pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
         pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="letsql"),
+        pytest.param(xq.connect, 5005, id="xorq"),
     ],
 )
 def test_read_parquet(connection, port, parquet_dir):
@@ -103,7 +103,7 @@ def instrument_reader(reader, prefix=""):
     [
         pytest.param(xq.duckdb.connect, 5005, id="duckdb"),
         pytest.param(xq.datafusion.connect, 5005, id="datafusion"),
-        pytest.param(xq.connect, 5005, id="letsql"),
+        pytest.param(xq.connect, 5005, id="xorq"),
     ],
 )
 def test_exchange(connection, port):

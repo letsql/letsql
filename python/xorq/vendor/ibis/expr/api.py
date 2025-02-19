@@ -208,7 +208,7 @@ expressions.
 
 See https://github.com/ibis-project/ibis/issues/4704 for details.
 
-Use `from letsql.vendor.ibis import deferred as <NAME>` to assign a different name to
+Use `from xorq.vendor.ibis import deferred as <NAME>` to assign a different name to
 the deferred object builder.
 
 Another option is to use `ibis._` directly.
@@ -216,7 +216,7 @@ Another option is to use `ibis._` directly.
 
 Examples
 --------
->>> from letsql.vendor.ibis import _
+>>> from xorq.vendor.ibis import _
 >>> t = ibis.table(dict(key="int", value="float"), name="t")
 >>> expr = t.group_by(key=_.key - 1).agg(total=_.value.sum())
 >>> expr.schema()

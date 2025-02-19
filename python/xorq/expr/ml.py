@@ -15,7 +15,7 @@ import xorq as xq
 import xorq.vendor.ibis.expr.datatypes as dt
 import xorq.vendor.ibis.expr.operations as ops
 
-# TODO: How should we / should we enforce letsql table ?
+# TODO: How should we / should we enforce xorq table ?
 import xorq.vendor.ibis.expr.types as ir
 from xorq.vendor.ibis import literal
 from xorq.vendor.ibis.common.annotations import Argument
@@ -397,7 +397,7 @@ def _create_udf_node(
         "__func__": property(lambda self: fn_from_arrays),
         "__config__": FrozenDict(volatility="immutable"),
         "__udf_namespace__": p,
-        "__module__": "letsql.expr.ml",
+        "__module__": "xorq.expr.ml",
         "__func_name__": udf_name,
         "__fields__": fields,
         "model": model,

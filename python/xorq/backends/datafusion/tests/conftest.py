@@ -53,7 +53,7 @@ def ddb_con(quotes_df):
 
 @pytest.fixture
 def con(trades_df):
-    """Create DataFusion connection with LetSQL"""
+    """Create DataFusion connection with xorq"""
     con = xq.datafusion.connect()
     con.create_table("trades", trades_df, temp=False)
     return con

@@ -47,7 +47,7 @@ class IbisConnection(BaseConnection[BaseBackend]):
         ```python
         import streamlit as st
 
-        from letsql.vendor.ibis.streamlit import IbisConnection
+        from xorq.vendor.ibis.streamlit import IbisConnection
 
         con = st.connection("ch", type=IbisConnection)
 

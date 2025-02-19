@@ -648,13 +648,13 @@ def test_register_with_different_name_and_cache(csv_dir, get_expr):
     table_name = "batting"
 
     datafusion_con = xq.datafusion.connect()
-    letsql_table_name = f"{datafusion_con.name}_{table_name}"
+    xorq_table_name = f"{datafusion_con.name}_{table_name}"
     t = datafusion_con.read_csv(
         batting_path, table_name=table_name, schema_infer_max_records=50_000
     )
     expr = t.pipe(get_expr).cache()
 
-    assert table_name != letsql_table_name
+    assert table_name != xorq_table_name
     assert expr.execute() is not None
 
 

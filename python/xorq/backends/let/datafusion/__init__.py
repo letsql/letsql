@@ -592,7 +592,7 @@ class Backend(SQLBackend, CanCreateCatalog, CanCreateDatabase, CanCreateSchema, 
     def register_xgb_model(
         self, model_name: str, source: str | Path
     ) -> typing.Callable:
-        """Register an XGBoost model as a UDF in the `letsql` Backend.
+        """Register an XGBoost model as a UDF in the `xorq` Backend.
 
         Parameters
         ----------

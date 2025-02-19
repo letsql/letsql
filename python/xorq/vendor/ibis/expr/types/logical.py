@@ -255,72 +255,72 @@ class BooleanColumn(NumericColumn, BooleanValue):
     def any(self, where: BooleanValue | None = None) -> BooleanValue:
         """Return whether at least one element is `True`.
 
-                If the expression does not reference any foreign tables, the result
-                will be a scalar reduction, otherwise it will be a deferred expression
-                constructing an exists subquery when passed to a table method.
+        If the expression does not reference any foreign tables, the result
+        will be a scalar reduction, otherwise it will be a deferred expression
+        constructing an exists subquery when passed to a table method.
 
-                Parameters
-                ----------
-                where
-                    Optional filter for the aggregation
+        Parameters
+        ----------
+        where
+            Optional filter for the aggregation
 
-                Returns
-                -------
-                BooleanValue
-                    Whether at least one element is `True`.
+        Returns
+        -------
+        BooleanValue
+            Whether at least one element is `True`.
 
-                Notes
-                -----
-                Consider the following ibis expressions
+        Notes
+        -----
+        Consider the following ibis expressions
 
-                ```python
-        from letsql.vendor import ibis
+        ```python
+        from xorq.vendor import ibis
 
-                t = ibis.table(dict(a="string"))
-                s = ibis.table(dict(a="string"))
+        t = ibis.table(dict(a="string"))
+        s = ibis.table(dict(a="string"))
 
-                cond = (t.a == s.a).any()
-                ```
+        cond = (t.a == s.a).any()
+        ```
 
-                Without knowing the table to use as the outer query there are two ways to
-                turn this expression into a SQL `EXISTS` predicate, depending on which of
-                `t` or `s` is filtered on.
+        Without knowing the table to use as the outer query there are two ways to
+        turn this expression into a SQL `EXISTS` predicate, depending on which of
+        `t` or `s` is filtered on.
 
-                Filtering from `t`:
+        Filtering from `t`:
 
-                ```sql
-                SELECT *
-                FROM t
-                WHERE EXISTS (SELECT 1 FROM s WHERE t.a = s.a)
-                ```
+        ```sql
+        SELECT *
+        FROM t
+        WHERE EXISTS (SELECT 1 FROM s WHERE t.a = s.a)
+        ```
 
-                Filtering from `s`:
+        Filtering from `s`:
 
-                ```sql
-                SELECT *
-                FROM s
-                WHERE EXISTS (SELECT 1 FROM t WHERE t.a = s.a)
-                ```
+        ```sql
+        SELECT *
+        FROM s
+        WHERE EXISTS (SELECT 1 FROM t WHERE t.a = s.a)
+        ```
 
-                Notably the correlated subquery cannot stand on its own.
+        Notably the correlated subquery cannot stand on its own.
 
-                Examples
-                --------
-                >>> import ibis
-                >>> ibis.options.interactive = True
-                >>> t = ibis.memtable({"arr": [1, 2, 3, None]})
-                >>> (t.arr > 2).any()
-                ┌──────┐
-                │ True │
-                └──────┘
-                >>> (t.arr > 4).any()
-                ┌───────┐
-                │ False │
-                └───────┘
-                >>> (t.arr == None).any(where=t.arr != None)
-                ┌───────┐
-                │ False │
-                └───────┘
+        Examples
+        --------
+        >>> import ibis
+        >>> ibis.options.interactive = True
+        >>> t = ibis.memtable({"arr": [1, 2, 3, None]})
+        >>> (t.arr > 2).any()
+        ┌──────┐
+        │ True │
+        └──────┘
+        >>> (t.arr > 4).any()
+        ┌───────┐
+        │ False │
+        └───────┘
+        >>> (t.arr == None).any(where=t.arr != None)
+        ┌───────┐
+        │ False │
+        └───────┘
         """
         from xorq.vendor.ibis.common.deferred import Call, Deferred, _
 

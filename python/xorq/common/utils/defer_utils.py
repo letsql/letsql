@@ -69,7 +69,7 @@ def deferred_read_csv(con, path, table_name=None, schema=None, **kwargs):
     deferred_read_csv.method_name = method_name = "read_csv"
     method = getattr(con, method_name)
     if table_name is None:
-        table_name = gen_name(f"letsql-{method_name}")
+        table_name = gen_name(f"xorq-{method_name}")
     if schema is None:
         schema = infer_schema(path)
     if con.name == "pandas":

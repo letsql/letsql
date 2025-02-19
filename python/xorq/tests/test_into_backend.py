@@ -223,7 +223,7 @@ def test_into_backend_duckdb_trino(trino_table):
     assert len(created) == 3
 
 
-def test_multiple_into_backend_duckdb_letsql(trino_table):
+def test_multiple_into_backend_duckdb_xorq(trino_table):
     db_con = xq.duckdb.connect()
     ls_con = xq.connect()
 

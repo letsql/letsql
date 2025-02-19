@@ -6,7 +6,7 @@ from xorq.vendor.ibis.config import Config
 
 
 class Cache(Config):
-    """LETSQL cache configuration options
+    """xorq cache configuration options
 
     Attributes
     ----------
@@ -16,7 +16,7 @@ class Cache(Config):
     """
 
     default_path: Union[str, pathlib.Path] = pathlib.Path(
-        "~/.local/share/letsql"
+        "~/.local/share/xorq"
     ).expanduser()
     key_prefix: str = "letsql_cache-"
 
@@ -137,13 +137,13 @@ class Pins(Config):
 
 
 class Options(Config):
-    """LETSQL configuration options
+    """xorq configuration options
 
     Attributes
     ----------
     cache : Cache
         Options controlling caching.
-    backend : Optional[letsql.backends.let.Backend]
+    backend : Optional[xorq.backends.let.Backend]
         The backend to use for execution.
     repr : Repr
         Options controlling expression printing.

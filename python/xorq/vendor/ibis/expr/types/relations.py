@@ -434,7 +434,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         >>> t.cast({"foo": "string"})  # quartodoc: +EXPECTED_FAILURE
         Traceback (most recent call last):
             ...
-        letsql.vendor.ibis.common.exceptions.LetSQLError: Cast schema has fields that are not in the table: ['foo']
+        xorq.vendor.ibis.common.exceptions.XorqError: Cast schema has fields that are not in the table: ['foo']
         """
         return self._cast(schema, cast_method="cast")
 
@@ -1137,7 +1137,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         >>> t.distinct(on="species", keep="second")  # quartodoc: +EXPECTED_FAILURE
         Traceback (most recent call last):
           ...
-        letsql.vendor.ibis.common.exceptions.LetSQLError: Invalid value for `keep`: 'second', must be 'first', 'last' or None
+        xorq.vendor.ibis.common.exceptions.XorqError: Invalid value for `keep`: 'second', must be 'first', 'last' or None
         """
 
         import xorq.vendor.ibis.selectors as s
@@ -2443,7 +2443,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         │ 2 │
         └───┘
         >>> type(t.count())
-        <class 'letsql.vendor.ibis.expr.types.numeric.IntegerScalar'>
+        <class 'xorq.vendor.ibis.expr.types.numeric.IntegerScalar'>
         """
         if where is not None:
             (where,) = bind(self, where)
@@ -3343,11 +3343,11 @@ class Table(Expr, _FixedTextJupyterMixin):
         Examples
         --------
         Using ParquetCacheStorage:
-        >>> import xorq as ls
+        >>> import xorq as xo
         >>> from xorq.common.caching import ParquetCacheStorage
         >>> from pathlib import Path
-        >>> pg = ls.postgres.connect_examples()
-        >>> con = ls.connect()
+        >>> pg = xo.postgres.connect_examples()
+        >>> con = xo.connect()
         >>> storage = ParquetCacheStorage(source=con, path=Path.cwd())
         >>> alltypes = pg.table("functional_alltypes")
         >>> cached = (alltypes
@@ -3357,8 +3357,8 @@ class Table(Expr, _FixedTextJupyterMixin):
         Using SourceStorage with PostgreSQL:
         >>> from xorq.common.caching import SourceStorage
         >>> from xorq import _
-        >>> ddb = ls.duckdb.connect()
-        >>> path = ls.config.options.pins.get_path("batting")
+        >>> ddb = xo.duckdb.connect()
+        >>> path = xo.config.options.pins.get_path("batting")
         >>> right = (ddb.read_parquet(path, table_name="batting")
         ...          .filter(_.yearID == 2014)
         ...          .pipe(con.register, table_name="ddb-batting"))
@@ -3388,7 +3388,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         - The cache is identified by a unique key based on the computation and strategy
         - Cache invalidation is handled automatically based on the chosen strategy
         - Cross-source caching (e.g., from PostgreSQL to DuckDB) is supported
-        - Cache locations can be configured globally through letsql.config.options
+        - Cache locations can be configured globally through xorq.config.options
         """
 
         from xorq.common.caching import (
@@ -3678,7 +3678,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         ... ) # doctest: +SKIP
         Traceback (most recent call last):
           ...
-        letsql.vendor.ibis.common.exceptions.LetSQLInputError: Number of match groups in `names_pattern` ...
+        xorq.vendor.ibis.common.exceptions.XorqInputError: Number of match groups in `names_pattern` ...
 
         `names_transform` must be a mapping or callable
 
@@ -3687,7 +3687,7 @@ class Table(Expr, _FixedTextJupyterMixin):
         ... )  # quartodoc: +EXPECTED_FAILURE
         Traceback (most recent call last):
           ...
-        letsql.vendor.ibis.common.exceptions.LetSQLTypeError: `names_transform` must be a mapping or callable. Got <class 'str'>
+        xorq.vendor.ibis.common.exceptions.XorqTypeError: `names_transform` must be a mapping or callable. Got <class 'str'>
         """  # noqa: RUF002
         import xorq.vendor.ibis.selectors as s
 

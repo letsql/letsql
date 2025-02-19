@@ -1,4 +1,4 @@
-"""Initialize LetSQL module."""
+"""Initialize xorq module."""
 
 from __future__ import annotations
 
@@ -48,9 +48,9 @@ def load_backend(name):
 
         connect.__doc__ = backend.do_connect.__doc__
         connect.__wrapped__ = backend.do_connect
-        connect.__module__ = f"letsql.{name}"
+        connect.__module__ = f"xorq.{name}"
 
-        proxy = types.ModuleType(f"letsql.{name}")
+        proxy = types.ModuleType(f"xorq.{name}")
         setattr(xq, name, proxy)
         proxy.connect = connect
         proxy.compile = backend.compile
@@ -65,7 +65,7 @@ def load_backend(name):
 
 
 def connect(session_config: SessionConfig | None = None) -> Backend:
-    """Create a LETSQL backend."""
+    """Create a xorq backend."""
     instance = Backend()
     instance.do_connect(session_config)
     return instance
