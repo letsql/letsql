@@ -11,7 +11,6 @@ from sqlglot import exp, parse_one
 
 from letsql.backends.let.datafusion import Backend as DataFusionBackend
 from letsql.common.collections import SourceDict
-from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import (
     CachedNode,
     replace_cache_table,
@@ -262,7 +261,7 @@ class Backend(DataFusionBackend):
             return node
 
         op = expr.op()
-        out = op.replace(replace_fix(fn))
+        out = op.replace(fn)
 
         return out.to_expr()
 

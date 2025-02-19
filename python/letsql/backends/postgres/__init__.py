@@ -14,7 +14,6 @@ from letsql.backends.postgres.compiler import compiler
 from letsql.common.utils.defer_utils import (
     read_csv_rbr,
 )
-from letsql.common.utils.graph_utils import replace_fix
 from letsql.expr.relations import CachedNode, replace_cache_table
 from letsql.vendor.ibis.backends.postgres import Backend as IbisPostgresBackend
 from letsql.vendor.ibis.expr import types as ir
@@ -54,7 +53,7 @@ class Backend(IbisPostgresBackend):
             return node
 
         op = expr.op()
-        out = op.replace(replace_fix(fn))
+        out = op.replace(fn)
 
         return out.to_expr()
 
