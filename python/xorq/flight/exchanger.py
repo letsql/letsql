@@ -1,4 +1,5 @@
 import functools
+import traceback
 import urllib
 from abc import (
     ABC,
@@ -9,10 +10,16 @@ import dask
 import pandas as pd
 import pyarrow as pa
 import requests
+import toolz
 
 import xorq as xo
 import xorq.vendor.ibis.expr.operations as ops
 from xorq.common.utils.rbr_utils import make_filtered_reader
+
+
+@toolz.curry
+def try_print_exception(func, exc=Exception, handler=traceback.print_exception):
+    return toolz.excepts(exc, func, handler)
 
 
 def schemas_equal(s0, s1):
@@ -43,6 +50,7 @@ def replace_one_unbound(unbound_expr, table):
     return unbound_expr.op().replace(_replace_unbound).to_expr()
 
 
+@try_print_exception
 def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
     started = False
     for chunk in (chunk for chunk in reader if chunk.data):
@@ -53,6 +61,7 @@ def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
         writer.write_batch(out)
 
 
+@try_print_exception
 def streaming_expr_exchange(
     unbound_expr, make_connection, context, reader, writer, options=None, **kwargs
 ):
