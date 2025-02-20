@@ -14,13 +14,6 @@ import weakref
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
-import xorq as xo
-import xorq.common.exceptions as exc
-import xorq.vendor.ibis.config
-import xorq.vendor.ibis.expr.operations as ops
-import xorq.vendor.ibis.expr.types as ir
-from xorq.vendor import ibis
-from xorq.vendor.ibis import util
 import dask
 import toolz
 from attr import (
@@ -31,6 +24,15 @@ from attr.validators import (
     instance_of,
     optional,
 )
+
+import xorq as xo
+import xorq.common.exceptions as exc
+import xorq.vendor.ibis.config
+import xorq.vendor.ibis.expr.operations as ops
+import xorq.vendor.ibis.expr.types as ir
+from xorq.common.utils.inspect_utils import get_arguments
+from xorq.vendor import ibis
+from xorq.vendor.ibis import util
 
 
 if TYPE_CHECKING:
@@ -1522,19 +1524,23 @@ class Profiles:
 
     def __attrs_post_init__(self):
         if self.profile_dir is None:
-            object.__setattr__(self, "profile_dir", ls.options.profiles.profile_dir)
+            object.__setattr__(self, "profile_dir", xo.options.profiles.profile_dir)
 
     def get(self, name):
         return Profile.load(name, profile_dir=self.profile_dir)
 
     def __getattr__(self, stem):
         try:
-            return self.get(next(el.name for el in self.profile_dir.iterdir() if el.stem == stem))
+            return self.get(
+                next(el.name for el in self.profile_dir.iterdir() if el.stem == stem)
+            )
         except Exception:
             return object.__getattribute__(self, stem)
 
     def __getitem__(self, stem):
-        return self.get(next(el.name for el in self.profile_dir.iterdir() if el.stem == stem))
+        return self.get(
+            next(el.name for el in self.profile_dir.iterdir() if el.stem == stem)
+        )
 
     def __dir__(self):
         return tuple(el for el in self.list() if el.isidentifier())
@@ -1554,7 +1560,7 @@ class Profile:
     @con_name.validator
     def validate_con_name(self, attr, value):
         assert next(
-            (ep for ep in ls._load_entry_points() if ep.name == value),
+            (ep for ep in xo._load_entry_points() if ep.name == value),
             None,
         )
 
@@ -1567,7 +1573,7 @@ class Profile:
             **kwargs,
             **dict(self.kwargs_tuple),
         }
-        connect = getattr(ls.load_backend(self.con_name), "connect")
+        connect = getattr(xo.load_backend(self.con_name), "connect")
         con = connect(**kwargs)
         return con
 
@@ -1607,7 +1613,7 @@ class Profile:
 
     @classmethod
     def get_path(cls, name, profile_dir=None):
-        profile_dir = profile_dir or ls.options.profiles.profile_dir
+        profile_dir = profile_dir or xo.options.profiles.profile_dir
         profile_dir.mkdir(exist_ok=True, parents=True)
         path = profile_dir.joinpath(name).with_suffix(".json")
         return path
