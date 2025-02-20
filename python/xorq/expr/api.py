@@ -379,7 +379,7 @@ def to_pyarrow_batches(
     chunk_size: int = 1_000_000,
     **kwargs: Any,
 ):
-    from letsql.expr.relations import FlightExchange
+    from xorq.expr.relations import FlightExchange
 
     if isinstance(expr.op(), FlightExchange):
         return expr.op().to_rbr()

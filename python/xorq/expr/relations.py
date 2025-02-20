@@ -158,8 +158,8 @@ class FlightExchange(ops.DatabaseTable):
         name=None,
         **kwargs,
     ):
-        import letsql as ls
-        from letsql.flight import FlightServer
+        import xorq as xo
+        from xorq.flight import FlightServer
 
         def roundtrip_cloudpickle(obj):
             import cloudpickle
@@ -174,14 +174,14 @@ class FlightExchange(ops.DatabaseTable):
             input_expr=input_expr,
             unbound_expr=roundtrip_cloudpickle(unbound_expr),
             make_server=make_server or FlightServer,
-            make_connection=make_connection or ls.connect,
+            make_connection=make_connection or xo.connect,
             **kwargs,
         )
 
     def to_rbr(self, do_instrument_reader=None):
-        from letsql.flight import make_con
-        from letsql.flight.action import AddExchangeAction
-        from letsql.flight.exchanger import (
+        from xorq.flight import make_con
+        from xorq.flight.action import AddExchangeAction
+        from xorq.flight.exchanger import (
             UnboundExprExchanger,
         )
 

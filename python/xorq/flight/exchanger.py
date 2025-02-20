@@ -10,10 +10,9 @@ import pandas as pd
 import pyarrow as pa
 import requests
 
-import letsql as ls
-import letsql.vendor.ibis.expr.operations as ops
-from letsql.common.utils.graph_utils import replace_fix
-from letsql.common.utils.rbr_utils import make_filtered_reader
+import xorq as xo
+import xorq.vendor.ibis.expr.operations as ops
+from xorq.common.utils.rbr_utils import make_filtered_reader
 
 
 def schemas_equal(s0, s1):
@@ -33,13 +32,15 @@ def replace_one_unbound(unbound_expr, table):
     if not unbound.schema == dt.schema:
         raise ValueError
 
-    def _replace_unbound(node, _, **kwargs):
+    def _replace_unbound(node, kwargs):
         if isinstance(node, ops.UnboundTable):
             return dt
-        else:
+        elif kwargs:
             return node.__recreate__(kwargs)
+        else:
+            return node
 
-    return unbound_expr.op().replace(replace_fix(_replace_unbound)).to_expr()
+    return unbound_expr.op().replace(_replace_unbound).to_expr()
 
 
 def streaming_exchange(f, context, reader, writer, options=None, **kwargs):
@@ -431,7 +432,7 @@ class PandasUDFExchanger(AbstractExchanger):
 
 
 class UnboundExprExchanger(AbstractExchanger):
-    def __init__(self, unbound_expr, make_connection=ls.connect):
+    def __init__(self, unbound_expr, make_connection=xo.connect):
         self.unbound_expr = unbound_expr
         self.make_connection = make_connection
 
