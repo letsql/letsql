@@ -53,9 +53,9 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://www.letsql.com/"
-Repository = "https://github.com/letsql/letsql.git"
-Issues = "https://github.com/letsql/letsql/issues"
-Changelog = "https://github.com/letsql/letsql/blob/main/CHANGELOG.md"
+Repository = "https://github.com/letsql/xorq.git"
+Issues = "https://github.com/letsql/xorq/issues"
+Changelog = "https://github.com/letsql/xorq/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 duckdb = [

@@ -45,7 +45,7 @@ res = (
 )
 ```
 
-for more examples on how to use letsql, check the [examples](https://github.com/letsql/letsql/tree/main/examples) directory, 
+for more examples on how to use letsql, check the [examples](https://github.com/letsql/xorq/tree/main/examples) directory, 
 note that in order to run some of the scripts in there, you need to install the library with `examples` extra:
 
 ```shell
@@ -54,11 +54,11 @@ pip install 'xorq[examples]'
 
 ## Contributing
 
-Contributions are welcome and highly appreciated. To get started, check out the [contributing guidelines](https://github.com/letsql/letsql/blob/main/CONTRIBUTING.md).
+Contributions are welcome and highly appreciated. To get started, check out the [contributing guidelines](https://github.com/letsql/xorq/blob/main/CONTRIBUTING.md).
 
 ## Support
 
-If you have any issues with this repository, please don't hesitate to [raise them](https://github.com/letsql/letsql/issues/new).
+If you have any issues with this repository, please don't hesitate to [raise them](https://github.com/letsql/xorq/issues/new).
 It is actively maintained, and we will do our best to help you.
 
 ## Acknowledgements
