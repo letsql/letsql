@@ -26,6 +26,7 @@ from xorq.vendor.ibis.expr.api import *  # noqa: F403
 from xorq.vendor.ibis.expr.sql import SQLString
 from xorq.vendor.ibis.expr.types import Table
 
+
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence
     from pathlib import Path

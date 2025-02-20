@@ -11,8 +11,8 @@ import sqlglot.expressions as sge
 import xorq.vendor.ibis.expr.schema as sch
 import xorq.vendor.ibis.expr.types as ir
 from xorq.expr.relations import replace_cache_table
-from xorq.vendor.ibis.backends.snowflake import Backend as IbisSnowflakeBackend
 from xorq.vendor.ibis.backends.snowflake import _SNOWFLAKE_MAP_UDFS
+from xorq.vendor.ibis.backends.snowflake import Backend as IbisSnowflakeBackend
 from xorq.vendor.ibis.expr.operations.relations import (
     Namespace,
 )
