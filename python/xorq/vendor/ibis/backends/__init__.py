@@ -1634,6 +1634,8 @@ class Profile:
 
     @classmethod
     def from_con(cls, con):
+        if con.name == "xorq_flight":
+            return None
         kwargs_name = "config" if con.name == "duckdb" else "kwargs"
         arguments = get_arguments(con.do_connect, *con._con_args, **con._con_kwargs)
         assert not arguments.get("args")
