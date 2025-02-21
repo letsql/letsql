@@ -1526,6 +1526,8 @@ class Profiles:
     def __attrs_post_init__(self):
         if self.profile_dir is None:
             object.__setattr__(self, "profile_dir", xo.options.profiles.profile_dir)
+        if not self.profile_dir.exists():
+            self.profile_dir.mkdir(exist_ok=True, parents=True)
 
     def get(self, name):
         return Profile.load(name, profile_dir=self.profile_dir)
